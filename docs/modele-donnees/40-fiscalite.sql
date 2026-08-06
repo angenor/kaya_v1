@@ -382,3 +382,114 @@ GRANT SELECT, INSERT ON fiscalite.etat_reversement_communal TO kaya_app;
 -- (FIS-08)
 CREATE INDEX ix_etat_reversement_commune_periode
     ON fiscalite.etat_reversement_communal (commune, periode_debut DESC);
+
+
+-- ############################################################################
+-- PROVISIONS — tables et colonnes seulement, aucune logique au MVP
+-- ############################################################################
+
+
+-- ============================================================================
+-- PROVISION RNE — deux colonnes, ajoutées par ALTER TABLE
+-- CLASSE D · branche D1 — canal fiscal externe
+-- Story : FIS-10, cadrage §9.8
+--
+-- Le RNE est un SECOND CANAL d'émission fiscale, à côté de l'API FNE. Il n'est
+-- pas implémenté au MVP, mais ses deux points d'ancrage sont posés maintenant :
+--   — `document_fiscal.canal_emission` — par où le document est parti ;
+--   — `item_certifie.rne_ref`          — la référence RNE de la ligne.
+-- Les poser plus tard imposerait de rétro-qualifier des documents déjà émis,
+-- c'est-à-dire de deviner par quel canal ils sont partis.
+--
+-- ⚠️ FORME DÉLIBÉRÉMENT EN « ALTER TABLE … ADD COLUMN » : c'est du DDL, il ne
+-- passe par AUCUNE politique. C'est la première des trois formes qui marchent
+-- sous FORCE ROW LEVEL SECURITY (00-conventions.sql §7 a), et l'écrire ici
+-- laisse au cycle de la première migration un exemple à recopier.
+-- Les deux colonnes sont NULLABLES : un DEFAULT donnerait une valeur à des
+-- documents dont on ne sait rien, ce qui est pire que l'absence.
+-- ============================================================================
+
+ALTER TABLE fiscalite.document_fiscal
+    ADD COLUMN canal_emission TEXT NULL;
+
+COMMENT ON COLUMN fiscalite.document_fiscal.canal_emission IS
+    'PROVISION RNE — FNE_API | TERNE. Nul tant que le second canal n''est pas implémenté.';
+
+ALTER TABLE fiscalite.document_fiscal
+    ADD CONSTRAINT ck_document_fiscal_canal CHECK (
+        canal_emission IS NULL OR canal_emission IN ('FNE_API', 'TERNE'));
+
+ALTER TABLE fiscalite.item_certifie
+    ADD COLUMN rne_ref TEXT NULL;
+
+COMMENT ON COLUMN fiscalite.item_certifie.rne_ref IS
+    'PROVISION RNE — référence de la ligne au registre national. Aucune logique au MVP.';
+
+
+-- ============================================================================
+-- fiscalite.devis — une proposition chiffrée, avant toute vente
+-- CLASSE B · branche B3 — numérotation propre
+-- Story : FIS-11
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE fiscalite.devis (
+    id                 UUID CONSTRAINT pk_devis PRIMARY KEY,
+    tenant_id          UUID           NOT NULL,
+    -- Pas de REFERENCES : socle/etablissements est un autre module.
+    etablissement_id   UUID           NOT NULL,
+    numero             TEXT               NULL,
+    etat               TEXT           NOT NULL,
+    total_ttc          montant_mineur     NULL,
+    devise             code_devise        NULL,
+    valide_jusquau     DATE               NULL,
+    -- Le document fiscal né de la conversion du devis, s'il y en a un.
+    document_fiscal_id UUID               NULL,
+    horodatage_client  TIMESTAMPTZ        NULL,
+    cree_le            TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT ck_devis_etat CHECK (
+        etat IN ('BROUILLON', 'EMIS', 'ACCEPTE', 'CONVERTI', 'EXPIRE'))
+);
+
+ALTER TABLE fiscalite.devis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fiscalite.devis FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON fiscalite.devis
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON fiscalite.devis
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON fiscalite.devis TO kaya_app;
+
+
+-- ============================================================================
+-- fiscalite.document_commercial — bon de commande, bon de livraison
+-- CLASSE B · branche B3 — numérotation propre
+-- Story : FIS-11
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE fiscalite.document_commercial (
+    id                UUID CONSTRAINT pk_document_commercial PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    devis_id          UUID        NOT NULL,
+    type              TEXT        NOT NULL,
+    numero            TEXT            NULL,
+    etat              TEXT        NOT NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_document_commercial_devis FOREIGN KEY (devis_id)
+        REFERENCES fiscalite.devis (id)
+);
+
+ALTER TABLE fiscalite.document_commercial ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fiscalite.document_commercial FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON fiscalite.document_commercial
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON fiscalite.document_commercial
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON fiscalite.document_commercial TO kaya_app;

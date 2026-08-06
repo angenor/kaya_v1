@@ -418,3 +418,103 @@ GRANT SELECT, INSERT ON caisse.cloture_journaliere TO kaya_app;
 -- d'un établissement (CAI-06)
 CREATE INDEX ix_cloture_journaliere_etab_jour
     ON caisse.cloture_journaliere (etablissement_id, journee DESC);
+
+
+-- ############################################################################
+-- PROVISIONS — tables seulement, aucune logique au MVP
+-- ############################################################################
+
+
+-- ============================================================================
+-- caisse.compte_client — le client à qui l'on fait crédit
+-- CLASSE B · branche B3 — effet monétaire par établissement
+-- Story : CAI-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE caisse.compte_client (
+    id                UUID CONSTRAINT pk_compte_client PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    -- Pas de REFERENCES : etablissements et comptes sont d'autres modules.
+    etablissement_id  UUID           NOT NULL,
+    personne_id       UUID               NULL,
+    raison_sociale    TEXT               NULL,
+    plafond           montant_mineur     NULL,
+    devise            code_devise        NULL,
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now()
+);
+
+ALTER TABLE caisse.compte_client ENABLE ROW LEVEL SECURITY;
+ALTER TABLE caisse.compte_client FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON caisse.compte_client
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON caisse.compte_client
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON caisse.compte_client TO kaya_app;
+
+
+-- ============================================================================
+-- caisse.encours — ce qu'un compte client doit, à un instant arrêté
+-- CLASSE B · branche B3 — effet monétaire par établissement
+-- Story : CAI-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE caisse.encours (
+    id                UUID CONSTRAINT pk_encours PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    compte_client_id  UUID           NOT NULL,
+    montant           montant_mineur NOT NULL DEFAULT 0,
+    devise            code_devise    NOT NULL,
+    arrete_le         TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_encours_compte_client FOREIGN KEY (compte_client_id)
+        REFERENCES caisse.compte_client (id)
+);
+
+ALTER TABLE caisse.encours ENABLE ROW LEVEL SECURITY;
+ALTER TABLE caisse.encours FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON caisse.encours
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON caisse.encours
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON caisse.encours TO kaya_app;
+
+
+-- ============================================================================
+-- caisse.condition_reglement — sous quel délai, par quel moyen
+-- CLASSE B · branche B3 — effet monétaire par établissement
+-- Story : CAI-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE caisse.condition_reglement (
+    id                UUID CONSTRAINT pk_condition_reglement PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    compte_client_id  UUID        NOT NULL,
+    delai_jours       INTEGER         NULL,
+    mode_prefere      TEXT            NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_condition_reglement_compte_client FOREIGN KEY (compte_client_id)
+        REFERENCES caisse.compte_client (id)
+);
+
+ALTER TABLE caisse.condition_reglement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE caisse.condition_reglement FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON caisse.condition_reglement
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON caisse.condition_reglement
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON caisse.condition_reglement TO kaya_app;

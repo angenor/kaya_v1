@@ -461,3 +461,52 @@ GRANT SELECT, INSERT ON comptes.releve_position TO kaya_app;
 -- Sert : relire les positions d'un compte sur une période, à l'enquête (CPT-06)
 CREATE INDEX ix_releve_position_compte_date
     ON comptes.releve_position (compte_id, cree_le DESC, id DESC);
+
+
+-- ############################################################################
+-- PROVISIONS — tables seulement, aucune logique au MVP
+-- ############################################################################
+
+
+-- ============================================================================
+-- comptes.employe — le contrat de travail, JAMAIS confondu avec le compte
+-- CLASSE C · branche C2 — référentiel RH
+-- Story : CPT-00
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- ⚠️ TROIS ENTITÉS DISTINCTES, ET C'EST TOUT L'OBJET DE CETTE TABLE.
+-- Une femme de ménage est un EMPLOYÉ SANS COMPTE ; un comptable externe est un
+-- COMPTE SANS CONTRAT. Écrire « le salaire de l'utilisateur » quelque part
+-- rendrait la paie inaccessible sans refonte de l'authentification — et c'est
+-- la faute qu'on ne rattrape qu'en refaisant les deux.
+-- La table est une provision : elle existe pour que la distinction soit
+-- IMPOSSIBLE À OUBLIER, pas pour porter de la paie au MVP.
+-- ============================================================================
+CREATE TABLE comptes.employe (
+    id            UUID CONSTRAINT pk_employe PRIMARY KEY,
+    tenant_id     UUID           NOT NULL,
+    personne_id   UUID           NOT NULL,
+    -- Pas de REFERENCES : socle/etablissements est un autre module.
+    etablissement_id UUID        NOT NULL,
+    matricule     TEXT               NULL,
+    date_embauche DATE               NULL,
+    numero_cnps   TEXT               NULL,
+    salaire_base  montant_mineur     NULL,
+    devise        code_devise        NULL,
+    cree_le       TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    modifie_le    TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_employe_personne FOREIGN KEY (personne_id)
+        REFERENCES comptes.personne (id)
+);
+
+ALTER TABLE comptes.employe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comptes.employe FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON comptes.employe
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON comptes.employe
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON comptes.employe TO kaya_app;
