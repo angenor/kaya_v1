@@ -138,10 +138,22 @@ demarrer_base() {
         exit "$CODE_PREREQUIS"
     fi
 
+    # ⚠️ L'attente se fait SUR TCP (-h 127.0.0.1), jamais sur le socket Unix,
+    # et le piège vaut d'être écrit : pendant son initialisation, l'entrypoint de
+    # l'image postgres lance un serveur TEMPORAIRE avec listen_addresses vide,
+    # pour créer la base et l'utilisateur. Ce serveur répond « accepting
+    # connections » sur le socket Unix, puis S'ARRÊTE pour laisser place au
+    # serveur définitif. Une attente sur le socket rend donc la main trop tôt, et
+    # le fichier suivant échoue sur « the database system is shutting down » —
+    # une erreur qui accuse le SQL alors que la faute est dans l'attente.
+    # Le port TCP, lui, n'est ouvert que par le serveur définitif.
     local attente=0
     while [ "$attente" -lt "$DELAI_DEMARRAGE" ]; do
         if (cd "$RACINE" && docker compose exec -T "$SERVICE" \
-                pg_isready -U "$PROPRIETAIRE" -d "$BASE" >/dev/null 2>&1); then
+                pg_isready -h 127.0.0.1 -U "$PROPRIETAIRE" -d "$BASE" >/dev/null 2>&1) \
+           && (cd "$RACINE" && docker compose exec -T "$SERVICE" \
+                psql -X -q -t -h 127.0.0.1 -U "$PROPRIETAIRE" -d "$BASE" \
+                -c 'SELECT 1' >/dev/null 2>&1); then
             return 0
         fi
         sleep 1

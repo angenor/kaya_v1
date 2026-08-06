@@ -42,3 +42,4 @@ la base ; `public`, qui n'accueille que ces objets partagés, est hors périmèt
 > soit aveugle, soit rouge en permanence.
 
 - `etablissements`
+- `comptes`

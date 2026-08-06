@@ -132,7 +132,7 @@ saisie et B à l'annulation après envoi. Le registre classe **l'opération**, e
 | Élévation de privilège | **C** | C2 — **aucune élévation hors ligne, jamais** | CPT-02 |
 | `appareil_enrole` — enrôlement, révocation | **C** | C2 — explicitement C au cadrage §11.3 | CPT-05 |
 | Attestation d'intégrité — vérification | **C** | C2 — vérifiée côté serveur | CPT-06 |
-| Relevé de position (géorepérage souple) | **A** | A4 — signal d'audit, jamais bloquant | CPT-06 |
+| `releve_position` — relevé de position (géorepérage souple) | **A** | A4 — signal d'audit, jamais bloquant | CPT-06 |
 | `journal_audit` — écriture d'une entrée | **A** | A4 — append-only, immuable, sans effet propre | CPT-04 |
 
 > **`journal_audit` est A, l'opération qu'il trace garde sa propre classe.** Tracer une remise
