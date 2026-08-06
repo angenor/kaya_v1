@@ -568,6 +568,86 @@ test_negatif_p01() {
     return "$CODE_OK"
 }
 
+# Ajoute à la copie de travail une table non déclarée au registre, PORTANT SON
+# TRONC COMMUN ET SA RLS COMPLÈTE.
+#
+# ⚠️ La RLS complète est le point du test, et c'est la faute type d'un test
+# négatif écrit vite : une table sans politique échouerait D'ABORD sur P-01, et
+# l'on croirait avoir prouvé P-02 alors qu'on aurait prouvé P-01 une seconde
+# fois. Ici, P-01 doit rester VERTE et P-02 seule doit rougir.
+ajouter_table_bidon() {
+    local fichier="$1"
+    cat >> "$fichier" <<FIN_TABLE_BIDON
+
+
+-- Table ajoutée par --test-negatif p02, dans une COPIE DE TRAVAIL seulement.
+CREATE TABLE etablissements.$TABLE_BIDON (
+    id                UUID CONSTRAINT pk_$TABLE_BIDON PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE etablissements.$TABLE_BIDON ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.$TABLE_BIDON FORCE  ROW LEVEL SECURITY;
+CREATE POLICY isolation_tenant ON etablissements.$TABLE_BIDON
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+CREATE POLICY administration_editeur ON etablissements.$TABLE_BIDON
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+GRANT SELECT ON etablissements.$TABLE_BIDON TO kaya_app;
+FIN_TABLE_BIDON
+}
+
+test_negatif_p02() {
+    local copie journal empreinte_avant empreinte_apres
+
+    printf '\n── TEST NÉGATIF P-02 · table %s ajoutée (copie de travail)\n' "$TABLE_BIDON"
+
+    empreinte_avant="$(empreinte_modele)"
+    copie="$(copier_modele)"
+    journal="$copie/.sortie-porte"
+
+    ajouter_table_bidon "$copie/10-etablissements.sql"
+
+    modele_applique=0
+
+    # Premier temps : P-01 DOIT rester verte. Si elle rougit, la table du test
+    # est mal formée et le reste ne prouverait rien.
+    if ! porte_p01 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ P-01 a rougi sur la table du test : elle est mal formée.\n'
+        printf '     Le test aurait prouvé P-01 une seconde fois, pas P-02.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-01 reste VERTE sur la table ajoutée — l'\''échec qui suit est bien celui de P-02\n'
+
+    # Second temps : P-02 doit rougir, et nommer la table.
+    if porte_p02 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur une table non déclarée au registre.\n'
+        printf '     P-02 est AVEUGLE : un vert de cette porte ne veut rien dire.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    if ! grep -q "$TABLE_BIDON" "$journal"; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER %s.\n' "$TABLE_BIDON"
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|etablissements\.' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+
+    empreinte_apres="$(empreinte_modele)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ docs/modele-donnees/ A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '   La porte a échoué comme attendu — TEST NÉGATIF VERT\n'
+    printf '   docs/modele-donnees/ inchangé (empreinte identique avant et après)\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -650,12 +730,17 @@ main() {
                     test_negatif_p01 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
-                tous)
-                    test_negatif_p01 || exit "$CODE_AVEUGLE"
+                p02)
+                    test_negatif_p02 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
+                tous)
+                    test_negatif_p01 || exit "$CODE_AVEUGLE"
+                    test_negatif_p02 || exit "$CODE_AVEUGLE"
+                    portes_passees=2
+                    ;;
                 *)
-                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01)"
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01 ou p02)"
                     ;;
             esac
             local duree_n=$((SECONDS - debut))
