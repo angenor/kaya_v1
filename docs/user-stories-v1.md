@@ -55,7 +55,8 @@
 10. *(phase 3, cycle IMP)* Tout document imprimé vérifié sur imprimante thermique réelle. *(En phase 2, l'équivalent est l'aperçu à l'écran au gabarit exact : 80 mm, ~42 caractères, sans couleur.)*
 11. **`docs/modele-donnees/{schema}.sql` est à jour** — en phase 1 il est le livrable, en phase 3 il est mis à jour dans le même changement que la migration.
 12. *(phase 2)* **Le jeu de données simulées a la forme du modèle** : mêmes noms de champs, mêmes types, mêmes valeurs d'énumération.
-13. *(phase 3)* **Les données simulées des endpoints livrés sont supprimées.** Une simulation qui survit à son endpoint fait échouer le build.
+13. *(phase 3)* **Les données simulées des endpoints livrés sont supprimées.** Une simulation qui survit à son endpoint fait échouer la vérification.
+14. **`scripts/verifier.sh` passe en une commande**, et il enchaîne tout ce qui doit passer — aucun contrôle lancé à la main en plus. Toute porte ajoutée par le cycle a **son test négatif**.
 
 ### 0.5 Ordre d'implémentation — trois phases (cadrage §13.0)
 
@@ -113,7 +114,7 @@ Le contenu des tranches ne change pas ; ce qui change est qu'elles s'appuient su
 | Synchronisation & hors-ligne | SYN | 4 | — | — | T1/T3 |
 | Impression & documents | IMP | 3 | 1 | — | T2/T3 |
 | Stocks | STK | 4 | — | — | T5 |
-| **Modèle de données** | **DAT** | — | — | — | **Phase 1 (D1, D2)** |
+| **Modèle de données et vérification** | **DAT** | 3 | — | — | **Phase 1 (D1, D2)** |
 | Coquilles et capacités de plateforme | **PWA** | 5 | 2 | — | T4, sauf PWA-02 dû en phase 2 |
 | Direction & pilotage | DIR | 5 | — | — | T3/T5 |
 | Console éditeur & abonnements | ADM | 6 | — | — | T5 |
@@ -127,6 +128,8 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - **Classe A** : test de rejeu — la même écriture envoyée trois fois produit un seul enregistrement. Test de désordre — trois écritures appliquées dans les six ordres possibles produisent le même état final.
 - **Classe D** : test de double soumission au retour du réseau.
 - Toute entité rattachée à un séjour : test du **scénario orphelin** (SYN-03).
+
+**Tous ces tests entrent dans `scripts/verifier.sh`**, la commande unique (DAT-03) — jamais dans un script à part qu'on lancerait de mémoire.
 
 > **En phase 2, ces tests ont un pendant à l'écran, et il compte autant.** Une opération de classe B, C ou D doit être **refusée hors ligne, avec son explication, AVANT que l'utilisateur ne tente l'action** — même quand rien n'est branché et que la simulation pourrait tout accepter. Un écran qui accepte en phase 2 ce que le serveur refusera en phase 3 est un écran à refaire, et le mensonge ne se découvre qu'au branchement.
 
@@ -145,8 +148,15 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 **DAT-02 — Règle de tenue du modèle (P0, permanente)**
 - **Toute migration de phase 3 met à jour le fichier de son schéma dans le même changement.** Jamais après, jamais dans un lot de rattrapage.
-- **Un test compare le schéma réel de la base aux fichiers et fait échouer le build sur tout écart** — dans les deux sens : une table du code absente du modèle, une table du modèle absente du code.
+- **Un test compare le schéma réel de la base aux fichiers et échoue sur tout écart** — dans les deux sens : une table du code absente du modèle, une table du modèle absente du code. Porte ajoutée à `scripts/verifier.sh` par le premier cycle de phase 3.
 - Motif : sans ce test, les fichiers deviennent une photo périmée en trois cycles. **Une source de vérité périmée est pire que pas de source du tout**, parce qu'on continue de la croire.
+
+**DAT-03 — La commande de vérification (P0, cycle D1)**
+- **`scripts/verifier.sh` — une seule commande, documentée au README, qui enchaîne tout ce qui doit passer** et sort en échec au premier contrôle rouge. Pas dix scripts qu'on lance de mémoire.
+- Le cycle D1 la crée avec **deux portes** : **P-01** le modèle s'applique sur une base vierge et chaque table porte `ENABLE` + `FORCE` + sa politique ; **P-02** toute table du modèle a une classe déclarée au registre.
+- **Chaque porte a son test négatif** : on la casse volontairement une fois — retirer une politique, ajouter une table non déclarée — pour vérifier qu'elle échoue vraiment. *Une porte qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à trouver.*
+- ⚠️ **Aucun serveur de CI avant la phase 3.** GitHub Actions n'arbitre qu'entre développeurs, et le développeur est seul ; ce qui a de la valeur tout de suite est que le contrôle soit **mécanique**, pas qu'une machine le lance. Le cycle B1 installera le serveur, et il ne fera que **lancer ce script sans le modifier**.
+- **Une porte s'ajoute quand une erreur réelle s'est produite**, ou quand son absence coûterait une fuite entre clients — jamais parce qu'elle figurerait bien dans une liste. Les numéros s'attribuent dans l'ordre d'apparition.
 
 ---
 
@@ -154,7 +164,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 **TRX-01 — Contrat OpenAPI et génération du client (P0)**
 - Handlers annotés `#[utoipa::path]` ; schémas `ToSchema`/`IntoParams` ; spec exposée sur `/api-docs/openapi.json` ; Swagger UI protégée hors production.
-- CI : génération du client TypeScript depuis la spec ; **diff non commité = build en échec**.
+- Génération du client TypeScript depuis la spec ; **diff non commité = vérification en échec**. Porte ajoutée à `scripts/verifier.sh` par ce cycle.
 - Le client n'est jamais édité à la main.
 
 **TRX-02 — Journal d'événements métier (outbox) (P0)**
@@ -175,7 +185,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 **TRX-03 — Multi-tenant et RLS forcée (P0)**
 - Chaque table porte `tenant_id` ; `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` **et** `FORCE ROW LEVEL SECURITY` ; rôle applicatif distinct du propriétaire des tables.
 - `SET LOCAL app.current_tenant` posé **dans chaque transaction**, jamais à l'ouverture de connexion.
-- Test qui **échoue si une table du schéma n'a aucune politique RLS** — exécuté en CI.
+- Test qui **échoue si une table du schéma n'a aucune politique RLS** — porte **P-01**, dans `scripts/verifier.sh` dès la phase 1.
 - Test d'isolation : un utilisateur du tenant A ne lit ni n'écrit aucune ligne du tenant B, sur chaque endpoint.
 
 **TRX-04 — Observabilité et sauvegardes (P0)**
@@ -235,7 +245,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Le profil est une propriété du module d'activité, pas du produit : un même tenant pourra un jour avoir un hôtel en `SIMPLE` et une quincaillerie en `DETAILLE`.
 
 **ETB-02c — Test d'agnosticité du socle (P0)**
-- **Test structurel permanent, en CI pour toujours** : un établissement portant un module d'activité **fictif minimal**, ne consommant **aucune capacité**, fonctionne de bout en bout — création, vente comptoir, encaissement, document fiscal, clôture journalière.
+- **Test structurel permanent** : un établissement portant un module d'activité **fictif minimal**, ne consommant **aucune capacité**, fonctionne de bout en bout — création, vente comptoir, encaissement, document fiscal, clôture journalière. ⚠️ **Il a un pendant en phase 2, et c'est là qu'il coûte le moins** : le même établissement doit rendre une application cohérente **sur données simulées**. C'est le moment le moins cher pour découvrir que l'accueil suppose une chambre.
 - C'est la preuve formelle que le socle ne suppose ni hébergement, ni point de vente, ni stock, ni aucune spécificité de verticale.
 - **Ce test est le garde-fou de toute extension future du produit.** S'il tombe, le socle s'est spécialisé sans qu'on le voie.
 
@@ -532,7 +542,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 **FIS-01 — Adaptateur de juridiction (P0)**
 - Trait `JurisdictionAdapter { compute_taxes, required_document_fields, emission_channel, certify, remittance_reports }`.
 - **Un seul adaptateur au MVP** : `CoteDIvoire`. **Aucune règle fiscale ne vit ailleurs dans le code.**
-- Test doré : jeu de cas figés validé par le fiscaliste, exécuté en CI. Toute modification du moteur qui casse un cas doré échoue le build.
+- Test doré : jeu de cas figés validé par le fiscaliste. Toute modification du moteur qui casse un cas doré fait échouer la vérification.
 
 **FIS-02 — Séparation documents opérationnels / fiscaux (P0)**
 - Deux agrégats distincts, deux numérotations, deux cycles de vie.
@@ -861,7 +871,7 @@ rouvre. Trois conséquences en découlent, et elles sont vraies **maintenant** :
   bas ne se diagnostique pas depuis l'écran — il faut lire les journaux du serveur ;
 - **les connexions réussies sont comptées**, ce qui n'est pas l'usage courant : ne compter que les
   échecs laisserait un attaquant muni d'un identifiant volé essayer autant qu'il veut ;
-- la porte **P-22** en dépend : chacun de ses deux moteurs ouvre une session, et quatre passages
+- la porte **P-04** en dépend : chacun de ses deux moteurs ouvre une session, et quatre passages
   rapprochés butent sur le seuil.
 
 ---

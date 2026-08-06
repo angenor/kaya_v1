@@ -32,7 +32,7 @@ Trois obligations en découlent, et elles sont satisfaites en trois endroits dis
 
 | Obligation | Où elle est satisfaite | Vérifiée par |
 |---|---|---|
-| L'avis de copyright et la licence accompagnent le fichier | `app/assets/fonts/*-LICENCE.txt` | **P-21b, contrôle 5** |
+| L'avis de copyright et la licence accompagnent le fichier | `app/assets/fonts/*-LICENCE.txt` | **la porte des ressources embarquées** |
 | Ils entrent dans le paquet distribué | `app/core/licences/` les importe en clair (`?raw`) | La construction |
 | Ils sont atteignables par un humain | Section « Mentions » de l'écran `G1` | Revue |
 
@@ -110,6 +110,6 @@ source de vérité du design.
 ## Voir aussi
 
 - `app/assets/fonts/MODIFICATIONS.md` — le détail technique de ce qui a été modifié, et pourquoi
-- `scripts/ci/ressources-embarquees.sh` — la porte P-21b, contrôle 5
+- La porte des ressources embarquées, dans `scripts/verifier.sh`
 - `docs/versions-reference.md` §3.2 — les versions des paquets d'origine
 - `.specify/memory/constitution.md` — principe XII (référence visuelle), principe IX (sécurité)

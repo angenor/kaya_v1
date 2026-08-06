@@ -214,7 +214,7 @@ relecture future ne les prenne pas pour un oubli d'entrée au lexique.
 
 **Règle** : tout nouveau concept technique visible par l'utilisateur entre **dans ce fichier**
 avant d'être codé. Fait partie de la Definition of Done (`docs/user-stories-v1.md` §0.4)
-et de la porte **P-16** de la constitution.
+et de la porte qui refuse toute chaîne visible écrite en dur.
 
 ---
 
@@ -228,7 +228,7 @@ et de la porte **P-16** de la constitution.
 3. Écrire la formulation telle qu'Adjoua la dirait à Abengourou, pas telle que la documentation
    technique la nomme.
 4. Les deux clés i18n (`fr` puis `en`) sont créées dans le même changement — jamais de chaîne
-   en dur (porte **P-16**).
+   en dur — c'est ce que la porte du lexique vérifie.
 5. **Une phrase qui doit rester identique dans deux situations se déclare comme telle.** Le cycle
    CPT en apporte la première : `identifiants_invalides`. La tentation permanente sera de la
    préciser — « ce compte n'existe pas », « mot de passe incorrect », « compte désactivé » — et

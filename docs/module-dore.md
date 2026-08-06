@@ -215,7 +215,7 @@ normale ; une table non déclarée est l'erreur.
 ## Couche 3 — Le repository
 
 **Toutes les requêtes passent par les macros `query!` / `query_as!` / `query_scalar!` sur
-littéral.** Elles sont vérifiées à la compilation contre la vraie base (porte P-18), et
+littéral.** Elles sont vérifiées à la compilation contre la vraie base, et
 `AssertSqlSafe` n'apparaît nulle part.
 
 ### Le repository prend la transaction, il ne l'ouvre pas
@@ -270,7 +270,7 @@ L'UUID v7 étant ordonné dans le temps, il départage dans le bon sens.
 
 ### ⚠️ **`cree_le` FAIT AUTORITÉ. `horodatage_client` ne porte AUCUNE règle.**
 
-*Gardé par une porte de CI dédiée. Ce n'est pas le nom qui manque, c'est l'interdiction vérifiée
+*Gardé par une porte dédiée. Ce n'est pas le nom qui manque, c'est l'interdiction vérifiée
 d'employer l'autre.*
 
 | Colonne | Ce qu'elle est | Ce qui peut s'y appuyer |
@@ -309,7 +309,7 @@ ne produisent qu'une entrée.
 ### La règle centrale du produit
 
 > Toute transition d'état écrit un événement outbox **dans la même transaction** (principe II,
-> porte P-05).
+> porte de l'outbox).
 
 Elle n'est pas tenue par la discipline mais par une signature :
 
@@ -369,7 +369,7 @@ annoncer une adresse que le serveur ne sert pas, sans que rien ne le signale.
 
 `utoipa-actix-web` ne collecte les chemins **que** depuis `service(...)`. Un endpoint monté par
 `route(...)` serait servi sans figurer au contrat : absent du client généré, et invisible pour la
-porte P-08.
+la porte du contrat.
 
 ### `200` sur rejeu, pas `409`
 
@@ -384,8 +384,8 @@ l'identifiant de requête.
 
 ### Le contrat est un produit du code
 
-Après toute modification de handler : `scripts/ci/generer-client.sh`, puis commit du client. La
-porte **P-01** fait échouer le build sur tout écart.
+Après toute modification de handler : régénérer le client, puis le commiter. La
+porte du client généré fait échouer la vérification sur tout écart.
 
 ---
 
@@ -448,13 +448,13 @@ const reponse = await client.PUT(
 ```
 
 Le chemin, la forme du corps et celle de la réponse viennent de `clients/ts/types.gen.ts`, dérivé du
-contrat (porte P-01). Renommer un champ côté serveur fait échouer la **compilation du front**, au
+contrat. Renommer un champ côté serveur fait échouer la **compilation du front**, au
 lieu de produire un `undefined` que personne ne verrait avant la démonstration.
 
-> **Cette phrase a été fausse pendant deux cycles, et P-01 était verte.** Elle ne l'est que si les
+> ⚠️ **Cette phrase peut être fausse alors que la porte du client généré est VERTE.** Elle n'est vraie que si les
 > types consommés **sont** ceux du contrat. Les quatre fichiers d'accès à l'API les redéclaraient
 > à la main, puis convertissaient les réponses par `as unknown as` — la seule construction de
-> TypeScript qui relie deux types sans rapport. P-01 restait verte : elle compare le client généré
+> TypeScript qui relie deux types sans rapport. La porte reste verte : elle compare le client généré
 > au client commité, et les deux étaient à jour ; la rupture était un cran plus loin. Vérifié en
 > T062 en renommant réellement `CompteVue.nom_affichage` côté serveur — le front compilait.
 >
@@ -644,7 +644,7 @@ Les trois symptômes observés n'en faisaient qu'un :
 | Pièce | Fichier | Pourquoi pas ailleurs |
 |---|---|---|
 | **Thème** | `plugins/01.theme.client.ts` | Nuxt résout **tous** les plugins avant `vueApp.mount()`. Un `onMounted` dans une page n'amorcerait que cette page — c'est le défaut, pas le remède. Suffixe `.client` obligatoire : le module touche `document` et `localStorage`. |
-| **Anti-scintillement** | script en ligne dans `app.head` de `nuxt.config.ts` | En SPA, la coquille est peinte avec `body { background-color }` **avant** que le moindre module ne s'exécute. Même en `enforce: 'pre'`, un plugin arrive après le premier pixel : l'utilisateur en mode sombre verrait un éclair blanc à chaque ouverture. En ligne, jamais un hôte externe — P-21 intacte. |
+| **Anti-scintillement** | script en ligne dans `app.head` de `nuxt.config.ts` | En SPA, la coquille est peinte avec `body { background-color }` **avant** que le moindre module ne s'exécute. Même en `enforce: 'pre'`, un plugin arrive après le premier pixel : l'utilisateur en mode sombre verrait un éclair blanc à chaque ouverture. En ligne, jamais un hôte externe — la porte des ressources embarquées reste intacte. |
 | **Reprise de session** | `middleware/01.session.global.ts` | Un middleware global s'exécute avant **chaque** navigation, la première comprise. C'est la seule place qui couvre les six routes sans être recopiée six fois — et la recopie était la faute. |
 | **Coquille** | `layouts/default.vue` | Une racine stable, **un seul `<main>`**. Une page nouvelle en hérite sans rien écrire, et ne peut pas l'oublier. |
 | **Sortie de session** | `layouts/default.vue`, pied de coquille | Même raison que la reprise : dans un écran, chaque écran suivant devrait s'en souvenir. C'est un **pied** et non un en-tête parce que `R1` et `G1` portent déjà deux `<header>` différents et que `G3`/`G4` n'en ont aucun — se poser au-dessus les rouvrirait tous les trois, ce que `derivation.md` refuse. |
@@ -785,7 +785,7 @@ migration alors que le volume est vide.
 
 Sans ces features, utoipa sérialise chemins et schémas **dans l'ordre trié**, donc indépendamment
 de l'ordre de découverte des routes. C'est exactement l'exigence n° 2 du gel §3.2 pour la porte
-P-01 ; les activer réintroduirait la dépendance à l'ordre de déclaration. Vérifié : un endpoint
+la porte du client généré ; les activer réintroduirait la dépendance à l'ordre de déclaration. Vérifié : un endpoint
 ajouté change 33 lignes sur 204.
 
 ### Une porte peut mentir en lisant le mauvais contrat
@@ -794,7 +794,7 @@ ajouté change 33 lignes sur 204.
 schéma d'authentification. **Les chemins sont collectés au montage des routes**, donc seulement
 par `split_for_parts()`.
 
-La porte P-08, paramétrée sur le squelette, constatait zéro route et passait au vert avec deux
+Une porte paramétrée sur le squelette constate zéro route et passe au vert avec deux
 endpoints servis. Elle consomme désormais `application::contrat_complet()`. **Une porte qui ne
 trouve jamais rien est indistinguable d'une porte qui n'a rien à trouver** — d'où le test négatif
 obligatoire sur chaque porte.
@@ -889,7 +889,7 @@ tel trait n'est pas dyn-compatible. L'injection de dépendances du cadrage §13.
    `service(...)`, `200` sur rejeu.
 6. **Tests** — les deux tests de la classe, sur l'application réelle. Plus le test négatif de
    chaque porte touchée.
-7. **Client** — `scripts/ci/generer-client.sh`, commit du diff.
+7. **Client** — régénérer, commiter le diff. La porte du client généré compare et refuse tout écart.
 8. **Écran** — **il existe déjà** : il a été livré en phase 2 sur données simulées. Le travail est
    de **débrancher la simulation** et de la remplacer par le client généré, derrière la même
    interface. *(Cette ligne disait « seulement s'il hérite d'un motif… sinon il ne se code pas ».

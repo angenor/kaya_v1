@@ -36,7 +36,7 @@ Toutes celles qui suivent sont vérifiables par une machine ou tiennent en une p
    officiel interrogé et sa date de vérification — dans ce fichier pour le §2, **en commentaire du
    manifeste** pour les §3.x. Une version non vérifiée est une version inconnue.
 3. **Épinglage exact obligatoire** : `= 4.14.0` ou `4.14.0`, jamais `^4.14`, `~4.14` ni `4.*`.
-   La porte de CI **P-20** échoue sur tout intervalle et sur tout lockfile absent ou périmé.
+   La porte **P-03** échoue sur tout intervalle et sur tout lockfile absent ou périmé.
    **Cette règle ne connaît aucune exception, et c'est la seule de ce document dans ce cas** —
    c'est elle qui rend une reconstruction identique à six mois d'écart. Prendre la dernière stable
    et l'épingler exactement ne sont pas contradictoires : le premier dit *quoi choisir*, le second
@@ -179,7 +179,7 @@ multi-architecture, la bascule est un changement de tag.
 ## 3. Dépendances directes du socle
 
 Épinglées au même titre. Ce ne sont pas des « briques » au sens du principe XI, mais elles
-entrent dans le lockfile et la porte P-20 les couvre.
+entrent dans le lockfile et la porte **P-03** les couvre.
 
 ### 3.1 Écosystème Rust
 
@@ -223,11 +223,11 @@ entrent dans le lockfile et la porte P-20 les couvre.
 |---|---|---|
 | `@vite-pwa/nuxt` | **à vérifier au cycle qui l'ajoute** | **Service worker, manifeste d'application, invite d'installation** — la coquille de la PWA (cadrage §13.3). Enveloppe `vite-plugin-pwa` et Workbox ; une seule ligne épingle la chaîne. Vérifier `peerDependencies` contre Nuxt 4.5.1 et le Vite qu'il embarque, comme pour `@vitejs/plugin-vue` |
 | `@nuxtjs/i18n` | **10.6.0** | i18n fr/en, fr par défaut (principe VIII) |
-| `openapi-typescript` | **7.13.0** | **Génère les types TS depuis `openapi.json`** — le seul artefact généré (principe I·a, porte P-01) |
+| `openapi-typescript` | **7.13.0** | **Génère les types TS depuis `openapi.json`** — le seul artefact généré (principe I·a), soumis à la porte du client généré |
 | `openapi-fetch` | **0.17.0** | Client fetch typé, ~6 kB — **écrit à la main, jamais généré** |
 | `typescript` | **5.9.3** ⚠️ | `peerDependency` de `openapi-typescript` — **dernière 5.x, pas la dernière stable** |
 | `vitest` | **4.1.10** | Tests de l'application et des surfaces web |
-| `eslint` | **10.8.0** | Lint — porte **P-15** : aucune API de plateforme appelée hors `PlatformAdapter` |
+| `eslint` | **10.8.0** | Lint — porte : aucune API de plateforme appelée hors `PlatformAdapter` |
 | `@eslint/js` | **10.0.1** | Configuration de base d'eslint |
 | `eslint-plugin-vue` | **10.10.0** | Règles Vue |
 | `typescript-eslint` | **8.65.0** | Règles TypeScript |
@@ -235,18 +235,18 @@ entrent dans le lockfile et la porte P-20 les couvre.
 | `@vue/test-utils` | **2.4.11** | Montage de composants Vue en test — **SC-005** : aucun service inactif dans le HTML rendu |
 | `happy-dom` | **20.11.1** | Environnement DOM de Vitest, requis par le montage ci-dessus |
 | `@vitejs/plugin-vue` | **6.0.8** | Compile les composants monofichiers pour Vitest **hors Nuxt** — sans lui, `@vue/test-utils` ne peut monter aucun `.vue` |
-| `@playwright/test` | **1.62.1** | Harnais **end-to-end** — porte **P-22** : l'application démarre et chaque route s'atteint. Runner, fixtures et `expect` à réessai inclus ; télécharge ses navigateurs sur le poste, **jamais dans le paquet livré** |
+| `@playwright/test` | **1.62.1** | Harnais **end-to-end** — porte **P-04** : l'application démarre et chaque route s'atteint. Runner, fixtures et `expect` à réessai inclus ; télécharge ses navigateurs sur le poste, **jamais dans le paquet livré** |
 | `@types/node` | **24.13.3** ⚠️ | Types du runtime — **dernière `24.x`, alignée sur Node `24.18.1`**, pas la dernière stable |
-| `@phosphor-icons/web` | **2.1.2** | **Source des glyphes d'icônes** — sous-réglée à la construction, jamais expédiée telle quelle (porte **P-21**) |
+| `@phosphor-icons/web` | **2.1.2** | **Source des glyphes d'icônes** — sous-réglée à la construction, jamais expédiée telle quelle (porte des ressources embarquées) |
 | `subset-font` | **2.5.0** | Sous-règle la police d'icônes ; **contrôle tiers** des polices de texte par harfbuzz — outil de génération, absent du paquet livré |
-| `@fontsource-variable/archivo` | **5.3.0** | **Source d'Archivo** — texte et titres, embarquée en local (portes **P-21** et **P-21b**) |
+| `@fontsource-variable/archivo` | **5.3.0** | **Source d'Archivo** — texte et titres, embarquée en local (porte des ressources embarquées) |
 | `@fontsource-variable/chivo-mono` | **5.3.0** | **Source de Chivo Mono** — montants, quantités, heures ; le tabulaire qui aligne les colonnes |
 
 #### Génération du client TypeScript — pourquoi ces deux paquets et pas un générateur de SDK
 
 **Le choix repose sur une séparation, pas sur un outil** : `openapi-typescript` produit
 **uniquement un fichier de types**, dérivé mécaniquement du contrat ; `openapi-fetch` est une
-bibliothèque runtime **installée, jamais générée**. L'unique artefact soumis à la porte P-01 est
+bibliothèque runtime **installée, jamais générée**. L'unique artefact soumis à cette porte est
 donc un fichier de types, sans code d'exécution — ce qui réduit la surface de diff au strict dérivé
 du contrat. Un générateur de SDK complet (`@hey-api/openapi-ts`, `orval`, `oazapfts`) produirait
 des fichiers de client à chaque exécution, multipliant les occasions de faux positif. Ils sont tous
@@ -259,7 +259,7 @@ gamme en réseau intermittent.
 
 1. **Déterminisme d'octet.** Deux exécutions successives sur le même `openapi.json` DOIVENT
    produire deux fichiers identiques. À vérifier par `cmp`, pas par lecture. Sans cette propriété,
-   P-01 échoue au hasard et sera désactivée sous trois semaines.
+   la porte échoue au hasard et sera désactivée sous trois semaines.
 2. **Ordre stable des membres**, indépendant de l'ordre de découverte des routes par utoipa. À
    vérifier en ajoutant un endpoint en fin de fichier Rust et en constatant que le diff reste local.
 
@@ -303,12 +303,14 @@ passer au vert sur un seul.
 
 ⚠️ **La révision de navigateur n'est pas épinglable séparément** : elle est figée dans le
 `browsers.json` de `playwright-core`, et **le cache du poste ne sert que si les révisions
-coïncident**. WebKit pèse environ trois fois Chromium (≈ 294 Mio contre ≈ 95). **En CI, prévoir le
+coïncident**. WebKit pèse environ trois fois Chromium (≈ 294 Mio contre ≈ 95). **Le jour où un
+serveur d'intégration lance la vérification (phase 3), prévoir le
 cache explicitement sur les deux révisions**, ou employer une image Playwright — sinon chaque
 exécution repart du réseau.
 
-**Hors périmètre de P-21, et ce n'est pas une dérogation** : Playwright télécharge des navigateurs
-mais ne s'exécute **jamais** dans le produit. P-21 ne porte que sur ce que l'**application** charge
+**Hors périmètre de la porte des ressources embarquées, et ce n'est pas une dérogation** :
+Playwright télécharge des navigateurs mais ne s'exécute **jamais** dans le produit. Cette porte ne
+porte que sur ce que l'**application** charge
 à l'exécution. Même raison pour la licence : elle n'entre pas à
 `docs/conformite/licences-tierces.md`, qui inventorie les œuvres **embarquées**.
 
@@ -364,7 +366,7 @@ chaque installation.
 
 ⚠️ **La version doit être ALIGNÉE sur celle des maquettes** — deux versions différentes donnent
 deux dessins d'icône, écart qu'aucune porte ne verrait. Et la maquette charge Phosphor depuis un
-CDN : **l'application ne le fait jamais**, ce que la porte P-21 refuse.
+CDN : **l'application ne le fait jamais**, ce que la porte des ressources embarquées refuse.
 
 #### `@types/node` suit la ligne majeure du runtime, pas la dernière stable
 
@@ -420,13 +422,13 @@ Aucun générateur ne peut décider que `chrono` est écarté.
 
 | Fichier | Porte | Contenu attendu |
 |---|---|---|
-| `rust-toolchain.toml` | P-20 | `channel = "1.97.1"` — jamais `stable` |
-| `Cargo.toml` (workspace) | P-20 | `[workspace.dependencies]` en versions exactes, héritées par tous les crates |
-| `Cargo.lock` | P-20 | **Commité**, y compris pour les binaires |
-| `package.json` | P-20 | Versions exactes, sans `^` ni `~` ; `engines.node` |
-| `pnpm-lock.yaml` | P-20 | **Commité** |
-| `.nvmrc` | P-20 | `24.18.1` |
-| `compose.yml` | P-20 | Tags d'image exacts du §4.2 — **jamais `latest`** |
+| `rust-toolchain.toml` | P-03 | `channel = "1.97.1"` — jamais `stable` |
+| `Cargo.toml` (workspace) | P-03 | `[workspace.dependencies]` en versions exactes, héritées par tous les crates |
+| `Cargo.lock` | P-03 | **Commité**, y compris pour les binaires |
+| `package.json` | P-03 | Versions exactes, sans `^` ni `~` ; `engines.node` |
+| `pnpm-lock.yaml` | P-03 | **Commité** |
+| `.nvmrc` | P-03 | `24.18.1` |
+| `compose.yml` | P-03 | Tags d'image exacts du §4.2 — **jamais `latest`** |
 
 > ⚠️ **Aucun de ces fichiers n'existe encore dans ce dépôt.** Le tableau dit ce que le cycle de
 > démarrage doit produire, pas ce qu'il trouvera. **Les valeurs du §2 et du §3 sont à revérifier
@@ -460,11 +462,11 @@ développement sur poste Apple Silicon (`arm64`) et en production sur VPS Contab
 
 ---
 
-### 4.3 Ce que la porte P-20 ne vérifie pas — complément à écrire
+### 4.3 Ce que la porte P-03 ne vérifie pas — complément à écrire
 
-`scripts/ci/versions-epinglees.sh` vérifie la **forme** : aucun intervalle, aucun `latest`, des
+La porte **P-03** vérifie la **forme** : aucun intervalle, aucun `latest`, des
 lockfiles suffisants. Il le documente lui-même et le motive bien — comparer les **valeurs** aux
-registres officiels ferait de la CI une dépendance réseau.
+registres officiels ferait de la vérification une dépendance réseau.
 
 **Mais ce fichier est un fichier du dépôt.** Comparer les manifestes à `docs/versions-reference.md`
 ne demande aucun réseau, et comble le trou qui a laissé passer `typescript 7.0.2` puis sa
@@ -541,7 +543,7 @@ echo "@playwright/test $PW"
 curl -sS "https://cdn.jsdelivr.net/npm/playwright-core@$PW/browsers.json" \
   | python3 -c "
 import sys, json
-# Les DEUX moteurs de P-22 : chromium couvre Windows et Android, webkit couvre macOS, iOS et
+# Les DEUX moteurs de P-04 : chromium couvre Windows et Android, webkit couvre macOS, iOS et
 # Linux. N'en relever qu'un rendrait la vérification aveugle sur trois cibles du produit.
 for e in json.load(sys.stdin)['browsers']:
     if e['name'] in ('chromium', 'webkit'):

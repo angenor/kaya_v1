@@ -206,7 +206,7 @@ C'est un produit qui n'existe pas, et le besoin est authentique : ce propriétai
 >
 > **Ils sont intégrés aux documents et matérialisés par les cycles D1 et D2 de la phase 1**, dont le prompt les cite un par un (`docs/Kaya_Prompts_SpecKit.md` §3). C'est le bon moment : dix d'entre eux sont des colonnes ou des tables, et une colonne posée avant la première migration coûte zéro.
 >
-> Les deux plus critiques, à ne jamais laisser régresser : **A2** (quantités décimales — sinon migration de toutes les lignes de vente et de stock) et **A8** (règle de CI « aucun crate du socle ne dépend d'une verticale » — sans elle, tout ce document devient théorique en trois cycles, et c'est le seul qui attend la phase 3).
+> Les deux plus critiques, à ne jamais laisser régresser : **A2** (quantités décimales — sinon migration de toutes les lignes de vente et de stock) et **A8** (règle vérifiée « aucun crate du socle ne dépend d'une verticale » — sans elle, tout ce document devient théorique en trois cycles, et c'est le seul qui attend la phase 3).
 
 ### A1 — Vocabulaire du socle
 
@@ -266,7 +266,7 @@ backend/crates/
 └── verticales/     hebergement, restauration, bar, pressing
 ```
 
-**Règle de CI, non négociable** : aucun crate de `socle/` ne dépend d'un crate de `verticales/`. Un test structurel le vérifie. C'est ce qui empêche l'hôtellerie de contaminer le noyau — sans lui, tout ce document devient théorique en trois cycles.
+**Règle non négociable** : aucun crate de `socle/` ne dépend d'un crate de `verticales/`. Un test structurel de `scripts/verifier.sh` le vérifie. C'est ce qui empêche l'hôtellerie de contaminer le noyau — sans lui, tout ce document devient théorique en trois cycles.
 
 *Fichiers : prompts §0.1, constitution principe 2, cycle 1.*
 
@@ -274,7 +274,7 @@ backend/crates/
 
 Le test « un maquis seul fonctionne de bout en bout » devient : **un établissement avec un module d'activité fictif minimal, ne consommant aucune capacité, fonctionne de bout en bout** — création, vente comptoir, encaissement, document fiscal, clôture.
 
-C'est la preuve formelle que le socle est agnostique. Il tourne en CI pour toujours.
+C'est la preuve formelle que le socle est agnostique. Il entre dans `scripts/verifier.sh` et n'en sort jamais.
 
 *Fichiers : user stories ETB-02 · prompts cycle 2.*
 
@@ -334,7 +334,7 @@ La séquence réaliste : hôtellerie → validation → levée → recrutement �
 |---|---|---|---|
 | **La vision plateforme contamine le MVP hôtelier** | **Élevée** | Fatal | Les onze amendements sont le SEUL impact autorisé. Ce document est fermé jusqu'à la mise en production du pilote |
 | Abstraction prématurée du socle | Élevée | Élevé | Aucune généralisation avant un second cas réel. La règle A8 suffit ; le reste attend |
-| Le socle se spécialise en hôtellerie sans qu'on le voie | Moyenne | Élevé | Test A9 en CI dès le cycle 2. C'est le garde-fou permanent |
+| Le socle se spécialise en hôtellerie sans qu'on le voie | Moyenne | Élevé | Test A9 dans `scripts/verifier.sh`, **dès la phase 2 sur données simulées**. C'est le garde-fou permanent, et c'est là qu'il coûte le moins |
 | Chaque verticale exige son pilote et sa fiscalité | Certaine | Moyen | Une seule verticale ouverte à la fois. Aucune verticale sans pilote signé |
 | Le tableau de bord consolidé devient illisible sur des activités hétérogènes | Moyenne | Moyen | Indicateurs universels au socle, spécifiques dans les verticales |
 | La verticale commerce en ligne dilue la stratégie | **Élevée** | Élevé | Traitée comme un produit distinct, jamais comme un module. Décidée après la levée, sur données de marché |

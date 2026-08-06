@@ -389,7 +389,7 @@ Les maquettes font foi (`docs/design/html/`). Ce tableau garde **l'intention** :
 > 📦 **Déplacé le 2026-07-30 vers `docs/design/derivation.md`, qui fait désormais foi.**
 > Le tableau n'est pas dupliqué ici : deux copies divergeraient, ce que le principe I de la
 > constitution interdit. `derivation.md` est le chemin que citent les prompts Spec Kit, la
-> Definition of Done et la porte P-19.
+> Definition of Done et la porte des écrans.
 
 **Ce que le fichier contient** : les écrans non maquettés, chacun avec le motif dont il hérite et
 ce qui change ; le décompte des écrans du produit (11 maquettés en 29 fichiers d'états, plus les

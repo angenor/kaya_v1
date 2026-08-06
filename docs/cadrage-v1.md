@@ -541,6 +541,28 @@ Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et And
 - **Le modèle de données est source de vérité au même titre que le contrat OpenAPI.** Toute migration de phase 3 met à jour le fichier de son schéma **dans le même changement** ; un test compare le schéma réel de la base aux fichiers et échoue sur tout écart. Sans cette règle, les fichiers deviennent une photo périmée en trois cycles, et une source de vérité périmée est pire que pas de source du tout.
 - **Aucune donnée simulée ne survit à la mise en service de l'endpoint qui la remplace.** Le cycle backend qui livre un endpoint supprime la simulation correspondante dans le même changement, et un test le vérifie. Sans elle, on exploiterait deux vérités pour la même donnée sans savoir laquelle l'écran affiche.
 
+### 13.0 bis Vérification — une commande dès la phase 1, un serveur en phase 3
+
+**Ce qui a de la valeur pour un développeur seul n'est pas qu'une machine lance les contrôles, c'est qu'ils soient mécaniques.** Un script qui vérifie « toutes les tables ont RLS » remplace une revue qui n'aura pas lieu ; un serveur d'intégration continue, lui, n'arbitre qu'entre développeurs.
+
+| | Ce que c'est | Quand |
+|---|---|---|
+| **`scripts/verifier.sh`** | **une seule commande** qui enchaîne tout ce qui doit passer et sort en échec au premier contrôle rouge | **dès la phase 1** |
+| **Le serveur (GitHub Actions)** | une machine qui lance ce script à chaque poussée, sans le modifier | **phase 3** |
+
+**Le noyau est de quatre portes, et on ne commence pas par un catalogue :**
+
+| Porte | Ce qu'elle vérifie | Dès |
+|---|---|---|
+| **P-01** | le modèle de données s'applique sur une base vierge, et chaque table porte `ENABLE` + `FORCE` + sa politique | phase 1 |
+| **P-02** | toute table du modèle a une classe déclarée au registre hors-ligne | phase 1 |
+| **P-03** | aucune dépendance en intervalle, lockfiles commités, versions inscrites | dès qu'un manifeste existe |
+| **P-04** | l'application démarre et **chaque écran s'atteint**, en clair et en sombre, sur Chromium et WebKit | phase 2 |
+
+**Une porte s'ajoute quand une erreur réelle s'est produite**, ou quand son absence coûterait une fuite de données entre clients — jamais parce qu'elle figurerait bien dans une liste. Les numéros s'attribuent dans l'ordre d'apparition. **Chaque porte a son test négatif** : on la casse volontairement une fois pour vérifier qu'elle échoue vraiment. *Une porte qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à trouver, et une porte écrite avant d'avoir rencontré le problème qu'elle prévient regarde souvent à côté.*
+
+**Le déclencheur du passage au serveur** : le script local dépasse deux ou trois minutes et on cesse de le lancer. C'est ce qui arrive en phase 3, quand s'ajoutent la compilation Rust et une base de test — et c'est aussi là que certains oublis deviennent coûteux, une politique RLS manquante étant une fuite entre clients.
+
 **Ce que la phase 2 ne prouve pas, et qu'il faut dire au pilote** : ni la conformité fiscale, ni la résistance aux coupures réelles, ni les performances sur le matériel visé. Une démonstration sur données simulées montre le produit ; elle ne montre pas qu'il tient.
 
 Le détail des cycles est dans `docs/Kaya_Prompts_SpecKit.md` §3.
@@ -556,9 +578,9 @@ Le détail des cycles est dans `docs/Kaya_Prompts_SpecKit.md` §3.
   | `capacites/` | stocks · *(production, livraison, commerce, fidélité, devis : non implémentées)* | `socle/` |
   | `verticales/` | hebergement, restauration, bar, pressing | `socle/`, `capacites/` |
 
-  **Règle de CI non négociable : aucun crate de `socle/` ne dépend d'un crate de `verticales/`.** Un test structurel le vérifie et fait échouer le build. C'est ce qui empêche l'hôtellerie de contaminer le noyau, et donc ce qui garde ouverte l'extension à d'autres activités.
+  **Règle non négociable : aucun crate de `socle/` ne dépend d'un crate de `verticales/`.** Un test structurel le vérifie et fait échouer la vérification. C'est ce qui empêche l'hôtellerie de contaminer le noyau, et donc ce qui garde ouverte l'extension à d'autres activités.
 - **utoipa + utoipa-swagger-ui** : schémas dérivés, `#[utoipa::path]`, Swagger UI protégée hors production, spec sur `/api-docs/openapi.json`.
-- **Le contrat OpenAPI est la source de vérité** : le client TypeScript est généré en CI depuis ce contrat, jamais écrit à la main.
+- **Le contrat OpenAPI est la source de vérité** : le client TypeScript est généré depuis ce contrat, jamais écrit à la main, et un diff non commité fait échouer la vérification.
 - **`sqlx`** : requêtes vérifiées à la compilation (`cargo sqlx prepare`), migrations versionnées, une migration appliquée n'est jamais modifiée. **Toute migration met à jour `docs/modele-donnees/{schema}.sql` dans le même changement** (§13.0).
 - **Le modèle de données précède le code** : les tables sont définies en SQL de référence avant qu'aucune migration n'existe. La migration matérialise le modèle, elle ne l'invente pas.
 

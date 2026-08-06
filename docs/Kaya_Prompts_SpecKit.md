@@ -121,8 +121,10 @@ kaya/
 │   └── migrations/               # migrations sqlx versionnées + seeds/
 ├── clients/ts/                   # client API généré — JAMAIS édité à la main
 ├── infra/                        # compose dev, paquet auto-hébergé, sauvegardes
+├── scripts/
+│   └── verifier.sh               # ⭐ UNE COMMANDE — tout ce qui doit passer, dès la phase 1
 ├── specs/                        # généré par Spec Kit (un dossier par cycle)
-└── .github/workflows/            # CI filtrée par chemins
+└── .github/workflows/            # ⏳ PHASE 3 seulement — lance scripts/verifier.sh à notre place
 ```
 
 **Cycle type** (identique aux trois phases) :
@@ -173,8 +175,8 @@ Principes non négociables :
    simulation subsiste pour un endpoint servi.
 
 1. SOURCES DE VÉRITÉ. (a) Le contrat OpenAPI est généré par utoipa depuis le code
-   Actix ; le client TypeScript est généré depuis ce contrat en CI, jamais écrit
-   à la main ; un diff de client non commité fait échouer le build. (b) LE MODÈLE
+   Actix ; le client TypeScript est généré depuis ce contrat, jamais écrit à la
+   main ; un diff de client non commité fait échouer la vérification. (b) LE MODÈLE
    DE DONNÉES SQL de docs/modele-donnees/ EST SOURCE DE VÉRITÉ AU MÊME TITRE : le
    schéma PostgreSQL n'est modifié que par migrations sqlx versionnées, une
    migration appliquée n'est jamais modifiée, ET TOUTE MIGRATION MET À JOUR LE
@@ -202,8 +204,8 @@ Principes non négociables :
    caisse, fiscalite, documents, synchronisation, pilotage, editeur, metriques,
    ventes) ne dépend QUE de socle/ ; capacites/ (stocks — les autres non
    implémentées) dépend de socle/ ; verticales/ (hebergement, pressing) dépend de
-   socle/ et capacites/. UN TEST DE CI ÉCHOUE SI UN CRATE DE socle/ DÉPEND D'UN
-   CRATE DE verticales/. LE SOCLE NE CONNAÎT NI « chambre », NI « unité louable »,
+   socle/ et capacites/. UN TEST ÉCHOUE SI UN CRATE DE socle/ DÉPEND D'UN CRATE DE
+   verticales/. LE SOCLE NE CONNAÎT NI « chambre », NI « unité louable »,
    NI « séjour » : il connaît article_vendable et ressource_reservable. Tout le
    spécifique hôtelier vit dans verticales/hebergement. C'est ce qui garde le
    produit extensible à d'autres activités ; sans cette règle, l'hôtellerie
@@ -218,7 +220,7 @@ Principes non négociables :
 3. MULTI-TENANT. Chaque table porte tenant_id. RLS ENABLE **ET** FORCE sur toutes
    les tables, avec un rôle applicatif distinct du propriétaire des tables.
    SET LOCAL app.current_tenant posé DANS CHAQUE TRANSACTION, jamais à l'ouverture
-   de connexion. Un test de CI échoue si une table du schéma n'a aucune politique
+   de connexion. La porte P-01 échoue si une table du schéma n'a aucune politique
    RLS. Un test d'isolation vérifie que le tenant A ne lit ni n'écrit aucune ligne
    du tenant B, sur chaque endpoint.
 
@@ -243,7 +245,7 @@ Principes non négociables :
    formule de location porte assujettie_taxe_nuitee et une règle de conversion :
    le traitement fiscal du passage et de la demi-journée est un PARAMÈTRE, jamais
    une constante. Tout calcul fiscal a un test doré sur jeu de cas figés, exécuté
-   en CI. Documents opérationnels et documents fiscaux sont deux agrégats
+   à chaque vérification. Documents opérationnels et documents fiscaux sont deux agrégats
    étanches, avec deux numérotations et deux cycles de vie ; tout document
    opérationnel porte la mention « Document non fiscal — ne tient pas lieu de
    facture ». L'API FNE n'ayant AUCUNE clé d'idempotence, l'état INDETERMINEE
@@ -386,13 +388,47 @@ Principes non négociables :
     Tailwind n'exprime pas (@keyframes, impression thermique) et reste regroupé.
     Une seule identité visuelle sur toutes les plateformes.
 
-PORTES DE CI. Chaque règle vérifiable mécaniquement ci-dessus devient une porte
-bloquante, numérotée P-01 et suivantes, listée dans une section « Couverture des
-portes ». Chaque porte DÉCLARE SON PÉRIMÈTRE INSPECTÉ, VÉRIFIE SA COMPLÉTUDE, NE
-MODIFIE PAS CE QU'ELLE INSPECTE, ET PROUVE QUE SA CIBLE N'EST PAS VIDE — une porte
-qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à trouver.
-Chaque porte a un test négatif : on la casse volontairement une fois pour vérifier
-qu'elle échoue.
+13. VÉRIFICATION — UNE COMMANDE, UN NOYAU DE QUATRE PORTES, ET ELLE GROSSIT.
+
+    UNE SEULE COMMANDE. Tout ce qui doit passer avant un commit vit dans
+    scripts/verifier.sh, lancé par une commande unique documentée au README. Pas
+    dix scripts qu'on lance de mémoire : un seul, qui enchaîne tout et qui sort en
+    échec au premier contrôle rouge. L'agent le lance à la fin de chaque tâche.
+
+    LE SERVEUR DE CI VIENT EN PHASE 3, PAS AVANT. GitHub Actions n'arbitre
+    qu'entre développeurs, et le développeur est seul. Ce qui a de la valeur tout
+    de suite, c'est que la vérification soit MÉCANIQUE — pas qu'une machine la
+    lance. Déclencheur du passage au serveur : le script local dépasse deux ou
+    trois minutes et on cesse de le lancer. Ce jour-là, .github/workflows/ le fait
+    à notre place, et le script ne change pas.
+
+    LE NOYAU EST DE QUATRE PORTES, ET ON NE COMMENCE PAS PAR UN CATALOGUE :
+      P-01 · le modèle de données s'applique sur une base vierge, dans l'ordre, et
+             chaque table porte ENABLE + FORCE + sa politique — dès la phase 1 ;
+      P-02 · toute table du modèle a une classe déclarée dans
+             docs/registre-classes-offline.md — dès la phase 1 ;
+      P-03 · aucune dépendance en intervalle, lockfiles commités et à jour, chaque
+             version inscrite à docs/versions-reference.md — dès qu'un manifeste
+             existe ;
+      P-04 · l'application démarre et CHAQUE ÉCRAN S'ATTEINT, en clair et en
+             sombre, sur Chromium ET WebKit — dès la phase 2.
+
+    UNE PORTE S'AJOUTE QUAND UNE ERREUR RÉELLE S'EST PRODUITE, ou quand son absence
+    coûterait une fuite de données entre clients — jamais parce qu'elle figurerait
+    bien dans une liste. Une porte écrite avant d'avoir rencontré le problème
+    qu'elle prévient regarde souvent à côté. Les numéros s'attribuent dans l'ordre
+    d'apparition ; il n'y a pas de catalogue préétabli.
+    Ce que la phase 3 ajoutera nécessairement, et qu'on n'écrit pas d'avance :
+    le client TypeScript régénéré sans diff, l'isolation multi-tenant sur chaque
+    endpoint, l'outbox sur chaque transition, les tests de classe hors-ligne, et
+    l'absence de jointure entre schémas de modules.
+
+    CHAQUE PORTE DÉCLARE SON PÉRIMÈTRE INSPECTÉ, VÉRIFIE SA COMPLÉTUDE, NE MODIFIE
+    PAS CE QU'ELLE INSPECTE, ET PROUVE QUE SA CIBLE N'EST PAS VIDE — une porte qui
+    ne trouve jamais rien est indistinguable d'une porte qui n'a rien à trouver.
+    ET CHAQUE PORTE A UN TEST NÉGATIF : on la casse volontairement une fois pour
+    vérifier qu'elle échoue vraiment. Une porte sans test négatif est une
+    décoration.
 ```
 
 ---
@@ -498,9 +534,15 @@ hors JurisdictionAdapter ; montants en entiers d'unité mineure ET quantités en
 NUMERIC ; chaque entité déclare sa classe dans docs/registre-classes-offline.md ;
 les provisions sont des données seulement.
 
-PORTES DE CI : le plan doit dire, pour chaque porte que ce cycle touche, COMMENT
-elle est vérifiée et par quel test. Une porte concernée sans mécanisme de
+VÉRIFICATION : tout ce qui doit passer entre dans scripts/verifier.sh, lancé par
+une commande unique. Le plan doit dire, pour chaque porte que ce cycle touche,
+COMMENT elle est vérifiée et par quel test — une porte concernée sans mécanisme de
 vérification est un trou du plan.
+Si ce cycle a besoin d'une porte NOUVELLE, dis-le et justifie-la par une erreur
+réelle ou par un coût manifeste (une fuite entre clients, une migration de toutes
+les lignes). Le noyau est de quatre portes et il grossit à la demande, pas par
+anticipation. N'ÉCRIS PAS DE WORKFLOW GITHUB ACTIONS avant la phase 3 : le script
+local suffit, et c'est lui que le serveur lancera le jour venu.
 
 Livrables attendus du plan, SELON LA PHASE :
 - Phase 1 : les fichiers de docs/modele-donnees/ créés ou modifiés, table par
@@ -607,8 +649,11 @@ Vérifie la cohérence spec ↔ plan ↔ tâches ↔ constitution. Signale :
   d'établissement ;
 - tout écran codé sans référence dans l'un des QUATRE cas, ou codé au titre du
   quatrième cas SANS être inscrit à docs/design/derivation.md ;
-- toute porte de la constitution concernée par ce cycle sans mécanisme de
-  vérification dans le plan ou les tâches ;
+- toute porte concernée par ce cycle sans mécanisme de vérification dans le plan ou
+  les tâches, et toute porte NOUVELLE proposée sans qu'une erreur réelle ou un coût
+  manifeste la justifie ;
+- tout contrôle qui vivrait ailleurs que dans scripts/verifier.sh, et tout workflow
+  GitHub Actions écrit avant la phase 3 ;
 - tout second membre d'une famille exclusive du §3.4 de docs/versions-reference.md ;
 - toute dépendance en intervalle, ou absente de docs/versions-reference.md.
 ```
@@ -669,8 +714,12 @@ objet » plutôt que de cocher en silence.
 [ ] Rien construit au-delà du périmètre (provisions = données seulement)
 [ ] Aucune dépendance en intervalle ; lockfiles commités ; versions inscrites à
     docs/versions-reference.md
+[ ] `scripts/verifier.sh` passe en une commande, et il enchaîne TOUT ce qui doit
+    passer — aucun contrôle lancé à la main en plus
 [ ] Chaque porte concernée par le cycle est vérifiée par un test qui échoue
     vraiment — testé en le cassant volontairement une fois
+[ ] Toute porte ajoutée par ce cycle est justifiée par une erreur réelle ou un coût
+    manifeste, et inscrite avec son numéro dans l'ordre d'apparition
 ```
 
 ---
@@ -790,11 +839,31 @@ TROIS PIÈGES DE MIGRATION À CONSIGNER EN COMMENTAIRE, pour la phase 3 :
   référence à emporter) est un COMPTEUR EN TABLE avec verrou de ligne, jamais une
   SEQUENCE.
 
-LIVRABLE COMPLÉMENTAIRE : docs/modele-donnees/README.md — l'index des fichiers, le
-schéma des relations principales en texte, la liste des tables avec leur classe
-hors-ligne, et la RÈGLE DE TENUE : « toute migration de phase 3 met à jour le
-fichier de son schéma dans le même changement ; un test compare le schéma réel aux
-fichiers et échoue sur tout écart ».
+DEUX LIVRABLES COMPLÉMENTAIRES :
+
+1. docs/modele-donnees/README.md — l'index des fichiers, le schéma des relations
+   principales en texte, la liste des tables avec leur classe hors-ligne, et la
+   RÈGLE DE TENUE : « toute migration de phase 3 met à jour le fichier de son
+   schéma dans le même changement ; un test compare le schéma réel aux fichiers et
+   échoue sur tout écart ».
+
+2. scripts/verifier.sh — LA COMMANDE UNIQUE, créée par ce cycle, avec ses DEUX
+   PREMIÈRES PORTES et rien de plus :
+     P-01 · le SQL de docs/modele-donnees/ s'applique sur une base Postgres VIERGE,
+            dans l'ordre, sans erreur, ET chaque table porte ENABLE + FORCE + sa
+            politique. La base se lance par docker compose ; le script la crée, y
+            applique tout, inspecte pg_policies, puis la détruit.
+     P-02 · toute table du modèle a une classe déclarée dans
+            docs/registre-classes-offline.md — comparaison dans le SENS
+            table → registre : une entité déclarée sans table est normale, une
+            table non déclarée est l'erreur.
+   Chacune avec SON TEST NÉGATIF : casse-la volontairement une fois — retire une
+   politique, ajoute une table non déclarée — et montre-moi qu'elle échoue. Une
+   porte qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à
+   trouver.
+   ⚠️ N'ÉCRIS AUCUN WORKFLOW GITHUB ACTIONS. Le serveur de CI vient en phase 3 ; il
+   lancera ce script sans le modifier. Un développeur seul n'a pas besoin d'une
+   machine pour arbitrer avec lui-même — il a besoin que le contrôle soit mécanique.
 
 Mets à jour docs/registre-classes-offline.md pour toute entité que tu nommes et
 qu'il ne nomme pas encore — c'est le seul document que ce cycle modifie en plus des
@@ -991,6 +1060,20 @@ suivants réinventeraient chacun leur version. Livrables :
     écran du produit avec son code, son état d'avancement et un lien direct. Tenu à
     jour par CHAQUE cycle de phase 2. C'est par cette page que je regarde le
     produit — sans elle je ne saurais pas ce qui existe.
+
+12. scripts/verifier.sh ÉTENDU, toujours UNE SEULE COMMANDE. Le cycle D1 l'a créé
+    avec deux portes ; ce cycle en ajoute deux :
+      P-03 · aucune dépendance en intervalle, lockfiles commités et à jour, chaque
+             version inscrite à docs/versions-reference.md ;
+      P-04 · l'application DÉMARRE et CHAQUE ÉCRAN S'ATTEINT, en clair et en
+             sombre, sur Chromium ET WebKit. ⚠️ Un test qui monte un composant ne
+             prouve pas qu'une page s'ouvre : il contourne le routeur, <Suspense>,
+             les layouts et les plugins. C'est la porte qui attrape la famille de
+             défauts la plus coûteuse de la phase 2 — un écran inatteignable
+             pendant que tous les tests sont verts.
+    Chacune avec son test négatif. Le script reste une commande, documentée au
+    README, et il inclut le lint et le build. Toujours AUCUN workflow GitHub
+    Actions.
 
 Hors périmètre : tout écran métier, tout appel réseau réel.
 Personas : tous, indirectement.
@@ -1274,9 +1357,25 @@ données simulées des endpoints qu'il met en service**.
 > précéder. Quand un écran demande une donnée que le modèle n'a pas, c'est une découverte utile :
 > elle se règle par une migration **et** une mise à jour de `docs/modele-donnees/`.
 
+> **C'est aussi la phase où le SERVEUR de CI devient rentable, et pas avant.** Le cycle B1
+> l'installe, et il ne fait qu'une chose : **lancer `scripts/verifier.sh`**, celui-là même qui
+> tourne en local depuis la phase 1. Trois raisons de ne pas l'avoir fait plus tôt — le script
+> restait sous la minute, le développeur est seul, et un workflow qui n'attrape rien qu'on
+> n'attrapait pas déjà est du temps dépensé en configuration. Trois raisons de le faire maintenant :
+> la compilation Rust et la base de test allongent la vérification au point qu'on cesse de la
+> lancer ; les contrôles deviennent nombreux ; et **certains oublis coûtent une fuite de données
+> entre clients**.
+>
+> **Les portes que la phase 3 ajoute, dans l'ordre où les cycles les rencontrent** — chacune avec
+> son test négatif, chacune inscrite quand son cycle la crée, aucune écrite d'avance : le client
+> TypeScript régénéré sans diff · l'isolation multi-tenant sur chaque endpoint · l'outbox sur
+> chaque transition d'état · les tests de classe hors-ligne instanciés · l'absence de jointure
+> entre schémas de modules · `docs/modele-donnees/` conforme au schéma réel · aucune simulation
+> survivant à son endpoint.
+
 | Cycle | Module | Contenu | Ce qu'il débranche |
 |---|---|---|---|
-| **B1** | TRX | Monorepo backend, contrat OpenAPI + client généré, outbox, RLS forcée, seeds rejouables, CI, **module doré écrit à la main** | rien — il crée le socle |
+| **B1** | TRX | Monorepo backend, contrat OpenAPI + client généré, outbox, RLS forcée, seeds rejouables, **module doré écrit à la main**, et **le serveur de CI** — qui lance `scripts/verifier.sh` sans le modifier | rien — il crée le socle |
 | **B2** | ETB | Tenants, établissements, modules et capacités, points de vente, configuration héritée, branding | contexte, configuration, référentiels |
 | **B3** | CPT | Personne / compte / employé, authentification, rôles cumulables, journal d'audit | connexion, permissions, registre des actions |
 | **B4** | HEB | Catégories, unités, formules, barèmes, **disponibilité par contrainte d'exclusion GiST** | planning, disponibilité, tarifs |
@@ -1361,6 +1460,13 @@ Points d'attention : {…}.
   laideur, c'est la dérive — trente écrans inventés un par un, chacun avec sa grammaire.
   **Seule exception qui arrête encore** : un **composant** qui manque à la bibliothèque. Un
   composant nouveau se dessine, il ne s'improvise pas dans un écran.
+- **Tout contrôle vit dans `scripts/verifier.sh`, lancé par une commande unique.** Pas dix scripts
+  qu'on lance de mémoire. **Le serveur de CI attend la phase 3** et ne fera que lancer ce script :
+  ce qui a de la valeur est que la vérification soit mécanique, pas qu'une machine la lance.
+- **Une porte s'ajoute quand une erreur réelle s'est produite**, ou quand son absence coûterait une
+  fuite entre clients — jamais parce qu'elle figurerait bien dans une liste. Le noyau est de
+  **quatre** portes ; les numéros s'attribuent dans l'ordre d'apparition. **Chaque porte a son test
+  négatif** : on la casse une fois pour vérifier qu'elle échoue vraiment.
 - **`docs/modele-donnees/` se met à jour dans le même changement que la migration.** Jamais après,
   jamais dans un lot de rattrapage. Un test compare le schéma réel aux fichiers.
 - **Aucun terme technique visible par l'utilisateur sans entrée au lexique `docs/design/lexique.md`.**

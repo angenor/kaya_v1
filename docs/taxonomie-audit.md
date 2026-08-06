@@ -110,7 +110,7 @@ déclarée l'échouerait aussi. Les deux sens sont vérifiés par `backend/tests
 | Ce qu'elle ne fait **jamais** | Refuser la lecture. Le journal surveille, il n'autorise pas — l'autorisation est `sej.client.lire` |
 
 > ⚠️ **Le contexte ne porte JAMAIS le numéro consulté.** Recopier le numéro dans un registre
-> **immuable et à rétention illimitée** (P-05b) créerait exactement la fuite que ce journal existe
+> **immuable et à rétention illimitée** créerait exactement la fuite que ce journal existe
 > pour surveiller, et rendrait inapplicable la rétention de 90 jours de TRX-06 sur la copie : la
 > donnée serait purgée d'un côté et conservée pour toujours de l'autre.
 
@@ -136,7 +136,7 @@ pouvoir constater après coup quel terminal déviait pendant le service, et non 
 
 | Ce qui la déclenche | Écart **absolu** entre `horodatage_client` et l'horodatage d'autorité supérieur à `sync.derive_horloge_seuil_secondes` (défaut 300) |
 |---|---|
-| Contexte écrit | `{ ecart_secondes, seuil_secondes, sens }` — **aucune clé monétaire**, ce que la porte P-10 vérifie jusque dans le JSONB |
+| Contexte écrit | `{ ecart_secondes, seuil_secondes, sens }` — **aucune clé monétaire**, ce qu'une porte doit vérifier jusque dans le JSONB |
 | Ce qu'elle ne fait **jamais** | Refuser l'écriture. La dérive est signalée, pas opposée (FR-036) |
 | Fréquence | **Une entrée par épisode, pas une par écriture.** Deux cents saisies pendant un service produiraient deux cents entrées identiques et le registre deviendrait illisible, donc inutilisé. Le débrayage passe par une clé Redis à durée de vie portant `(tenant, compte, appareil)` — **éphémère reconstructible** au sens du principe II : la perdre produit une entrée de plus, jamais une donnée manquante |
 
