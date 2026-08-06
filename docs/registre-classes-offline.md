@@ -474,8 +474,8 @@ reparte d'une page blanche. **Aucune UI, aucune logique au MVP** (constitution, 
 | `partenaire` (`tenant_id` **nullable**), `demande_partenaire` | **C** | C2 — référentiel, éventuellement inter-tenant | ETB-07 |
 | `compte_compensation`, `mouvement_compensation` | **B** | B3 — effet monétaire | ETB-07 |
 | `convention_inter_etablissements` | **C** | C2 — relation entre deux tenants | cadrage §4.3 |
-| Modules additionnels (`SPA`, `BOULANGERIE`, `SUPERETTE`, `QUINCAILLERIE`, `EXCURSION`) | **C** | C2 — référentiel | ETB-08 |
-| Capacités non implémentées (`LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, `FIDELITE`, `DEVIS`, `COMPTES_CLIENTS`) | **C** | C2 — référentiel ; **refus explicite au MVP** | ETB-02b |
+| Modules additionnels (`SPA`, `BOULANGERIE`, `SUPERETTE`, `QUINCAILLERIE`, `EXCURSION`, `MARCHE`, `PHARMACIE`, `DEPOT_GAZ`) | **C** | C2 — référentiel | ETB-08 |
+| Capacités non implémentées (`LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, `CANAL_VENTE_EXTERNE`, `FIDELITE`, `DEVIS`, `COMPTES_CLIENTS`) | **C** | C2 — référentiel ; **refus explicite au MVP** | ETB-02b |
 | Profils de stock `VALORISE`, `DETAILLE` | **C** | C2 — référentiel ; **refus explicite au MVP** | ETB-02b |
 | `mouvement_stock.cout_unitaire` | **B** | B3 — suit `mouvement_stock` ; **jamais renseigné au MVP** | STK-02 |
 | `conversion_unite_mesure` | **C** | C2 — référentiel d'unités. **AUCUN `GRANT` à `kaya_app`, pas même `SELECT`** : rien du produit n'a de raison de la lire, et c'est ce qui la prouve provision | PDV-01, cadrage §14.7 |

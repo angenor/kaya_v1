@@ -168,6 +168,9 @@ C'est la décision de conception la plus importante de ce document.
 | **Quincaillerie** | Moyenne | Stock profil 3 + **devis/proforma** + comptes clients | 14–16 sem. | ✅ Fort potentiel commercial. Le devis est central : un client de quincaillerie demande un devis avant d'acheter. L'audit anti-vol est l'argument de vente |
 | **Supérette** | Élevée | Stock profil 2 ou 3 + **caisse rapide** (code-barres, balance) | 10–12 sem. | ✅ Bon candidat. La contrainte est la vitesse de passage, pas la fonctionnalité |
 | **Supermarché** | Élevée | Supérette + multi-caisse + fidélité | +6–8 sem. sur supérette | ⚠️ **Pas une verticale distincte** — c'est une supérette avec un curseur de taille. Ne la traite jamais comme un produit à part |
+| **Marché — étal ou table** | Élevée | Stock profil 1 + **catalogue à prix variable** | 6–8 sem. | ✅ **La plus petite de toutes, et la plus nombreuse.** Une vendeuse d'étal ne tient ni comptabilité ni stock : ce qu'elle veut, c'est être **visible et commandable**. Verticale très mince, dont la valeur vient presque entièrement de la distribution (§7 bis) |
+| **Pharmacie** | Moyenne | Stock profil 2 + **traçabilité des lots** | 10–12 sem. | ⚠️ **Réglementée.** Hors ordonnance seulement, comme dans Mefali. Les lots et les dates de péremption sont du profil 2 ; l'ordonnance est un métier à part qu'on n'aborde pas |
+| **Dépôt de gaz** | Élevée | Stock profil 1 + **consigne d'emballage** | 6–8 sem. | ✅ Bon candidat, et **structurellement intéressant** : la bouteille consignée est un **contenant qui fait l'aller-retour**, motif que ni l'hôtellerie ni la restauration ne portent. Il resservira au pressing et à la location de matériel |
 | **Boutique en ligne / réseaux sociaux** | Faible | Commerce en ligne + livraison + accompagnement à la formalisation | 12–14 sem. | ⚠️ **Produit distinct**, même socle, autre marché, autre prix. Voir §4.4 |
 | **Livraison** | — | — | 8 sem. (capacité) + 4 (verticale autonome) | ⚠️ **C'est une capacité, pas une verticale.** Boulangerie, supérette et boutique la consomment. Une société de livraison pure est une verticale mince par-dessus |
 | **Gérant de parc** *(massa, car, taxi, VTC)* | **Élevée** | Documents réglementaires · suivi de flotte en option | **8–10 sem.** | ✅ **Meilleur candidat après la supérette.** Même persona que le propriétaire d'hôtel. Couvre transport interurbain **et** taxi/VTC : deux modèles de recette, une seule verticale |
@@ -194,6 +197,49 @@ C'est un produit qui n'existe pas, et le besoin est authentique : ce propriétai
 2. **La tarification doit changer de métrique.** Voir amendement A11 : facturer « à la chambre » n'a aucun sens pour une quincaillerie.
 
 3. **La cohérence de vocabulaire.** Le propriétaire qui passe de son hôtel à sa quincaillerie dans la même application doit retrouver la même grammaire. C'est ce que garantit la discipline des couches.
+
+---
+
+## 7 bis. La distribution — l'argument de vente qui vient d'ailleurs
+
+**C'est probablement le levier commercial le plus fort de tout ce document, et il ne vient pas de Kaya.**
+
+> **« Vous utilisez notre SaaS Kaya, et nous vous trouvons des clients via Mefali. »**
+
+**Mefali** est une place de marché de proximité avec livraison — écosystème distinct, marque distincte, base de code distincte (`docs/interoperabilite-kaya.md`). Le jour où un établissement Kaya publie son catalogue vers Mefali, il gagne **un canal de vente sans effort** : ses produits deviennent commandables par tous les clients Mefali, sans ressaisie et avec un stock à jour à la minute.
+
+**Ce que ça change pour la vente de Kaya**, et pourquoi c'est plus fort qu'une fonctionnalité :
+
+| Argument classique d'un SaaS de gestion | Ce que la distribution ajoute |
+|---|---|
+| « Vous gagnez du temps » — bénéfice indirect, difficile à chiffrer | « Vous gagnez des clients » — **bénéfice direct, mesurable en commandes** |
+| Le prix de l'abonnement est un coût | Le prix de l'abonnement est un **coût d'acquisition** |
+| Le client compare à Excel et au cahier | Le client compare à **ne pas être visible** |
+
+**Et ce que ça change pour les verticales de ce document** : trois d'entre elles — **marché, dépôt de gaz, pharmacie** — ont une valeur de gestion faible mais une valeur de **visibilité** forte. Une vendeuse d'étal n'achètera jamais un logiciel de stock ; elle pourrait payer pour être commandable. **La distribution rend vendable une verticale qui ne le serait pas seule.**
+
+**Ce que Kaya devra savoir faire pour tenir cette promesse**, et qui est peu de chose au regard de ce que ça rapporte :
+
+| Ce que la capacité expose | Ce que le vendeur y gagne |
+|---|---|
+| **Publier** son catalogue, ses prix et ses horaires | être visible sans ressaisir quoi que ce soit |
+| **Publier son stock** — le profil `SIMPLE` suffit | ne plus voir un coursier venir pour un article qu'il n'a pas |
+| **Recevoir une demande, l'accepter avec un délai de préparation ou la refuser avec un motif** | cesser de subir les arrivées : c'est lui qui dit s'il peut, et quand |
+
+**L'acceptation est le geste que le module de vente connaît déjà** — c'est une commande entrante de plus, avec une cible de facturation. Ce qui est neuf n'est pas le geste, c'est **d'où il vient**.
+
+### Les deux règles qui protègent cet arrangement
+
+Elles sont détaillées dans `docs/interoperabilite-kaya.md` §3 et **ne se relâchent jamais** :
+
+1. **Mefali ne dépend jamais de Kaya.** Le catalogue Mefali est tenu par Mefali ; il y aura toujours des vendeurs sans smartphone, et leur absence d'outil ne doit jamais retirer leurs produits du catalogue. Kaya est une **source supplémentaire**, jamais la source principale. ⚠️ **Corollaire à retenir pour toute évolution** : côté Mefali, le chemin **sans** Kaya est le chemin **nominal**, et celui **avec** Kaya se greffe dessus — le fallback de demain est le nominal d'aujourd'hui.
+2. **Kaya ne dépend jamais de Mefali.** Un hôtel qui gère ses chambres et sa conformité fiscale n'a que faire d'une place de marché. La distribution est une **capacité activable**, absente par défaut — et absente veut dire absente, pas grisée.
+
+### Ce que ça coûte aujourd'hui
+
+**Une ligne de référentiel** : la capacité `CANAL_VENTE_EXTERNE`, déclarée parmi les capacités non implémentées et **refusée explicitement**, comme `LIVRAISON` ou `FIDELITE`. Rien d'autre. Les cinq décisions à trancher avant toute implémentation — dont *qui fait autorité sur le prix* et *une commande entrante devient-elle une vente fiscale* — sont listées au §7 du contrat, et **aucune ne se prend avant qu'un vendeur réel n'ait les deux produits**.
+
+⚠️ **Ce que la distribution n'est pas** : une raison d'avancer les verticales de ce document. La règle du §13 tient — **ce document reste fermé jusqu'au jalon J1**. La distribution rend certaines verticales plus vendables ; elle ne les rend pas plus urgentes.
 
 ---
 
@@ -242,7 +288,7 @@ Colonnes `code_barre` et `article_parent_id`, toutes deux nullables, sur `articl
 
 Aujourd'hui `ETB-02` confond les deux. Créer deux référentiels distincts :
 - `module_activite` — la verticale : hébergement, restauration, bar, pressing, salle de réunion.
-- `capacite` — le transverse : `STOCK`, `LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, `FIDELITE`, `DEVIS`, `COMPTES_CLIENTS`.
+- `capacite` — le transverse : `STOCK`, `LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, `CANAL_VENTE_EXTERNE`, `FIDELITE`, `DEVIS`, `COMPTES_CLIENTS`.
 
 Un module d'activité **déclare les capacités qu'il consomme**. Seule `STOCK` est implémentée au MVP.
 
@@ -526,6 +572,7 @@ Deux capacités nouvelles, aucune n'étant une verticale :
 | Capacité | Consommée par | Effort |
 |---|---|---|
 | `PARTENAIRES` | **Toutes les verticales.** Sous-traitance, fournisseurs, grossistes | 4–6 sem. |
+| `CANAL_VENTE_EXTERNE` | **Toutes les verticales qui vendent.** Publier catalogue, stock et horaires vers une place de marché — **Mefali** en premier lieu (§7 bis). Reçoit en retour les commandes entrantes | 6–8 sem. |
 | `DOCUMENTS_REGLEMENTAIRES` | **Toutes les verticales.** Assurance et visite technique d'un véhicule, licence d'exploitation et classement d'un hôtel, patente, agrément fiscal | **1–2 sem.** |
 | `CONCIERGERIE` | Hôtellerie d'abord, puis fusionne avec `LIVRAISON` | 5–7 sem. |
 | `SUIVI_FLOTTE` | Gérant de parc, compagnie, gare, livraison | 6–8 sem. |

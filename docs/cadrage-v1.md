@@ -110,6 +110,7 @@ TENANT (propriétaire / groupe)
         │     ├── LIVRAISON           (non implémentée)
         │     ├── PRODUCTION          (non implémentée)
         │     ├── COMMERCE_EN_LIGNE   (non implémentée)
+        │     ├── CANAL_VENTE_EXTERNE (non implémentée — distribution vers une place de marché)
         │     ├── FIDELITE            (non implémentée)
         │     ├── DEVIS               (non implémentée)
         │     └── COMPTES_CLIENTS     (non implémentée)
@@ -671,8 +672,8 @@ Dossier marchand : RCCM, CNI du gérant, RIB ivoirien, justificatif de domicile 
 
 1. **Adaptateurs de juridiction** — trait `JurisdictionAdapter { compute_taxes, required_document_fields, emission_channel, certify, remittance_reports }`. Un seul adaptateur au MVP (`CoteDIvoire`). Aucune règle fiscale ne vit ailleurs.
 2. **Devises dynamiques** — montants en **entiers d'unité mineure + code ISO 4217** porté par l'établissement (XOF, 0 décimale). Prêt pour une expansion hors zone CFA.
-3. **Modules d'activité extensibles** — le référentiel de modules est une table ; ajouter `SPA`, `BOULANGERIE`, `SUPERETTE` ou `QUINCAILLERIE` est de la configuration, pas une migration.
-4. **Capacités extensibles** — référentiel distinct des modules (§4.1). Seule `STOCK` est implémentée ; `LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, `FIDELITE`, `DEVIS` et `COMPTES_CLIENTS` sont déclarées et refusées.
+3. **Modules d'activité extensibles** — le référentiel de modules est une table ; ajouter `SPA`, `BOULANGERIE`, `SUPERETTE`, `QUINCAILLERIE`, `MARCHE`, `PHARMACIE` ou `DEPOT_GAZ` est de la configuration, pas une migration.
+4. **Capacités extensibles** — référentiel distinct des modules (§4.1). Seule `STOCK` est implémentée ; `LIVRAISON`, `PRODUCTION`, `COMMERCE_EN_LIGNE`, **`CANAL_VENTE_EXTERNE`**, `FIDELITE`, `DEVIS` et `COMPTES_CLIENTS` sont déclarées et refusées. ⚠️ **`CANAL_VENTE_EXTERNE` mérite une note** : c'est la publication du catalogue et du stock vers une place de marché — **Mefali** en premier lieu, ce qui fait de la distribution un argument de vente de Kaya (`Kaya_Vision_Plateforme.md` §7 bis). La règle qui la gouverne : **Kaya ne dépend jamais de Mefali, et Mefali ne dépend jamais de Kaya.**
 5. **Profils de stock** — colonne `profil_stock ∈ {AUCUN, SIMPLE, VALORISE, DETAILLE}` sur le module d'activité. Seul `SIMPLE` est implémenté. Les profils supérieurs (valorisation, commandes fournisseurs, variantes, codes-barres, lots) sont ce que réclament la boulangerie, la supérette et la quincaillerie.
 6. **Quantités décimales** — toute `quantite` de ligne de vente ou de mouvement de stock est en `NUMERIC`, **jamais en entier**. Un hôtel vend 1 bière ; une quincaillerie vend 2,3 mètres de fer ; une boulangerie achète 47,5 kg de farine. Passer d'entier à décimal après mise en production imposerait de migrer toutes les lignes.
 7. **Unité de mesure** — colonne `unite_mesure` obligatoire sur `article`, défaut `unite`. Table de conversion multi-unités créée, non exploitée.

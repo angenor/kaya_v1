@@ -213,7 +213,8 @@ Principes non négociables :
    MODULE D'ACTIVITÉ ≠ CAPACITÉ : deux référentiels distincts, tous deux en table.
    Le module est la verticale (HEBERGEMENT, RESTAURATION, BAR, PRESSING,
    SALLE_REUNION) ; la capacité est le transverse (STOCK, LIVRAISON, PRODUCTION,
-   COMMERCE_EN_LIGNE, FIDELITE, DEVIS, COMPTES_CLIENTS). Un module déclare les
+   COMMERCE_EN_LIGNE, CANAL_VENTE_EXTERNE, FIDELITE, DEVIS, COMPTES_CLIENTS). Un
+   module déclare les
    capacités qu'il consomme. Seule STOCK au profil SIMPLE est implémentée ; toute
    autre valeur est REFUSÉE EXPLICITEMENT, jamais ignorée.
 

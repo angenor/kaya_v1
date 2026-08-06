@@ -238,7 +238,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Test structurel obligatoire : un établissement avec le seul module `RESTAURATION` (maquis) fonctionne de bout en bout — création, commande, encaissement, clôture — sans qu'aucun code ne suppose l'existence d'un hébergement. Idem avec le seul module `HEBERGEMENT`.
 
 **ETB-02b — Capacités transverses (P0)**
-- **Référentiel distinct du précédent** : `capacite ∈ {STOCK, LIVRAISON, PRODUCTION, COMMERCE_EN_LIGNE, FIDELITE, DEVIS, COMPTES_CLIENTS}` — table également.
+- **Référentiel distinct du précédent** : `capacite ∈ {STOCK, LIVRAISON, PRODUCTION, COMMERCE_EN_LIGNE, CANAL_VENTE_EXTERNE, FIDELITE, DEVIS, COMPTES_CLIENTS}` — table également.
 - Le module est la **verticale** (ce que fait l'établissement) ; la capacité est le **transverse** (ce dont il a besoin pour le faire). Un module **déclare les capacités qu'il consomme**.
 - **Seule `STOCK` est implémentée au MVP.** Toute autre valeur est **refusée explicitement** avec un message clair, jamais ignorée silencieusement.
 - `STOCK` porte un profil : `profil_stock ∈ {AUCUN, SIMPLE, VALORISE, DETAILLE}`. **Seul `SIMPLE` est implémenté**, même règle de refus explicite (cadrage §14.5).
@@ -273,7 +273,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - **Tables seulement. Aucune UI, aucune logique.** Voir `Kaya_Vision_Plateforme.md` §14.2.
 
 **ETB-08 — Modules et capacités additionnels (PROVISION)**
-- Le référentiel `module_activite` accepte l'ajout de `SPA`, `BOULANGERIE`, `SUPERETTE`, `QUINCAILLERIE`, `EXCURSION` par configuration, sans migration. Aucun n'est implémenté.
+- Le référentiel `module_activite` accepte l'ajout de `SPA`, `BOULANGERIE`, `SUPERETTE`, `QUINCAILLERIE`, `EXCURSION`, `MARCHE`, `PHARMACIE`, `DEPOT_GAZ` par configuration, sans migration. Aucun n'est implémenté.
 - Le référentiel `capacite` accepte de même l'ajout de nouvelles capacités. Seule `STOCK` au profil `SIMPLE` est implémentée.
 - Voir `Kaya_Vision_Plateforme.md` pour l'analyse d'extension. **Aucune ligne de code au MVP.**
 
