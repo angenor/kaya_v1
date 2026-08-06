@@ -120,6 +120,7 @@ detruire_base() {
         base_demarree=0
         (cd "$RACINE" && docker compose down -v >/dev/null 2>&1) || true
     fi
+    nettoyer_copies
 }
 
 # EXIT couvre la sortie normale ET l'échec ; INT et TERM passent par un exit
@@ -465,6 +466,108 @@ porte_p02() {
     return "$CODE_OK"
 }
 
+# =============================================================================
+# Tests négatifs — la preuve qu'une porte SAIT échouer
+# =============================================================================
+#
+# « --test-negatif » n'est pas un mode de débogage, c'est une PREUVE :
+# une porte qui ne trouve jamais rien est indistinguable d'une porte qui n'a
+# rien à trouver.
+#
+# Le mode opère sur une COPIE DE TRAVAIL du modèle dans un répertoire
+# temporaire. Il ne touche JAMAIS docs/modele-donnees/ — et ce n'est pas une
+# promesse : l'empreinte du répertoire est relevée avant et après, et une
+# différence fait échouer le test.
+
+# La table sur laquelle porte la mutation de P-01. Une table nommée en dur
+# plutôt que tirée au sort : un test négatif doit rendre le MÊME diagnostic à
+# chaque exécution, sinon on ne sait pas ce qu'on a prouvé.
+readonly CIBLE_P01="caisse.coupure_comptee"
+readonly CIBLE_P01_FICHIER="30-caisse.sql"
+readonly TABLE_BIDON="zzz_table_non_declaree"
+
+copies_de_travail=""
+
+nettoyer_copies() {
+    local copie
+    for copie in $copies_de_travail; do
+        [ -d "$copie" ] && rm -rf "$copie"
+    done
+    copies_de_travail=""
+}
+
+# Empreinte du répertoire de référence : noms et contenus. C'est elle qui prouve
+# le point 3 du contrat de porte — « ne modifie pas ce qu'elle inspecte ».
+empreinte_modele() {
+    find "$MODELE_REFERENCE" -type f | LC_ALL=C sort | xargs cksum | cksum
+}
+
+copier_modele() {
+    local copie
+    copie="$(mktemp -d)"
+    cp -R "$MODELE_REFERENCE"/. "$copie"/
+    copies_de_travail="$copies_de_travail $copie"
+    printf '%s' "$copie"
+}
+
+# Retire les trois lignes de la politique isolation_tenant d'une table donnée.
+# En awk, et non en `sed -i`, parce que la forme `adresse,+N` de sed n'est pas
+# portable : le script doit tourner tel quel sur le poste et sur le serveur.
+retirer_politique() {
+    local fichier="$1" table="$2" tampon
+    tampon="$(mktemp)"
+    awk -v cible="CREATE POLICY isolation_tenant ON $table" '
+        index($0, cible) == 1 { saut = 3 }
+        saut > 0              { saut--; next }
+                              { print }
+    ' "$fichier" > "$tampon"
+    mv "$tampon" "$fichier"
+}
+
+test_negatif_p01() {
+    local copie journal empreinte_avant empreinte_apres
+
+    printf '\n── TEST NÉGATIF P-01 · politique retirée sur %s (copie de travail)\n' "$CIBLE_P01"
+
+    empreinte_avant="$(empreinte_modele)"
+    copie="$(copier_modele)"
+    journal="$copie/.sortie-porte"
+
+    retirer_politique "$copie/$CIBLE_P01_FICHIER" "$CIBLE_P01"
+
+    # La base est remontée pour la copie : le drapeau est remis à zéro, sinon la
+    # porte inspecterait la base du modèle SAIN et le test ne prouverait rien.
+    modele_applique=0
+    if porte_p01 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur un modèle amputé de sa politique.\n'
+        printf '     P-01 est AVEUGLE : un vert de cette porte ne veut rien dire.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    # Échouer ne suffit pas : il faut avoir échoué POUR LA BONNE RAISON, et
+    # avoir NOMMÉ la table. Une porte qui sort rouge sur une erreur de connexion
+    # passerait ce test sans rien prouver.
+    if ! grep -q "MANQUANTE : $CIBLE_P01" "$journal"; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER %s.\n' "$CIBLE_P01"
+        printf '     Un échec qui ne nomme pas son objet envoie chercher pendant vingt minutes.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|MANQUANTE' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+
+    empreinte_apres="$(empreinte_modele)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ docs/modele-donnees/ A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '   La porte a échoué comme attendu — TEST NÉGATIF VERT\n'
+    printf '   docs/modele-donnees/ inchangé (empreinte identique avant et après)\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -489,7 +592,7 @@ rendre_verdict() {
 # =============================================================================
 
 main() {
-    local mode="tout" porte=""
+    local mode="tout" porte="" cible_negatif="tous"
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -498,10 +601,19 @@ main() {
                 exit "$CODE_OK"
                 ;;
             --porte)
-                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01)"
+                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01 ou p02)"
                 mode="porte"
                 porte="$2"
                 shift 2
+                ;;
+            --test-negatif)
+                mode="test-negatif"
+                if [ $# -ge 2 ] && [ "${2#--}" = "$2" ]; then
+                    cible_negatif="$2"
+                    shift 2
+                else
+                    shift
+                fi
                 ;;
             *)
                 erreur_usage "argument inconnu : $1"
@@ -531,6 +643,24 @@ main() {
                 *)   erreur_usage "porte inconnue : $porte (attendu : p01 ou p02)" ;;
             esac
             portes_passees=1
+            ;;
+        test-negatif)
+            case "$cible_negatif" in
+                p01)
+                    test_negatif_p01 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
+                tous)
+                    test_negatif_p01 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
+                *)
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01)"
+                    ;;
+            esac
+            local duree_n=$((SECONDS - debut))
+            printf '\nTESTS NÉGATIFS VERTS — %d — %d s\n' "$portes_passees" "$duree_n"
+            exit "$CODE_OK"
             ;;
     esac
 
