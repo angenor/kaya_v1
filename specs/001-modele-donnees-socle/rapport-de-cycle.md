@@ -166,3 +166,92 @@ base n'est démarrée **qu'une fois pour les deux portes** — P-02 réutilise c
 > plus ne prouve rien. C'est le déclencheur documenté du passage au serveur d'intégration, en
 > phase 3. À 5 s, il en est loin ; le noter maintenant donne le point de comparaison qui manquera
 > le jour où la question se posera.
+
+---
+
+## T035 · Le quickstart déroulé de bout en bout, sur dépôt propre
+
+**Date** : 2026-08-06 · **Méthode** : les cinq sections de [quickstart.md](./quickstart.md), dans
+l'ordre, `git status` contrôlé à chaque étape.
+
+| § | Étape | Résultat |
+|---|---|---|
+| — | `git status` avant | **propre** |
+| 1 | `scripts/verifier.sh` | **TOUT VERT** — 11 fichiers, 10 schémas, 71 tables, 4 contrôles à 71/71, P-02 verte, 5 s |
+| 2 | `--test-negatif p01` | **rouge attendu**, nommant `caisse.coupure_comptee` |
+| 3 | `--test-negatif p02` | **rouge attendu**, nommant `etablissements.zzz_table_non_declaree`, P-01 restée verte |
+| 4 | Sens de P-02 | **71 tables réelles < 174 entités extraites** — l'extraction ne voit pas *que* ce qu'elle confronte |
+| 5 | Mesure SC-009 | *(consignée en T033 ci-dessus)* |
+| — | `git status` après | **propre** |
+| — | Conteneurs et volumes restants | **0 et 0** |
+
+**Verdict : conforme.** Le guide se déroule sans blocage ni écart entre ce qu'il annonce et ce que
+la commande rend.
+
+---
+
+## T036 · Les cinq constats qu'aucune porte ne couvre
+
+**Date** : 2026-08-06 · **Méthode** : requêtes sur le catalogue après application, plus une lecture
+de `compose.yml`. **Ce ne sont pas des portes et ils ne prétendent pas l'être** : ce sont des
+contrôles humains, datés et consignés, dont la fin est connue.
+
+| Constat | Attendu | Mesuré | Comment |
+|---|---|---|---|
+| **SC-004** — clé étrangère entre deux schémas | **0** | **0** ✓ | `pg_constraint` où `contype='f'` et les deux `relnamespace` diffèrent |
+| **SC-010a** — montant en flottant | **0** | **0** ✓ | Aucune colonne `real` ni `double precision` portant un nom de montant |
+| **SC-010b** — *toute* colonne en flottant | **0** | **0** ✓ | Contrôle élargi : **le modèle ne contient aucun flottant, nulle part** |
+| **SC-010c** — quantité en entier | **0** | **1**, examiné ci-dessous | Colonnes nommées `%quantite%` de type entier |
+| **SC-011** — colonne d'identifiant avec `DEFAULT` | **0** | **0** ✓ | `id` et `%_id` dont `column_default` est non nul |
+| **FR-023** — `SEQUENCE` créée | **0** | **0** ✓ | `pg_class` où `relkind='S'` |
+| **`compose.yml`** — tag exact | oui | **oui** ✓ | `image: postgres:18.4` ; le seul « latest » du fichier est dans le commentaire qui l'interdit |
+
+### Le seul écart apparent, et pourquoi il n'en est pas un
+
+`editeur.unite_facturable.quantite_comptee` est un **`INTEGER`** et non le domaine `quantite`
+(`NUMERIC`). L'amendement A2 vise les quantités de **marchandise** — une quincaillerie vend
+2,3 mètres de fer, une boulangerie achète 47,5 kg de farine. Ici on compte des **objets discrets** :
+des chambres, des points de vente, des véhicules. **Une demi-chambre facturable n'existe pas**, et
+un `NUMERIC` laisserait entendre le contraire.
+
+La colonne porte « quantite » dans son nom parce que c'est le mot du métier de l'abonnement ; le
+type dit ce qu'elle est réellement. **Un commentaire de colonne a été ajouté** pour que le prochain
+qui lance ce contrôle ne le rouvre pas.
+
+`fiscalite.item_certifie.quantite`, elle, est bien sur le domaine `quantite` — c'est la seule
+quantité de marchandise du socle, les autres arrivant au cycle D2.
+
+### Emploi des trois domaines partagés
+
+| Domaine | Colonnes |
+|---|---|
+| `montant_mineur` | **24** |
+| `code_devise` | **17** |
+| `quantite` | **1** *(le socle ne porte presque aucune quantité — les lignes de vente et les mouvements de stock sont en D2)* |
+
+---
+
+## T037 · Revue de la *Definition of Done* (`docs/user-stories-v1.md` §0.4)
+
+**Date** : 2026-08-06. Les points de phase 2 et 3 sont déclarés **« sans objet »**, jamais cochés
+en silence.
+
+| # | Point | Verdict |
+|---|---|---|
+| 1 | Critères d'acceptation couverts | ✅ **Tenu** — les douze critères de réussite sont vérifiés un par un, ci-dessus et par les portes |
+| 2 | Écrans, navigateur réel, deux moteurs | ⚪ **Sans objet** — phase 2. Ce cycle ne produit aucun écran |
+| 3 | Index des écrans à jour | ⚪ **Sans objet** — phase 2 |
+| 4 | RLS activée **et forcée** sur toute nouvelle table | ✅ **Tenu, mécaniquement** — P-01, contrôles 2, 3 et 4, à 71/71 |
+| 5 | Classe hors-ligne déclarée | ✅ **Tenu, mécaniquement** — P-02, plus cinq entités nommées et inscrites au registre |
+| 6 | Endpoints, contrat OpenAPI, client régénéré | ⚪ **Sans objet** — phase 3 |
+| 7 | i18n, clés `fr` et `en` | ⚪ **Sans objet** — **aucune chaîne utilisateur n'existe dans ce cycle**. Rien de ce que produit D1 n'est visible par un utilisateur |
+| 8 | Migrations `sqlx`, `cargo sqlx prepare`, seeds | ⚪ **Sans objet** — phase 3 |
+| 9 | Paramètres exposés en configuration, jamais en dur | ✅ **Tenu** — `parametre_catalogue` et `parametre_configuration` existent, avec leur chaîne d'héritage à quatre portées. Aucun paramètre métier n'est figé dans le schéma : les deux `CHECK` d'énumération qui l'auraient fait ont été **retirées** (`profil_stock`, `etablissement.classement`) |
+| 10 | Données simulées supprimées | ⚪ **Sans objet** — aucune donnée simulée n'a été produite |
+| 11 | `docs/modele-donnees/` mis à jour dans le même changement | ✅ **Tenu** — c'est **le livrable** de ce cycle, et la règle de tenue est écrite pour la phase 3 |
+| 12 | Événements outbox émis à chaque transition | ⚪ **Sans objet** — phase 3. La table et sa contrainte de séquence existent ; rien n'émet encore |
+| 13 | Tests de classe instanciés | ⚪ **Sans objet** — phase 3. Aucun harnais de test n'existe |
+| 14 | `scripts/verifier.sh` passe en une commande, et toute porte ajoutée a son test négatif | ✅ **Tenu** — une commande, 5 s, deux portes, **deux tests négatifs, chacun vérifié en le cassant volontairement une fois** |
+
+**Sept points « sans objet », six tenus, un tenu mécaniquement par chacune des deux portes.**
+Aucun point applicable n'est en échec.

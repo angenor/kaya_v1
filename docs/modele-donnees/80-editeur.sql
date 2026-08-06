@@ -176,6 +176,15 @@ CREATE TABLE editeur.unite_facturable (
 
 COMMENT ON COLUMN editeur.unite_facturable.metrique IS
     'Ce qu''on compte, nommé par la verticale. Jamais « chambre » en dur — amendement A11.';
+-- ⚠️ `quantite_comptee` est un INTEGER et NON le domaine `quantite` (NUMERIC), et ce
+-- n'est pas un écart à l'amendement A2. A2 vise les quantités de MARCHANDISE — une
+-- quincaillerie vend 2,3 mètres de fer, une boulangerie achète 47,5 kg de farine.
+-- Ici, on compte des OBJETS DISCRETS : des chambres, des points de vente, des
+-- véhicules. Une demi-chambre facturable n'existe pas, et un NUMERIC laisserait
+-- entendre le contraire. Le nom porte « quantite » parce que c'est le mot du métier
+-- de l'abonnement ; le type dit ce que c'est réellement.
+COMMENT ON COLUMN editeur.unite_facturable.quantite_comptee IS
+    'CARDINAL d''objets discrets (chambres, points de vente), donc INTEGER — pas le domaine quantite.';
 
 ALTER TABLE editeur.unite_facturable ENABLE ROW LEVEL SECURITY;
 ALTER TABLE editeur.unite_facturable FORCE  ROW LEVEL SECURITY;
