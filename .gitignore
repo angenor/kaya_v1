@@ -1,0 +1,8 @@
+# Claude Code — artefacts locaux et potentiellement sensibles.
+# Les skills Spec Kit (.claude/skills/) restent versionnées : elles font partie du projet.
+.claude/*
+!.claude/skills/
+.claude/settings.local.json
+
+# macOS
+.DS_Store

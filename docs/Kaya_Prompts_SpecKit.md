@@ -141,9 +141,7 @@ puis : /speckit-specify (§3) → /speckit-clarify (§2.1) → /speckit-plan (§
 ## 1. Constitution (à coller une seule fois)
 
 ```
-/speckit-constitution
-
-Projet : Kaya — plateforme de gestion pour établissements d'hébergement et de
+/speckit-constitution Projet : Kaya — plateforme de gestion pour établissements d'hébergement et de
 service en Afrique. Pilote : Résidence Hôtel Deloria, Abengourou, Côte d'Ivoire.
 Développeur solo. Monorepo unique.
 
