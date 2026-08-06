@@ -33,15 +33,12 @@ ailleurs, donc pas de liste qui puisse diverger du répertoire.
 *Cette liste est **opposable** : la porte P-01 compare les schémas trouvés dans la base à ceux
 déclarés ci-dessous. Un schéma présent dans la base et absent d'ici, ou l'inverse, est un échec.
 `00-conventions.sql` ne crée aucun schéma — il pose des objets partagés au niveau du cluster et de
-la base.*
+la base ; `public`, qui n'accueille que ces objets partagés, est hors périmètre.*
+
+> **Cette liste dit ce que le modèle CONTIENT, jamais ce qu'il contiendra.** Elle grandit dans le
+> même changement que le fichier qui crée le schéma — c'est la règle de tenue appliquée à
+> elle-même. Le tableau de l'ordre d'application, lui, énumère les onze fichiers attendus au terme
+> du cycle : ce sont deux listes de nature différente, et les confondre rendrait la porte P-01
+> soit aveugle, soit rouge en permanence.
 
 - `etablissements`
-- `comptes`
-- `caisse`
-- `fiscalite`
-- `documents`
-- `synchronisation`
-- `pilotage`
-- `editeur`
-- `metriques`
-- `comptabilite`
