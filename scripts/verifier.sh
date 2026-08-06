@@ -242,9 +242,14 @@ readonly PERIMETRE_SQL="c.relkind = 'r'
       AND n.nspname NOT IN ('information_schema', 'public')"
 
 # Plancher de non-vacuité : une porte qui inspecterait zéro table passerait au
-# vert sans rien prouver. Valeur PROVISOIRE tant que le modèle est incomplet ;
-# elle est portée à sa valeur définitive quand les onze fichiers existent.
-readonly PLANCHER_TABLES=1
+# vert sans rien prouver.
+#
+# 60 pour 71 tables réelles. UN PLANCHER SE RÈGLE JUSTE SOUS LA VALEUR RÉELLE,
+# jamais loin en dessous : à 20, un modèle amputé de ses deux tiers passerait
+# encore, et la porte serait verte en n'inspectant plus grand-chose. La marge de
+# onze absorbe le retrait délibéré d'une table sans exiger de toucher au script,
+# et rien de plus.
+readonly PLANCHER_TABLES=60
 
 # Les schémas que le README du modèle DÉCLARE. La comparaison à ceux réellement
 # créés est le point 2 du contrat de porte : « vérifie sa complétude ».
@@ -402,9 +407,15 @@ porte_p01() {
 
 # Plancher de non-vacuité DES DEUX CÔTÉS. Le second est le plus important : un
 # registre devenu illisible pour l'extracteur ferait passer la porte au vert en
-# ne comparant RIEN. Valeurs PROVISOIRES tant que le modèle est incomplet.
-readonly PLANCHER_TABLES_P02=1
-readonly PLANCHER_ENTITES=1
+# NE COMPARANT RIEN.
+#
+# POURQUOI 140 ET NON 80. L'extraction rend 174 entités sur le registre au
+# 2026-08-06. Un plancher confortable — 80, par exemple — serait INUTILE : la
+# moitié d'une extraction cassée suffirait encore à couvrir les 71 tables, et la
+# porte resterait verte en ne comparant plus rien. C'est exactement le mode de
+# défaillance qu'un plancher existe pour refuser.
+readonly PLANCHER_TABLES_P02=60
+readonly PLANCHER_ENTITES=140
 
 # L'extraction est robuste parce que la convention d'écriture du registre est
 # déjà celle-là : toute entité y est citée entre accents graves. Le filtre final

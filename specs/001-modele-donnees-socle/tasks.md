@@ -156,7 +156,7 @@ description: "Liste de tâches — cycle D1, modèle de données du socle"
 
 **Objet** : porter les planchers à leur valeur définitive, mesurer ce qui doit l'être, et clore le cycle.
 
-- [ ] T032 Porter les **planchers de non-vacuité** de P-01 et P-02 à leur valeur définitive dans `scripts/verifier.sh` — **60 tables** minimum côté P-01 ; **60 tables et 140 entités** côté P-02 — et vérifier qu'un modèle amputé de la moitié de ses fichiers fait échouer la porte. Le plancher provisoire de T008 disparaît ici
+- [X] T032 Porter les **planchers de non-vacuité** de P-01 et P-02 à leur valeur définitive dans `scripts/verifier.sh` — **60 tables** minimum côté P-01 ; **60 tables et 140 entités** côté P-02 — et vérifier qu'un modèle amputé de la moitié de ses fichiers fait échouer la porte. Le plancher provisoire de T008 disparaît ici
 
 > **Pourquoi 140 et non 80.** L'essai à blanc de l'extraction rend **165 entités** sur le registre actuel. Un plancher à 80 laisserait passer une extraction à moitié cassée — la moitié restante suffirait à couvrir les 71 tables, et la porte serait verte en ne comparant plus rien. C'est exactement le mode de défaillance qu'un plancher existe pour refuser.
 - [ ] T033 [P] Mesurer **SC-009** hors du script : appliquer le modèle sur une base locale non éphémère, générer 10 000 lignes de `comptes.personne`, `EXPLAIN ANALYZE` sur les trois recherches (préfixe de `nom_normalise` · `telephone_e164` · `type_piece` + `numero_piece`), consigner les temps et les plans dans le rapport de cycle. **Attendu : moins de 300 ms et un parcours d'index sur les trois.** Si la recherche par nom échoue sur un cas **infixe** réel, le signaler — `pg_trgm` s'ajoutera sans migration de données, et pas avant ([D-13](./research.md))
