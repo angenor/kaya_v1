@@ -45,3 +45,4 @@ la base ; `public`, qui n'accueille que ces objets partagés, est hors périmèt
 - `comptes`
 - `caisse`
 - `fiscalite`
+- `documents`
