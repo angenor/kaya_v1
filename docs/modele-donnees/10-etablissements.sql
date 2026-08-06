@@ -534,3 +534,262 @@ GRANT SELECT, INSERT ON etablissements.note_etablissement TO kaya_app;
 -- ancienne, paginées sans saut ni répétition (TRX-01)
 CREATE INDEX ix_note_etablissement_etab_date
     ON etablissements.note_etablissement (etablissement_id, cree_le DESC, id DESC);
+
+
+-- ############################################################################
+-- PROVISIONS — tables seulement, aucune logique au MVP
+--
+-- Une provision coûte ZÉRO dans le modèle de données et coûte un incrément
+-- partout ailleurs (constitution, principe 10). Le seul moment où elle est
+-- gratuite est celui-ci : avant la première migration.
+--
+-- Aucune de ces tables n'apparaîtra dans un écran de phase 2 ni dans un
+-- endpoint de phase 3. Leurs privilèges le rendent impossible, et c'est ce qui
+-- le prouve — un commentaire ne prouverait rien.
+-- ############################################################################
+
+
+-- ============================================================================
+-- etablissements.partenaire — un tiers avec qui l'établissement travaille
+-- CLASSE C · branche C2 — référentiel, éventuellement inter-tenant
+-- Story : ETB-07
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- ⚠️ DEUX COLONNES DE TENANT, ET C'EST LA RÉSOLUTION D'UNE CONTRADICTION.
+-- Trois documents décrivent `partenaire` avec un « tenant_id nullable » (cadrage
+-- §14.9, ETB-07, amendement A12), alors que la constitution impose tenant_id sur
+-- CHAQUE table avec une politique sans exception. Une ligne au tenant_id nul
+-- serait INVISIBLE sous la politique — la provision serait inutilisable — ou
+-- VISIBLE DE TOUS si on relâchait la politique, ce qui ouvrirait la seule brèche
+-- d'isolation du produit sur une table que personne n'utilise.
+--
+-- En relisant l'intention d'A12, la contradiction se dissout : le tenant_id
+-- nullable désignait LE COMPTE KAYA DU PARTENAIRE, pas le propriétaire de la
+-- fiche. Ce sont donc deux colonnes :
+--   — `tenant_id`             NON NUL — le tenant propriétaire, qui porte l'isolation ;
+--   — `tenant_partenaire_id`  NULLABLE — le compte Kaya du partenaire, quand il en a un.
+-- Le partenaire sans compte Kaya est le cas NORMAL ; celui avec compte est
+-- l'enrichissement.
+-- ============================================================================
+CREATE TABLE etablissements.partenaire (
+    id                   UUID CONSTRAINT pk_partenaire PRIMARY KEY,
+    tenant_id            UUID        NOT NULL,
+    etablissement_id     UUID        NOT NULL,
+    nom                  TEXT        NOT NULL,
+    type                 TEXT        NOT NULL,
+    telephone            TEXT            NULL,
+    canal_prefere        TEXT            NULL,
+    tenant_partenaire_id UUID            NULL,
+    cree_le              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modifie_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_partenaire_etab FOREIGN KEY (etablissement_id)
+        REFERENCES etablissements.etablissement (id),
+    -- Un partenaire n'est jamais soi-même : sans cette contrainte, une fiche
+    -- pointant sur son propre tenant passerait inaperçue et ferait croire à une
+    -- relation inter-tenant là où il n'y en a pas.
+    CONSTRAINT ck_partenaire_tenant_distinct CHECK (
+        tenant_partenaire_id IS NULL OR tenant_partenaire_id <> tenant_id)
+);
+
+COMMENT ON COLUMN etablissements.partenaire.tenant_partenaire_id IS
+    'Le compte Kaya du partenaire, s''il en a un. JAMAIS la colonne d''isolation, qui est tenant_id.';
+
+ALTER TABLE etablissements.partenaire ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.partenaire FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.partenaire
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.partenaire
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- SELECT seul : on ne peut rien bâtir dessus.
+GRANT SELECT ON etablissements.partenaire TO kaya_app;
+
+
+-- ============================================================================
+-- etablissements.demande_partenaire — ce qu'on demande à un partenaire
+-- CLASSE C · branche C2 — référentiel
+-- Story : ETB-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE etablissements.demande_partenaire (
+    id            UUID CONSTRAINT pk_demande_partenaire PRIMARY KEY,
+    tenant_id     UUID        NOT NULL,
+    partenaire_id UUID        NOT NULL,
+    objet         TEXT        NOT NULL,
+    statut        TEXT        NOT NULL,
+    canal         TEXT            NULL,
+    cree_le       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modifie_le    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_demande_partenaire_partenaire FOREIGN KEY (partenaire_id)
+        REFERENCES etablissements.partenaire (id)
+);
+
+ALTER TABLE etablissements.demande_partenaire ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.demande_partenaire FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.demande_partenaire
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.demande_partenaire
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON etablissements.demande_partenaire TO kaya_app;
+
+
+-- ============================================================================
+-- etablissements.compte_compensation — le solde tenu avec un partenaire
+-- CLASSE B · branche B3 — effet monétaire
+-- Story : ETB-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE etablissements.compte_compensation (
+    id                UUID CONSTRAINT pk_compte_compensation PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    partenaire_id     UUID           NOT NULL,
+    solde             montant_mineur NOT NULL DEFAULT 0,
+    devise            code_devise    NOT NULL,
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_compte_compensation_partenaire FOREIGN KEY (partenaire_id)
+        REFERENCES etablissements.partenaire (id)
+);
+
+ALTER TABLE etablissements.compte_compensation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.compte_compensation FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.compte_compensation
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.compte_compensation
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- SELECT seul : sans UPDATE, aucun solde ne peut bouger. La compensation n'est
+-- pas implémentable au MVP, et le privilège absent le prouve.
+GRANT SELECT ON etablissements.compte_compensation TO kaya_app;
+
+
+-- ============================================================================
+-- etablissements.mouvement_compensation — ce qui fait bouger le solde
+-- CLASSE B · branche B3 — effet monétaire
+-- Story : ETB-07
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE etablissements.mouvement_compensation (
+    id                     UUID CONSTRAINT pk_mouvement_compensation PRIMARY KEY,
+    tenant_id              UUID           NOT NULL,
+    compte_compensation_id UUID           NOT NULL,
+    sens                   TEXT           NOT NULL,   -- DEBIT | CREDIT
+    montant                montant_mineur NOT NULL,
+    devise                 code_devise    NOT NULL,
+    motif                  TEXT               NULL,
+    horodatage_client      TIMESTAMPTZ        NULL,
+    cree_le                TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_mouvement_compensation_compte FOREIGN KEY (compte_compensation_id)
+        REFERENCES etablissements.compte_compensation (id)
+);
+
+ALTER TABLE etablissements.mouvement_compensation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.mouvement_compensation FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.mouvement_compensation
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.mouvement_compensation
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON etablissements.mouvement_compensation TO kaya_app;
+
+
+-- ============================================================================
+-- etablissements.convention_inter_etablissements — la voie NON RETENUE
+-- CLASSE C · branche C2 — relation entre deux tenants
+-- Story : cadrage §4.3
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- ⚠️ AUCUN GRANT À kaya_app, PAS MÊME SELECT — et c'est le point de cette table.
+-- L'amendement A12 l'a REMPLACÉE par `partenaire`. Le registre §10 la nomme
+-- encore, et le registre est normatif : elle est donc créée. Mais rien du
+-- produit n'a de raison de la lire, et L'ABSENCE DE PRIVILÈGE DIT QU'ELLE N'EST
+-- PAS LA VOIE RETENUE — mieux qu'une suppression silencieuse ne le dirait, et
+-- mieux qu'un commentaire, qui se périme.
+--
+-- P-01 la voit quand même : elle inspecte le catalogue, pas les droits.
+-- ============================================================================
+CREATE TABLE etablissements.convention_inter_etablissements (
+    id               UUID CONSTRAINT pk_convention_inter_etablissements PRIMARY KEY,
+    tenant_id        UUID        NOT NULL,
+    etablissement_id UUID        NOT NULL,
+    tenant_tiers_id  UUID        NOT NULL,
+    objet            TEXT        NOT NULL,
+    statut           TEXT        NOT NULL,
+    cree_le          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modifie_le       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_convention_etab FOREIGN KEY (etablissement_id)
+        REFERENCES etablissements.etablissement (id)
+);
+
+ALTER TABLE etablissements.convention_inter_etablissements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.convention_inter_etablissements FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.convention_inter_etablissements
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.convention_inter_etablissements
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- Volontairement aucun GRANT. Voir le commentaire d'en-tête.
+
+
+-- ============================================================================
+-- etablissements.dispositif — un contrôle d'accès physique
+-- CLASSE A · branche A4 — CANAL HORS LIGNE OBLIGATOIRE
+-- Story : cadrage §14.21
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- ⚠️ LA CONTRAINTE EST À RESPECTER DÈS MAINTENANT, même si rien n'est
+-- implémenté : tout mécanisme d'ouverture d'unité DEVRA disposer d'un canal
+-- HORS LIGNE — un code à usage unique validable sans réseau. Une porte qui ne
+-- s'ouvre pas parce que le réseau est tombé est un incident grave, et c'est
+-- pour cela que la classe est A et non D.
+-- C'est aussi pourquoi `secret_partage_ref` existe déjà : un canal hors ligne
+-- suppose un secret partagé d'avance, et l'ajouter après coup imposerait de
+-- réenrôler tous les dispositifs du parc.
+-- ============================================================================
+CREATE TABLE etablissements.dispositif (
+    id                    UUID CONSTRAINT pk_dispositif PRIMARY KEY,
+    tenant_id             UUID        NOT NULL,
+    etablissement_id      UUID        NOT NULL,
+    type                  TEXT        NOT NULL,
+    identifiant_materiel  TEXT        NOT NULL,
+    -- La ressource commandée — une unité d'hébergement, un local. Pas de
+    -- REFERENCES : les verticales sont d'autres modules, et celui-ci n'existe
+    -- pas encore.
+    ressource_id          UUID            NULL,
+    secret_partage_ref    TEXT            NULL,
+    horodatage_client     TIMESTAMPTZ     NULL,
+    cree_le               TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_dispositif_etab FOREIGN KEY (etablissement_id)
+        REFERENCES etablissements.etablissement (id)
+);
+
+COMMENT ON COLUMN etablissements.dispositif.secret_partage_ref IS
+    'Référence du secret partagé permettant la validation HORS LIGNE d''un code à usage unique.';
+
+ALTER TABLE etablissements.dispositif ENABLE ROW LEVEL SECURITY;
+ALTER TABLE etablissements.dispositif FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON etablissements.dispositif
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON etablissements.dispositif
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON etablissements.dispositif TO kaya_app;
