@@ -144,9 +144,9 @@ description: "Liste de tâches — cycle D1, modèle de données du socle"
 
 **Test indépendant** : ouvrir le README du modèle et y retrouver chaque table avec sa classe, l'ordre d'application, et la règle de tenue.
 
-- [ ] T029 [US6] Écrire `docs/modele-donnees/README.md` : l'**index des onze fichiers et leur ordre d'application** (porté par le préfixe numérique — décision [D-07](./research.md)), le **schéma des relations principales en texte**, et la **liste des 71 tables avec leur classe hors-ligne**
-- [ ] T030 [US6] Ajouter au même README la **règle de tenue** : *toute migration de phase 3 met à jour le fichier de son schéma dans le même changement, et un test compare le schéma réel aux fichiers et échoue sur tout écart* — plus le motif, à écrire : *une source de vérité périmée est pire que pas de source du tout, parce qu'on continue de la croire*
-- [ ] T031 [US6] Documenter **la commande unique** dans le `README.md` du dépôt : `scripts/verifier.sh`, ce que chaque porte vérifie, et les deux modes `--test-negatif`. Une commande non documentée est une commande qu'on relance de mémoire, donc mal
+- [X] T029 [US6] Écrire `docs/modele-donnees/README.md` : l'**index des onze fichiers et leur ordre d'application** (porté par le préfixe numérique — décision [D-07](./research.md)), le **schéma des relations principales en texte**, et la **liste des 71 tables avec leur classe hors-ligne**
+- [X] T030 [US6] Ajouter au même README la **règle de tenue** : *toute migration de phase 3 met à jour le fichier de son schéma dans le même changement, et un test compare le schéma réel aux fichiers et échoue sur tout écart* — plus le motif, à écrire : *une source de vérité périmée est pire que pas de source du tout, parce qu'on continue de la croire*
+- [X] T031 [US6] Documenter **la commande unique** dans le `README.md` du dépôt : `scripts/verifier.sh`, ce que chaque porte vérifie, et les deux modes `--test-negatif`. Une commande non documentée est une commande qu'on relance de mémoire, donc mal
 
 **Point de contrôle** : le modèle se lit et se tient. La règle qui l'empêche de dériver existe avant la première migration, ce qui est le seul moment où elle est gratuite.
 
