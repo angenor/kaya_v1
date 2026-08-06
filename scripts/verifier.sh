@@ -64,7 +64,16 @@ USAGE
                                              arrêt au premier échec
     scripts/verifier.sh --porte p01          une porte seule
     scripts/verifier.sh --porte p02
+    scripts/verifier.sh --test-negatif p01   casse P-01 volontairement et EXIGE
+                                             qu'elle échoue
+    scripts/verifier.sh --test-negatif p02   idem pour P-02
+    scripts/verifier.sh --test-negatif       les deux
     scripts/verifier.sh --aide               ce message
+
+    --test-negatif n'est pas un mode de débogage, c'est une PREUVE : une porte
+    qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à
+    trouver. Le mode opère sur une COPIE DE TRAVAIL et ne touche jamais
+    docs/modele-donnees/ — l'empreinte du répertoire le vérifie.
 
 LES PORTES
     P-01   le modèle de docs/modele-donnees/ s'applique dans l'ordre, sans
@@ -496,10 +505,13 @@ nettoyer_copies() {
     copies_de_travail=""
 }
 
-# Empreinte du répertoire de référence : noms et contenus. C'est elle qui prouve
-# le point 3 du contrat de porte — « ne modifie pas ce qu'elle inspecte ».
+# Empreinte de TOUT CE QUE LES PORTES INSPECTENT : le répertoire du modèle et le
+# registre. C'est elle qui prouve le point 3 du contrat de porte — « ne modifie
+# pas ce qu'elle inspecte ». Elle est relevée en mode normal comme en mode test
+# négatif : une porte qui reformaterait ce qu'elle lit finirait par le réparer
+# au lieu de le signaler.
 empreinte_modele() {
-    find "$MODELE_REFERENCE" -type f | LC_ALL=C sort | xargs cksum | cksum
+    { find "$MODELE_REFERENCE" -type f | LC_ALL=C sort | xargs cksum; cksum < "$REGISTRE"; } | cksum
 }
 
 copier_modele() {
@@ -705,6 +717,9 @@ main() {
 
     local debut=$SECONDS
     local portes_passees=0
+    # Point 3 du contrat de porte, relevé AVANT toute exécution.
+    local empreinte_avant
+    empreinte_avant="$(empreinte_modele)"
 
     case "$mode" in
         tout)
@@ -749,8 +764,18 @@ main() {
             ;;
     esac
 
+    # Point 3 du contrat de porte, constaté APRÈS. Une porte qui a modifié ce
+    # qu'elle inspecte n'a rien prouvé sur ce qui était là avant elle.
+    if [ "$empreinte_avant" != "$(empreinte_modele)" ]; then
+        printf '\n✗ CE QUI EST INSPECTÉ A ÉTÉ MODIFIÉ pendant l'\''exécution.\n'
+        printf '  docs/modele-donnees/ ou le registre a changé — la vérification ne prouve rien.\n'
+        exit "$CODE_ROUGE"
+    fi
+
     local duree=$((SECONDS - debut))
-    printf '\nTOUT VERT — %d porte(s) — %d s\n' "$portes_passees" "$duree"
+    local mot="portes"
+    [ "$portes_passees" -le 1 ] && mot="porte"
+    printf '\nTOUT VERT — %d %s — %d s\n' "$portes_passees" "$mot" "$duree"
     # Le repère de coût est DEUX MINUTES (SC-008). Au-delà, on cesse de lancer un
     # script — c'est le déclencheur documenté du passage au serveur, en phase 3.
     exit "$CODE_OK"
