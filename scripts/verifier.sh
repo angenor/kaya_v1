@@ -69,7 +69,8 @@ USAGE
 LES PORTES
     P-01   le modèle de docs/modele-donnees/ s'applique dans l'ordre, sans
            erreur, sur une base PostgreSQL VIERGE, et chaque table porte
-           ENABLE + FORCE ROW LEVEL SECURITY et sa politique isolation_tenant.
+           ENABLE + FORCE ROW LEVEL SECURITY, sa politique isolation_tenant
+           et sa politique administration_editeur.
     P-02   toute table du modèle a une classe hors-ligne déclarée dans
            docs/registre-classes-offline.md. Sens : table → registre. Une
            entité déclarée sans table est normale ; une table non déclarée
@@ -339,6 +340,31 @@ porte_p01() {
     rendre_verdict "politique isolation_tenant" "$total" "$manquants" \
         "(USING et WITH CHECK non nuls, second argument \`true\` présent)" || echecs=1
 
+    # --- Contrôle 4 : la politique d'administration ------------------------
+    #
+    # Son absence NE SE VOIT SUR AUCUN ÉCRAN, et fait RÉUSSIR EN N'ÉCRIVANT RIEN
+    # toute migration de peuplement de la phase 3 : la politique s'applique au
+    # propriétaire sous FORCE, current_setting vaut NULL, aucune ligne n'est
+    # touchée, aucune erreur n'est levée. C'est le défaut le plus silencieux du
+    # modèle — et il ne se découvre qu'au premier calcul qui lit la colonne vide.
+    #
+    # Contrôle DISTINCT du 3 plutôt que fondu dedans : en cas d'échec, savoir
+    # LAQUELLE des deux politiques manque évite de chercher.
+    manquants="$(interroger "SELECT n.nspname || '.' || c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE $PERIMETRE_SQL
+          AND NOT EXISTS (
+              SELECT 1 FROM pg_policies p
+              WHERE p.schemaname = n.nspname AND p.tablename = c.relname
+                AND p.policyname = 'administration_editeur'
+                AND p.cmd = 'ALL'
+                AND p.roles = '{kaya_owner}'::name[]
+                AND p.qual       IS NOT NULL
+                AND p.with_check IS NOT NULL)
+        ORDER BY 1;")"
+    rendre_verdict "politique administration_editeur" "$total" "$manquants" \
+        "(FOR ALL TO kaya_owner, posée dès la création)" || echecs=1
+
     if [ "$echecs" -ne 0 ]; then
         printf '   ROUGE — P-01\n'
         return "$CODE_ROUGE"
@@ -449,11 +475,11 @@ rendre_verdict() {
     [ -n "$manquants" ] && nombre="$(printf '%s\n' "$manquants" | grep -c . || true)"
 
     if [ "$nombre" -eq 0 ]; then
-        printf '   ✓ %-28s %d/%d %s\n' "$libelle" "$total" "$total" "$precision"
+        printf '   ✓ %-32s %d/%d %s\n' "$libelle" "$total" "$total" "$precision"
         return 0
     fi
 
-    printf '   ✗ %-28s %d/%d\n' "$libelle" "$((total - nombre))" "$total"
+    printf '   ✗ %-32s %d/%d\n' "$libelle" "$((total - nombre))" "$total"
     printf '%s\n' "$manquants" | sed 's/^/     MANQUANTE : /'
     return 1
 }

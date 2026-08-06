@@ -89,8 +89,8 @@ description: "Liste de tâches — cycle D1, modèle de données du socle"
 
 **Test indépendant** : `scripts/verifier.sh --porte p01` déclare son périmètre, atteint son plancher définitif, et rend `71/71` sur les trois contrôles.
 
-- [ ] T018 [US2] Étendre le contrôle 3 de P-01 dans `scripts/verifier.sh` : exiger **aussi** la politique `administration_editeur … FOR ALL TO kaya_owner` sur chaque table. Son absence ne se voit sur aucun écran et fait **réussir en n'écrivant rien** toute migration de peuplement de la phase 3 — c'est le défaut le plus silencieux du modèle
-- [ ] T019 [US2] Revue de conformité RLS sur les onze fichiers de `docs/modele-donnees/*.sql` : vérifier que **l'expression de politique est strictement identique partout**, mot pour mot. Une variante d'écriture obligerait P-01 à accepter deux formes, et une porte qui en accepte deux en acceptera trois
+- [X] T018 [US2] Étendre le contrôle 3 de P-01 dans `scripts/verifier.sh` : exiger **aussi** la politique `administration_editeur … FOR ALL TO kaya_owner` sur chaque table. Son absence ne se voit sur aucun écran et fait **réussir en n'écrivant rien** toute migration de peuplement de la phase 3 — c'est le défaut le plus silencieux du modèle
+- [X] T019 [US2] Revue de conformité RLS sur les onze fichiers de `docs/modele-donnees/*.sql` : vérifier que **l'expression de politique est strictement identique partout**, mot pour mot. Une variante d'écriture obligerait P-01 à accepter deux formes, et une porte qui en accepte deux en acceptera trois
 
 **Point de contrôle** : aucune table du modèle ne peut plus être lue, insérée ou modifiée hors du contexte de son tenant, y compris par le propriétaire des tables.
 
