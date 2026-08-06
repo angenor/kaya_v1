@@ -162,6 +162,7 @@ saisie et B à l'annulation après envoi. Le registre classe **l'opération**, e
 | Règlement fractionné multi-modes | **classe de chaque part** | — | CAI-02 |
 | `sortie_de_caisse` — dépense, avance, prélèvement | **B** | B3 — effet monétaire | CAI-03, §11.3 |
 | `comptage`, `ecart_de_caisse` | **B** | B3 — effet monétaire, tracé | CAI-04, §11.3 |
+| `coupure_comptee` — détail d'un comptage par coupure | **B** | B3 — effet monétaire, tracé ; suit son `comptage` | CAI-04 |
 | `cloture_shift` | **B** | B3 — sérialisation par caisse | CAI-05 |
 | `cloture_journaliere` | **B** | B3 — **atomique**, explicitement B au cadrage §11.3 | CAI-06 |
 | Ouverture de tiroir-caisse (tracée) | **A** | A4 — explicitement A au cadrage §11.3 | IMP-01, §11.3 |
