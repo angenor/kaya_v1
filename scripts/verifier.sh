@@ -191,18 +191,149 @@ appliquer_modele() {
 # =============================================================================
 # P-01 · le modèle s'applique sur une base vierge, et chaque table est isolée
 # =============================================================================
+#
+# Trois contrôles, et le troisième est le moins évident des trois :
+#
+#   1. tenant_id existe et est NOT NULL — sans elle, la politique compare une
+#      colonne absente.
+#   2. relrowsecurity ET relforcerowsecurity — sans FORCE, le propriétaire des
+#      tables reste hors politique et la première tâche de maintenance voit
+#      tous les clients.
+#   3. une politique isolation_tenant dont qual ET with_check sont non nuls, et
+#      dont les deux expressions portent le SECOND ARGUMENT true de
+#      current_setting. pg_policies.with_check vaut NULL quand la politique n'en
+#      déclare pas — et une politique sans WITH CHECK laisse un tenant INSÉRER
+#      chez un autre, ce qui n'apparaît dans AUCUNE lecture. Vérifier la seule
+#      présence de la politique laisserait passer exactement cette faute.
+
+# Périmètre commun aux quatre requêtes : les relations ordinaires des schémas du
+# modèle. `public` est exclu — 00-conventions.sql n'y pose que des domaines, et
+# le README du modèle le déclare.
+readonly PERIMETRE_SQL="c.relkind = 'r'
+      AND n.nspname NOT LIKE 'pg\\_%'
+      AND n.nspname NOT IN ('information_schema', 'public')"
+
+# Plancher de non-vacuité : une porte qui inspecterait zéro table passerait au
+# vert sans rien prouver. Valeur PROVISOIRE tant que le modèle est incomplet ;
+# elle est portée à sa valeur définitive quand les onze fichiers existent.
+readonly PLANCHER_TABLES=1
+
+# Les schémas que le README du modèle DÉCLARE. La comparaison à ceux réellement
+# créés est le point 2 du contrat de porte : « vérifie sa complétude ».
+schemas_declares() {
+    awk '
+        /^## Schémas déclarés/ { dans = 1; next }
+        /^## /                 { dans = 0 }
+        dans && /^- `/         { gsub(/^- `/, ""); gsub(/`.*$/, ""); print }
+    ' "$1/README.md" | sort -u
+}
 
 porte_p01() {
     local repertoire="$1"
+    local declares trouves manquants tables total echecs
 
     printf '\n── P-01 · le modèle s'\''applique sur une base vierge, et chaque table porte ENABLE + FORCE + sa politique\n'
 
     demarrer_base
     appliquer_modele "$repertoire" || return "$CODE_ROUGE"
 
-    printf '   Périmètre : %d fichiers appliqués\n' "$fichiers_appliques"
+    # --- Complétude : schémas de la base ↔ schémas déclarés au README --------
+    declares="$(schemas_declares "$repertoire")"
+    trouves="$(interroger "SELECT n.nspname FROM pg_namespace n
+                           WHERE n.nspname NOT LIKE 'pg\\_%'
+                             AND n.nspname NOT IN ('information_schema', 'public')
+                           ORDER BY 1;")"
+
+    if [ "$declares" != "$trouves" ]; then
+        printf '   ✗ les schémas de la base et ceux déclarés au README du modèle diffèrent\n'
+        diff <(printf '%s\n' "$declares" | grep -v '^$' || true) \
+             <(printf '%s\n' "$trouves"  | grep -v '^$' || true) \
+            | sed -e 's/^< /     DÉCLARÉ SANS ÊTRE CRÉÉ : /' \
+                  -e 's/^> /     CRÉÉ SANS ÊTRE DÉCLARÉ : /' \
+            | grep -E 'DÉCLARÉ SANS|CRÉÉ SANS' || true
+        printf '   ROUGE — P-01\n'
+        return "$CODE_ROUGE"
+    fi
+
+    total="$(interroger "SELECT count(*) FROM pg_class c
+                         JOIN pg_namespace n ON n.oid = c.relnamespace
+                         WHERE $PERIMETRE_SQL;")"
+
+    printf '   Périmètre : %d fichier(s) appliqué(s) · %d schéma(s) · %d table(s) inspectée(s)\n' \
+        "$fichiers_appliques" "$(printf '%s\n' "$trouves" | grep -c . || true)" "$total"
+
+    # --- Non-vacuité --------------------------------------------------------
+    if [ "$total" -lt "$PLANCHER_TABLES" ]; then
+        printf '   Plancher  : %d table(s) attendue(s) au minimum — NON ATTEINT (%d)\n' \
+            "$PLANCHER_TABLES" "$total"
+        printf '   ✗ la cible de la porte est vide ou tronquée : un vert ne prouverait rien\n'
+        printf '   ROUGE — P-01\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Plancher  : %d table(s) attendue(s) au minimum — atteint\n' "$PLANCHER_TABLES"
+
+    echecs=0
+
+    # --- Contrôle 1 : la colonne -------------------------------------------
+    manquants="$(interroger "SELECT n.nspname || '.' || c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE $PERIMETRE_SQL
+          AND NOT EXISTS (
+              SELECT 1 FROM pg_attribute a
+              WHERE a.attrelid = c.oid AND a.attname = 'tenant_id'
+                AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull)
+        ORDER BY 1;")"
+    rendre_verdict "tenant_id NOT NULL" "$total" "$manquants" || echecs=1
+
+    # --- Contrôle 2 : l'activation -----------------------------------------
+    manquants="$(interroger "SELECT n.nspname || '.' || c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE $PERIMETRE_SQL
+          AND NOT (c.relrowsecurity AND c.relforcerowsecurity)
+        ORDER BY 1;")"
+    rendre_verdict "ENABLE + FORCE" "$total" "$manquants" || echecs=1
+
+    # --- Contrôle 3 : la politique -----------------------------------------
+    manquants="$(interroger "SELECT n.nspname || '.' || c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE $PERIMETRE_SQL
+          AND NOT EXISTS (
+              SELECT 1 FROM pg_policies p
+              WHERE p.schemaname = n.nspname AND p.tablename = c.relname
+                AND p.policyname = 'isolation_tenant'
+                AND p.qual       IS NOT NULL
+                AND p.with_check IS NOT NULL
+                AND p.qual       LIKE '%current_setting(''app.current_tenant''::text, true)%'
+                AND p.with_check LIKE '%current_setting(''app.current_tenant''::text, true)%')
+        ORDER BY 1;")"
+    rendre_verdict "politique isolation_tenant" "$total" "$manquants" \
+        "(USING et WITH CHECK non nuls, second argument \`true\` présent)" || echecs=1
+
+    if [ "$echecs" -ne 0 ]; then
+        printf '   ROUGE — P-01\n'
+        return "$CODE_ROUGE"
+    fi
     printf '   VERT\n'
     return "$CODE_OK"
+}
+
+# Imprime le verdict d'un contrôle et NOMME les objets fautifs.
+# « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
+# « caisse.coupure_comptee » envoie à la ligne.
+rendre_verdict() {
+    local libelle="$1" total="$2" manquants="$3" precision="${4:-}"
+    local nombre=0
+
+    [ -n "$manquants" ] && nombre="$(printf '%s\n' "$manquants" | grep -c . || true)"
+
+    if [ "$nombre" -eq 0 ]; then
+        printf '   ✓ %-28s %d/%d %s\n' "$libelle" "$total" "$total" "$precision"
+        return 0
+    fi
+
+    printf '   ✗ %-28s %d/%d\n' "$libelle" "$((total - nombre))" "$total"
+    printf '%s\n' "$manquants" | sed 's/^/     MANQUANTE : /'
+    return 1
 }
 
 # =============================================================================
