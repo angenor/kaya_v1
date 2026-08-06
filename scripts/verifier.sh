@@ -63,12 +63,17 @@ USAGE
     scripts/verifier.sh                      toutes les portes, dans l'ordre,
                                              arrêt au premier échec
     scripts/verifier.sh --porte p01          une porte seule
+    scripts/verifier.sh --porte p02
     scripts/verifier.sh --aide               ce message
 
 LES PORTES
     P-01   le modèle de docs/modele-donnees/ s'applique dans l'ordre, sans
            erreur, sur une base PostgreSQL VIERGE, et chaque table porte
            ENABLE + FORCE ROW LEVEL SECURITY et sa politique isolation_tenant.
+    P-02   toute table du modèle a une classe hors-ligne déclarée dans
+           docs/registre-classes-offline.md. Sens : table → registre. Une
+           entité déclarée sans table est normale ; une table non déclarée
+           est l'erreur.
 
 CODES DE SORTIE
     0   toutes les portes demandées passent
@@ -228,14 +233,27 @@ schemas_declares() {
     ' "$1/README.md" | sort -u
 }
 
+# La base n'est démarrée et le modèle appliqué QU'UNE FOIS pour les deux portes :
+# P-02 réutilise ce que P-01 a monté plutôt que de lancer une seconde base. C'est
+# l'un des deux choix qui tiennent la durée totale sous les deux minutes de
+# SC-008 (l'autre est le tmpfs de compose.yml).
+modele_applique=0
+
+preparer_base() {
+    [ "$modele_applique" -eq 1 ] && return 0
+    demarrer_base
+    appliquer_modele "$1" || return 1
+    modele_applique=1
+    return 0
+}
+
 porte_p01() {
     local repertoire="$1"
-    local declares trouves manquants tables total echecs
+    local declares trouves manquants total echecs
 
     printf '\n── P-01 · le modèle s'\''applique sur une base vierge, et chaque table porte ENABLE + FORCE + sa politique\n'
 
-    demarrer_base
-    appliquer_modele "$repertoire" || return "$CODE_ROUGE"
+    preparer_base "$repertoire" || return "$CODE_ROUGE"
 
     # --- Complétude : schémas de la base ↔ schémas déclarés au README --------
     declares="$(schemas_declares "$repertoire")"
@@ -317,6 +335,98 @@ porte_p01() {
     return "$CODE_OK"
 }
 
+# =============================================================================
+# P-02 · toute table du modèle a une classe déclarée au registre
+# =============================================================================
+#
+# SENS DE LA COMPARAISON : table → registre, JAMAIS l'inverse. Une entité
+# déclarée sans table est NORMALE — le registre §6, §7 et §8 déclare déjà tout
+# le cycle D2, et le §10 des provisions que ce cycle ne crée pas. Une table non
+# déclarée est l'erreur.
+#
+# LIMITES ASSUMÉES, et l'arbitrage qui les rend acceptables :
+#   — la comparaison porte sur le NOM NU, pas sur schema.table : deux tables
+#     homonymes dans deux schémas passeraient avec une seule déclaration ;
+#   — une mention en prose entre accents graves peut faire passer une table par
+#     accident.
+# Un faux négatif ferait DÉSACTIVER la porte sous trois semaines ; un faux
+# positif la laisse utile. On tolère le second, jamais le premier.
+
+# Plancher de non-vacuité DES DEUX CÔTÉS. Le second est le plus important : un
+# registre devenu illisible pour l'extracteur ferait passer la porte au vert en
+# ne comparant RIEN. Valeurs PROVISOIRES tant que le modèle est incomplet.
+readonly PLANCHER_TABLES_P02=1
+readonly PLANCHER_ENTITES=1
+
+# L'extraction est robuste parce que la convention d'écriture du registre est
+# déjà celle-là : toute entité y est citée entre accents graves. Le filtre final
+# écarte ce qui ne peut pas être un identifiant SQL (codes de branche en
+# majuscules, expressions, fragments de phrase).
+entites_registre() {
+    grep -oE '`[^`]+`' "$REGISTRE" \
+        | tr -d '`' \
+        | cut -d. -f1 \
+        | tr 'A-Z' 'a-z' \
+        | grep -E '^[a-z_][a-z0-9_]*$' \
+        | sort -u
+}
+
+porte_p02() {
+    local repertoire="$1"
+    local declarees tables nb_tables nb_entites non_declarees qualifie nu
+
+    printf '\n── P-02 · toute table du modèle a une classe déclarée au registre\n'
+
+    preparer_base "$repertoire" || return "$CODE_ROUGE"
+
+    declarees="$(entites_registre)"
+    nb_entites="$(printf '%s\n' "$declarees" | grep -c . || true)"
+
+    tables="$(interroger "SELECT n.nspname || '.' || c.relname || '|' || c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE $PERIMETRE_SQL
+        ORDER BY 1;")"
+    nb_tables="$(printf '%s\n' "$tables" | grep -c . || true)"
+
+    printf '   Périmètre : %d table(s) réelle(s) confrontée(s) à %d entité(s) extraite(s) du registre\n' \
+        "$nb_tables" "$nb_entites"
+    printf '   Sens      : table → registre (une entité déclarée sans table est normale)\n'
+
+    if [ "$nb_tables" -lt "$PLANCHER_TABLES_P02" ] || [ "$nb_entites" -lt "$PLANCHER_ENTITES" ]; then
+        printf '   Plancher  : %d table(s) et %d entité(s) au minimum — NON ATTEINT\n' \
+            "$PLANCHER_TABLES_P02" "$PLANCHER_ENTITES"
+        printf '   ✗ la porte comparerait trop peu de choses : un vert ne prouverait rien\n'
+        printf '   ROUGE — P-02\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Plancher  : %d table(s) et %d entité(s) au minimum — atteint\n' \
+        "$PLANCHER_TABLES_P02" "$PLANCHER_ENTITES"
+
+    non_declarees=""
+    while IFS='|' read -r qualifie nu; do
+        [ -z "$nu" ] && continue
+        if ! printf '%s\n' "$declarees" | grep -qxF "$nu"; then
+            non_declarees="${non_declarees}${qualifie}"$'\n'
+        fi
+    done <<< "$tables"
+
+    non_declarees="$(printf '%s' "$non_declarees" | grep -v '^$' || true)"
+
+    if [ -n "$non_declarees" ]; then
+        # Toutes les tables fautives, jamais seulement la première : corriger
+        # une déclaration pour découvrir la suivante au tour d'après est le plus
+        # sûr moyen de faire désactiver une porte.
+        printf '   ✗ %d table(s) non déclarée(s) au registre\n' \
+            "$(printf '%s\n' "$non_declarees" | grep -c .)"
+        printf '%s\n' "$non_declarees" | sed 's/^/     /'
+        printf '   ROUGE — P-02\n'
+        return "$CODE_ROUGE"
+    fi
+
+    printf '   VERT\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -368,13 +478,19 @@ main() {
 
     case "$mode" in
         tout)
+            # Arrêt au PREMIER contrôle rouge : P-02 ne s'exécute pas si P-01
+            # a échoué. Inspecter des classes sur un modèle qui ne s'applique
+            # pas donnerait un second message d'erreur sans second diagnostic.
             porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
+            portes_passees=$((portes_passees + 1))
+            porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
             ;;
         porte)
             case "$porte" in
                 p01) porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
-                *)   erreur_usage "porte inconnue : $porte (attendu : p01)" ;;
+                p02) porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
+                *)   erreur_usage "porte inconnue : $porte (attendu : p01 ou p02)" ;;
             esac
             portes_passees=1
             ;;
