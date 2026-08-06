@@ -1,0 +1,32 @@
+# Kaya — services locaux de vérification
+#
+# Ce fichier ne décrit AUCUN service de production. Il lance la base éphémère sur laquelle
+# `scripts/verifier.sh` applique `docs/modele-donnees/*.sql` pour prouver la porte P-01.
+#
+# Trois propriétés, et chacune est une décision :
+#   1. Le tag d'image est EXACT — `postgres:18.4`, jamais `latest`. Valeur reprise du §4.2 de
+#      docs/versions-reference.md (disponibilité vérifiée le 2026-07-30, multi-architecture :
+#      le même fichier sert le poste arm64 et le VPS amd64).
+#   2. Les données vivent en `tmpfs` — rien n'est écrit sur le disque, et rien ne survit à
+#      `docker compose down`. Une base survivante ferait passer P-01 au vert sur un modèle qui
+#      ne s'applique plus sur une base VIERGE, c'est-à-dire précisément ce qu'elle prétend prouver.
+#   3. Aucun port n'est publié. La base n'est jointe que par `docker compose exec`, donc elle
+#      n'entre jamais en collision avec un PostgreSQL du poste et n'expose rien au réseau local.
+
+name: kaya_verification
+
+services:
+  postgres_verification:
+    image: postgres:18.4
+    environment:
+      POSTGRES_USER: kaya_owner
+      POSTGRES_DB: kaya_verification
+      # Base jetable, jamais jointe hors du conteneur : le mot de passe n'est pas un secret.
+      POSTGRES_PASSWORD: verification_locale
+      PGDATA: /var/lib/postgresql/data
+    tmpfs:
+      # PostgreSQL 18 déclare son VOLUME sur /var/lib/postgresql (et non sur .../data comme
+      # les versions antérieures) : le tmpfs se pose donc sur le répertoire parent, sans quoi
+      # docker créerait un volume anonyme à côté et les données survivraient au `down`.
+      - /var/lib/postgresql:size=512m
+    # Aucune section `ports` — voir la propriété 3 ci-dessus.

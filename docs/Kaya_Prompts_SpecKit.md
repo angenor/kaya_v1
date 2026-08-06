@@ -387,7 +387,28 @@ Principes non négociables :
     Tailwind n'exprime pas (@keyframes, impression thermique) et reste regroupé.
     Une seule identité visuelle sur toutes les plateformes.
 
-13. VÉRIFICATION — UNE COMMANDE, UN NOYAU DE QUATRE PORTES, ET ELLE GROSSIT.
+13. TOUT TOURNE EN LOCAL — LE PROTOTYPE EST FONCTIONNEL SUR LE POSTE.
+    postgres, redis et garage tournent en CONTENEURS DOCKER décrits par un
+    compose.yml unique, démarrés par UNE commande documentée au README. Aucun
+    service distant, aucun compte cloud, aucune clé d'API n'est requis pour
+    développer : le passage en production est un changement de CONFIGURATION.
+    CE DONT CHAQUE PHASE A BESOIN, ET C'EST MOINS QU'ON NE CROIT :
+      · phase 1 — POSTGRES SEUL, et de façon éphémère : la porte P-01 crée une base
+        vierge, applique le SQL, inspecte les politiques, détruit ;
+      · phase 2 — RIEN DU TOUT. Les données sont simulées, l'application tourne
+        seule. ⭐ C'est une PROPRIÉTÉ à préserver, pas un hasard : c'est elle qui
+        rend la démonstration terrain possible là où il n'y a ni réseau fiable ni
+        temps pour démarrer une infrastructure ;
+      · phase 3 — postgres, redis, garage.
+    AUCUN SERVICE TIERS N'EST REQUIS POUR DÉVELOPPER : certification fiscale,
+    paiement et SMS vivent derrière un trait avec une IMPLÉMENTATION SIMULÉE livrée
+    en même temps que l'interface. UNE SIMULATION DOIT SAVOIR ÉCHOUER AUSSI BIEN
+    QUE RÉUSSIR — c'est au moment où le vrai service tombe que le produit doit
+    tenir, et ce comportement se conçoit avec la simulation, pas après.
+    Si démarrer demande six étapes mémorisées, on ne démarrera pas : UNE commande
+    pour l'environnement, UNE pour l'application.
+
+14. VÉRIFICATION — UNE COMMANDE, UN NOYAU DE QUATRE PORTES, ET ELLE GROSSIT.
 
     UNE SEULE COMMANDE. Tout ce qui doit passer avant un commit vit dans
     scripts/verifier.sh, lancé par une commande unique documentée au README. Pas
@@ -560,9 +581,7 @@ Livrables attendus du plan, SELON LA PHASE :
 ### 2.3 `/speckit-tasks`
 
 ```
-/speckit-tasks
-
-Découpe en tâches d'une demi-journée à une journée maximum, ordonnées par
+/speckit-tasks Découpe en tâches d'une demi-journée à une journée maximum, ordonnées par
 dépendance.
 
 PHASE 1 — chaque tâche produit ou modifie un fichier de docs/modele-donnees/ et se
@@ -660,9 +679,7 @@ Vérifie la cohérence spec ↔ plan ↔ tâches ↔ constitution. Signale :
 ### 2.5 `/speckit-implement`
 
 ```
-/speckit-implement
-
-Implémente les tâches dans l'ordre. Après chaque tâche : compile, teste, commite
+/speckit-implement Implémente les tâches dans l'ordre. Après chaque tâche : compile, teste, commite
 avec un message conventionnel référençant la story (ex. "feat(hebergement): HEB-04
 barème dégressif du passage avec rebascule de palier").
 
@@ -746,7 +763,7 @@ inventé, donc un branchement à retraduire.
 ### Cycle D1 — Modèle de données du socle
 
 ```
-/speckit-specify
+/speckit-specify(En cours)
 
 Lis, dans cet ordre : docs/cadrage-v1.md (§4 modèle d'entité, §5 hébergement,
 §8 caisse, §9 fiscalité, §11 classes hors-ligne, §14 provisions),
@@ -850,8 +867,11 @@ DEUX LIVRABLES COMPLÉMENTAIRES :
    PREMIÈRES PORTES et rien de plus :
      P-01 · le SQL de docs/modele-donnees/ s'applique sur une base Postgres VIERGE,
             dans l'ordre, sans erreur, ET chaque table porte ENABLE + FORCE + sa
-            politique. La base se lance par docker compose ; le script la crée, y
-            applique tout, inspecte pg_policies, puis la détruit.
+            politique. ⚠️ LA BASE EST ÉPHÉMÈRE : le script la lance par docker
+            compose, y applique tout, inspecte pg_policies, PUIS LA DÉTRUIT. Une
+            base qui survit entre deux exécutions finit par contenir un état que
+            personne ne sait reproduire, et la porte cesse de prouver quoi que ce
+            soit. C'est le SEUL conteneur dont cette phase a besoin.
      P-02 · toute table du modèle a une classe déclarée dans
             docs/registre-classes-offline.md — comparaison dans le SENS
             table → registre : une entité déclarée sans table est normale, une
@@ -976,6 +996,14 @@ i18n, couche de données simulées.
 
 CE CYCLE NE PRODUIT AUCUN ÉCRAN MÉTIER. Il produit ce sans quoi les six cycles
 suivants réinventeraient chacun leur version. Livrables :
+
+0. ⭐ AUCUN CONTENEUR, AUCUN SERVICE DISTANT. Cette phase tourne SEULE sur le
+   poste : les données sont simulées, rien n'est branché. C'est une PROPRIÉTÉ à
+   préserver jusqu'au bout de la phase 2 — c'est elle qui rendra la démonstration
+   possible à Abengourou, où il n'y a ni réseau fiable ni temps pour démarrer une
+   infrastructure. Si un cycle de phase 2 se met à exiger Postgres, quelque chose
+   a été branché trop tôt.
+   UNE COMMANDE démarre l'application, documentée au README.
 
 1. PROJET NUXT 4 EN SPA (ssr: false) + Tailwind 4. docs/design/theme.css est COPIÉ
    TEL QUEL dans app/assets/css/ — c'est le SEUL fichier de docs/design/ qui se
@@ -1374,7 +1402,7 @@ données simulées des endpoints qu'il met en service**.
 
 | Cycle | Module | Contenu | Ce qu'il débranche |
 |---|---|---|---|
-| **B1** | TRX | Monorepo backend, contrat OpenAPI + client généré, outbox, RLS forcée, seeds rejouables, **module doré écrit à la main**, et **le serveur de CI** — qui lance `scripts/verifier.sh` sans le modifier | rien — il crée le socle |
+| **B1** | TRX | Monorepo backend, contrat OpenAPI + client généré, outbox, RLS forcée, seeds rejouables, **module doré écrit à la main**, le **`compose.yml` complet** (postgres, redis, garage) démarré par une commande, et **le serveur de CI** — qui lance `scripts/verifier.sh` sans le modifier | rien — il crée le socle |
 | **B2** | ETB | Tenants, établissements, modules et capacités, points de vente, configuration héritée, branding | contexte, configuration, référentiels |
 | **B3** | CPT | Personne / compte / employé, authentification, rôles cumulables, journal d'audit | connexion, permissions, registre des actions |
 | **B4** | HEB | Catégories, unités, formules, barèmes, **disponibilité par contrainte d'exclusion GiST** | planning, disponibilité, tarifs |

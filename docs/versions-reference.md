@@ -428,12 +428,22 @@ Aucun générateur ne peut décider que `chrono` est écarté.
 | `package.json` | P-03 | Versions exactes, sans `^` ni `~` ; `engines.node` |
 | `pnpm-lock.yaml` | P-03 | **Commité** |
 | `.nvmrc` | P-03 | `24.18.1` |
-| `compose.yml` | P-03 | Tags d'image exacts du §4.2 — **jamais `latest`** |
+| `compose.yml` | P-03 | Tags d'image exacts du §4.2 — **jamais `latest`** — **existe depuis le cycle D1** |
 
-> ⚠️ **Aucun de ces fichiers n'existe encore dans ce dépôt.** Le tableau dit ce que le cycle de
-> démarrage doit produire, pas ce qu'il trouvera. **Les valeurs du §2 et du §3 sont à revérifier
-> à ce moment-là** : elles datent du 2026-08-04 et le régime du §1 demande la dernière stable
-> compatible, pas la dernière connue.
+> ⚠️ **Aucun de ces fichiers n'existe encore dans ce dépôt, à l'exception de `compose.yml`**, créé
+> par le cycle D1 avec le seul service `postgres_verification` sur le tag exact `postgres:18.4`.
+> Pour les autres lignes, le tableau dit ce que le cycle de démarrage doit produire, pas ce qu'il
+> trouvera. **Les valeurs du §2 et du §3 sont à revérifier à ce moment-là** : elles datent du
+> 2026-08-04 et le régime du §1 demande la dernière stable compatible, pas la dernière connue.
+
+> **`compose.yml` existe, et P-03 n'existe pas encore : l'écart est écrit plutôt que tu.** Le cycle
+> D1 crée le fichier sans créer la porte — sa spécification approuvée dit « deux portes et rien de
+> plus », et ce `compose.yml` ne déclare aucune dépendance du produit, seulement une base de
+> vérification jetable. **L'exposition résiduelle est d'une ligne** : un `latest` glissé dans ce
+> fichier ne serait vu par aucune porte d'ici au cycle qui créera le premier manifeste. Ce qui la
+> couvre en attendant est un **constat humain daté**, consigné au rapport du cycle D1
+> (`specs/001-modele-donnees-socle/rapport-de-cycle.md`), et sa fin est connue : le cycle qui crée
+> `Cargo.toml` crée P-03, qui absorbe `compose.yml` avec le reste.
 
 > **`Cargo.lock` est commité même pour un binaire** : c'est ce qui rend la reconstruction
 > identique à six mois d'écart, condition du support à distance du parc auto-hébergé
@@ -600,4 +610,4 @@ changements ; il n'a pas d'entrée avant la première inscription réelle d'un m
 
 | Version | Date | Modification |
 |---|---|---|
-| — | — | *(à remplir au premier cycle qui matérialise ces versions)* |
+| `postgres:18.4` | 2026-08-06 | **Première matérialisation.** Cycle D1 — le tag exact du §4.2 entre dans `compose.yml`, service `postgres_verification`. Valeur **reprise du §2 sans revérification**, sur instruction explicite du cycle : elle a été vérifiée le 2026-07-30 et ce cycle n'ouvre aucune famille nouvelle. Aucune montée, aucune dépendance ajoutée. |

@@ -568,6 +568,29 @@ Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et And
 
 Le détail des cycles est dans `docs/Kaya_Prompts_SpecKit.md` §3.
 
+### 13.0 ter Environnement local — tout tourne sur le poste, jusqu'à la mise en production
+
+**Le prototype doit être fonctionnel en local, et cela commande plusieurs choses.**
+
+`postgres`, `redis` et `garage` tournent en **conteneurs Docker sur le poste de développement**, décrits par un `compose.yml` unique et démarrés par une commande. Rien n'exige de service distant, de compte cloud ou de clé d'API pour développer — **le passage en production est un changement de configuration, jamais une réécriture** (§10.1, mode A).
+
+**Ce dont chaque phase a réellement besoin, et c'est moins qu'on ne croit :**
+
+| Phase | Ce qui tourne en local | Pourquoi |
+|---|---|---|
+| **1 — Modèle de données** | **Postgres seul, et de façon éphémère** | uniquement pour la porte P-01 : créer une base vierge, y appliquer le SQL, inspecter les politiques, détruire |
+| **2 — Les écrans** | **rien du tout** | les données sont simulées ; l'application tourne seule. ⭐ **C'est une propriété, pas un hasard** |
+| **3 — Backend** | Postgres, Redis, Garage | la vérité durable, l'éphémère, les objets |
+
+> ⭐ **Que la phase 2 ne demande aucun conteneur est ce qui rend la démonstration terrain possible.** À Abengourou, il n'y a ni réseau fiable, ni le temps de démarrer une infrastructure. **Un prototype qui tourne entièrement sur le portable, hors ligne, est ce qu'on peut montrer à Adjoua un mardi matin.** Une démonstration qui dépend d'un service distant échoue le jour où on en a le plus besoin.
+
+**Deux règles pour que cela reste vrai :**
+
+- **Aucun service tiers n'est requis pour développer.** La certification FNE, le paiement et le SMS vivent derrière leur trait avec une **implémentation simulée** livrée en même temps que l'interface — l'environnement de test de la DGI et le compte de l'agrégateur arrivent quand ils arrivent. ⚠️ **Une simulation doit savoir échouer aussi bien que réussir** : c'est au moment où le vrai service tombe que le produit doit tenir, et ce comportement se conçoit avec la simulation, pas après.
+- **Une commande démarre l'environnement, une commande démarre l'application**, toutes deux documentées au README. Si démarrer demande six étapes mémorisées, on ne démarrera pas — et c'est ainsi qu'un prototype cesse d'être démontrable.
+
+**Garage en local** : mono-nœud, `replication_mode = 1`, layout assigné et buckets créés au provisionnement. C'est la même API S3 qu'en production ; seule la topologie change.
+
 ### 13.1 Backend — Actix Web (Rust)
 
 - **Monolithe modulaire, microservices-ready** : un crate par domaine, interfaces par traits, **un schéma PostgreSQL par module**, communication inter-modules par appels de traits et par événements — jamais par jointures SQL entre schémas de modules distincts.
@@ -651,7 +674,7 @@ Aucun service n'est extrait au MVP. Aucune file de messages n'est introduite au 
 - **PostgreSQL** — source de vérité unique et durable ; la version exacte est dans `docs/versions-reference.md` §2. Contraintes d'exclusion GiST pour la disponibilité (§5.1). RLS forcée.
 - **Redis** — éphémère reconstructible uniquement : sessions, file de certification FNE, verrous distribués, limitation de débit, cache de catalogue. Jamais de donnée métier durable.
 - **Garage (API S3)** — logos, PDF de factures, photos de catalogue, pièces d'identité chiffrées. Buckets créés au provisionnement, une clé d'accès par usage. Rétention alignée ARTCI.
-- **Docker + Compose** en développement et pour le paquet auto-hébergé. Kubernetes hors sujet.
+- **Docker + Compose** en développement (§13.0 ter) et pour le paquet auto-hébergé. Kubernetes hors sujet.
 - Observabilité : logs structurés avec corrélation par requête, Sentry, sonde `/health`, télémétrie de version pour le parc auto-hébergé.
 
 ### 13.6 Paiements
