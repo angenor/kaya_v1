@@ -1,9 +1,31 @@
 # Kaya — Taxonomie du registre des actions
 
 *Source de vérité des types d'action tracés au journal d'audit (`comptes.journal_audit`).
-Créé par le cycle 003 (CPT), story **CPT-04**.*
+Story **CPT-04**.*
 
-**Version 1.2.0** — 2026-08-02. **Onze** familles, **4 branchées**, 7 dues.
+**Version 2.0.0** — 2026-08-06. **Douze** familles, **toutes DUES**.
+
+> ### ⚠️ TOUTES LES FAMILLES REPASSENT À « DUE », ET AUCUNE N'EST RETIRÉE
+>
+> Le dépôt repart de zéro : il n'existe aucun chemin d'écriture, donc **aucune famille ne peut être
+> déclarée « branchée »** — et le harnais de vérification échouerait si elle l'était, ce qui est
+> exactement son travail.
+>
+> **Les douze familles restent, avec leur définition, leur cible et leurs pièges.** Ce sont des
+> décisions de conception prises à froid, pas des constats d'implémentation. Les passages en
+> revue ci-dessous — pourquoi `suppression` garde un nom faux, pourquoi une consultation mérite sa
+> propre famille, pourquoi le contexte de `consultation_piece_identite` ne porte jamais le numéro
+> lu — valent intégralement.
+>
+> **Ce qui est périmé** : les colonnes « État » du tableau, les mentions « passée à branché en
+> T0XX », les chemins de fichiers et les numéros de cycle. **Lire les familles, ignorer les
+> états.**
+>
+> **En phase 2, le registre des actions a un écran** (`G4`) **et pas encore d'écriture réelle** :
+> il se peuple depuis les données simulées. C'est une raison de plus de garder la taxonomie fermée
+> dès maintenant — le filtre de l'écran n'a de valeur que si son vocabulaire est arrêté.
+
+*Historique — version 1.2.0, 2026-08-02 : onze familles, 4 branchées, 7 dues.*
 
 > **La douzième est `consultation_piece_identite`**, ajoutée par le cycle 006 (SEJ-01) : la
 > première qui trace une **lecture** et non une modification. Voir sa section dédiée.
@@ -54,22 +76,28 @@ build aussi : sans quoi il suffirait de tout déclarer branché pour rendre le h
 
 | # | Code | Ce que ça trace | État | Story qui la doit |
 |---|---|---|---|---|
-| 1 | `remise` | Une remise accordée sur une ligne ou une note | **branché** | **US6 — cycle 007** |
-| 2 | `annulation_ligne_envoyee` | L'annulation d'une ligne **déjà partie en cuisine ou au bar** | **branché** | **US6 — cycle 007** |
-| 3 | `avoir` | L'émission d'un avoir sur une facture certifiée | **dû** | FIS-06 — tranche T3 |
-| 4 | `ouverture_tiroir` | Une ouverture de tiroir-caisse hors encaissement | **dû** | IMP-01 — tranche T2 |
-| 5 | `modification_tarif` | Le changement du prix d'un article vendable | **branché** | **PDV-01 — cycle 007** |
-| 6 | `suppression` | La mise hors service de ce qui ne se supprime jamais | **branché** | **CPT-01 — ce cycle** |
-| 7 | `changement_role` | Une attribution ou un retrait de rôle | **branché** | **CPT-02 — ce cycle** |
-| 8 | `ecart_caisse` | Un écart constaté au comptage de fin de shift | **dû** | CAI-04 — tranche T2 |
-| 9 | `rebascule_palier_passage` | Le passage automatique au palier tarifaire supérieur | **branché** | **HEB-04 — cycle 004** |
-| 10 | `forcage_disponibilite` | L'attribution d'une unité que le système déclarait indisponible | **dû** | HEB — tranche T1 |
-| 11 | `derive_horloge_constatee` | L'heure d'un terminal s'écarte de celle du serveur au-delà du seuil | **branché** | **SYN-04 — cycle 005** |
-| 12 | `consultation_piece_identite` | ★ La **consultation** d'un numéro de pièce d'identité | **branché** | **SEJ-01 — ce cycle** |
+| 1 | `remise` | Une remise accordée sur une ligne ou une note | **dû** | PDV-03 |
+| 2 | `annulation_ligne_envoyee` | L'annulation d'une ligne **déjà partie en cuisine ou au bar** | **dû** | PDV-03 |
+| 3 | `avoir` | L'émission d'un avoir sur une facture certifiée | **dû** | FIS-06 |
+| 4 | `ouverture_tiroir` | Une ouverture de tiroir-caisse hors encaissement | **dû** | IMP-01 |
+| 5 | `modification_tarif` | Le changement du prix d'un article vendable | **dû** | PDV-01 |
+| 6 | `suppression` | La mise hors service de ce qui ne se supprime jamais | **dû** | CPT-01 |
+| 7 | `changement_role` | Une attribution ou un retrait de rôle | **dû** | CPT-02 |
+| 8 | `ecart_caisse` | Un écart constaté au comptage de fin de shift | **dû** | CAI-04 |
+| 9 | `rebascule_palier_passage` | Le passage automatique au palier tarifaire supérieur | **dû** | HEB-04 |
+| 10 | `forcage_disponibilite` | L'attribution d'une unité que le système déclarait indisponible | **dû** | HEB-06 |
+| 11 | `derive_horloge_constatee` | L'heure d'un terminal s'écarte de celle du serveur au-delà du seuil | **dû** | SYN-04 |
+| 12 | `consultation_piece_identite` | ★ La **consultation** d'un numéro de pièce d'identité | **dû** | SEJ-01 |
 
-**Deux d'entre elles sont dues par ce cycle même**, et c'est délibéré : ce document a été écrit
-**avant** la première migration, donc avant que `changement_role` et `suppression` aient un chemin.
-Leur passage à `branché` se fait dans le changement qui les branche, pas avant.
+**Les douze sont dues, et c'est l'état normal d'un dépôt qui n'a pas encore de code.** Chacune
+passe à `branché` **dans le changement qui l'écrit**, jamais avant — c'est ce que le harnais
+impose, et c'est ce qui oblige à revenir ici.
+
+> **Le tableau ci-dessus a déjà été rempli une fois, sur la version antérieure du projet** : huit
+> familles sur douze y étaient branchées. Ce qui suit — les sections par famille — décrit ce
+> remplissage et **garde toute sa valeur d'enseignement** : où chaque famille a réellement été
+> branchée, ce qui a surpris, et deux fois la même leçon sur la fréquence à laquelle on interroge
+> un harnais. **Lire les raisonnements, ignorer les numéros de tâche.**
 
 **`suppression` est passée à branché en T028**, avec le service d'authentification — et **pas là
 où on l'attendait**. Le document annonçait la désactivation de compte (opération 13, T041) ; c'est
@@ -123,12 +151,12 @@ nulle part — le montant est figé à l'octroi (R-10) —, mais « 10 % » appr
 commerciale à M. Koffi quand « 2 000 F » ne lui apprend rien. C'est le même régime
 qu'`horodatage_client` : la valeur existe, elle est écrite, elle n'entre dans aucun calcul.
 
-**Huit sur douze sont branchées à la clôture du cycle 007** — `suppression`, `changement_role`,
-`modification_tarif`, `remise`, `annulation_ligne_envoyee`, `rebascule_palier_passage`,
-`derive_horloge_constatee` et `consultation_piece_identite` —, et les
-quatre autres restent dues aux
-tranches T2 et T3 — c'est exactement ce que le document annonçait, et le harnais l'a vérifié à
-chaque étape.
+*Sur la version antérieure du projet, huit familles sur douze avaient fini par être branchées —
+`suppression`, `changement_role`, `modification_tarif`, `remise`, `annulation_ligne_envoyee`,
+`rebascule_palier_passage`, `derive_horloge_constatee` et `consultation_piece_identite` —, les
+quatre autres restant dues. **C'était exactement ce que le document annonçait, et le harnais l'a
+vérifié à chaque étape** : c'est la meilleure preuve que ce mécanisme fonctionne, et la raison de
+le remettre en place au premier cycle qui écrit une entrée d'audit.*
 
 ### ★ `consultation_piece_identite` — la première famille qui trace une LECTURE
 

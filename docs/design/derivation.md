@@ -3,6 +3,16 @@
 *Source de vérité de l'héritage visuel des écrans non maquettés. Extrait de `docs/Kaya_Design.md`
 PARTIE V §25 le 2026-07-30 — ce fichier fait foi, `Kaya_Design.md` y renvoie.*
 
+**Version 2.0.0 — 2026-08-06 : la règle opposable passe de deux cas à QUATRE.** Le quatrième —
+l'écran découvert à l'implémentation — n'arrête plus le cycle ; il s'inscrit ici dans le même
+changement, avec la mention « à valider ». Voir « Règle opposable » en fin de document, et
+`docs/Kaya_Design.md` §2 bis.
+
+> ⚠️ **Les mentions « CODÉ — cycle 00X, `app/…` » du tableau décrivent une version antérieure du
+> projet, dont le code n'existe plus dans ce dépôt.** Les héritages qu'elles accompagnent, eux,
+> restent justes : c'est le travail de conception, il ne se refait pas. Lire les motifs, ignorer
+> les chemins.
+
 **Version 1.5.0** — l'écran **Les articles** ajouté le 2026-08-05 (cycle PDV), **troisième écran
 composé** du produit. Le total passe de 45 à **46**.
 
@@ -117,7 +127,7 @@ face et de l'argent en jeu, et c'est là que le dessin décide de la vitesse.
 
 ## 25. Les 32 écrans codés sans maquette
 
-C'est le document qui rend sûr le fait de coder directement. Chaque écran déclare de quel motif il hérite. **Un écran qui n'hérite d'aucun motif ne se code pas — il se maquette d'abord.**
+C'est le document qui rend sûr le fait de coder directement. Chaque écran déclare de quel motif il hérite. **Un écran qui n'hérite d'aucun motif se code quand même, mais il s'inscrit ici** — quatrième cas de la règle opposable, en fin de document. *(Cette phrase disait « ne se code pas — il se maquette d'abord » jusqu'au 2026-08-06.)*
 
 | Écran | Hérite de | Ce qui change |
 |---|---|---|
@@ -154,7 +164,7 @@ C'est le document qui rend sûr le fait de coder directement. Chaque écran déc
 | `E5` Registre des paramètres | `G2` | Lecture seule |
 | `STK` Écrans de stock | `R5` + `G2` | Liste + formulaire |
 
-**Règle de conduite** : au moment de coder un écran dérivé, ouvrir la maquette dont il hérite et la respecter. Si l'écran a besoin d'un motif absent de la matrice, **arrêter et maquetter**.
+**Règle de conduite** : au moment de coder un écran dérivé, ouvrir la maquette dont il hérite et la respecter. Si l'écran a besoin d'un **motif** absent de la matrice, il relève du quatrième cas — on le code et on l'inscrit. S'il a besoin d'un **composant** absent de la bibliothèque, **on s'arrête et on le signale**.
 
 **Note sur `A1` — inscrit avant d'être demandé.** Aucune story ne l'appelle aujourd'hui, et il ne
 se construit donc pas (principe X, « prêt ≠ construit ») : cette ligne le rend *codable* le jour
@@ -175,16 +185,50 @@ hors ligne est annoncé **avant** toute tentative.
 
 ---
 
-## Règle opposable
+## Règle opposable *(assouplie le 2026-08-06 — quatre cas)*
 
-Un écran se code dans **deux cas exactement** :
+Un écran se code dans **quatre cas** :
 
 1. **il est maquetté** — la référence est le fichier d'état exact de `docs/design/html/` ;
 2. **il est dérivé** — la référence est sa ligne de la matrice ci-dessus, et on ouvre la
-   maquette dont il hérite pour la respecter.
+   maquette dont il hérite pour la respecter ;
+3. **il est composé** — assemblé **uniquement** à partir des seize composants canoniques, aux
+   quatre conditions cumulatives ci-dessus, et **en zone de charme seulement** ;
+4. **il est découvert à l'implémentation** — les documents ne l'avaient pas prévu, et sans lui un
+   parcours ne se termine pas.
 
-**Il n'y a pas de troisième cas.** Un écran absent des deux NE SE CODE PAS : la tâche s'arrête
-et l'écran part en maquettage. Ni invention, ni déduction — porte **P-19** de la constitution.
+### Le quatrième cas, et ce qu'il exige
+
+> ⚠️ **Ce document disait : « Il n'y a pas de troisième cas. Un écran absent des deux NE SE CODE
+> PAS : la tâche s'arrête et l'écran part en maquettage. » Cette phrase est retirée.**
+>
+> Elle supposait que les documents avaient tout prévu, ce qu'ils ne peuvent pas faire : c'est en
+> construisant un parcours qu'on découvre l'écran qui lui manque pour se terminer. La règle
+> arrêtait alors le cycle pour produire un document, sur un écran souvent évident — et elle l'a
+> fait au moins une fois pour rien (`Q1` table fermée, `docs/Kaya_Design.md` §32 action 6).
+
+**Le cycle ne s'arrête plus. L'écran se code, à trois conditions :**
+
+1. il n'emploie que les **composants, tokens et termes du lexique existants** ;
+2. s'il tombe en **zone de vitesse** — utilisateur debout, pressé, client en face, argent en jeu —
+   il se code quand même mais il est **signalé « à maquetter avant le pilote »** ;
+3. **il s'inscrit au tableau ci-dessous DANS LE MÊME CHANGEMENT**, avec ses composants et la
+   mention « à valider ».
+
+**Ce qu'on refuse n'est pas d'inventer un écran, c'est de l'inventer EN SILENCE.** La dérive ne
+vient pas de l'écran ajouté ; elle vient des trente écrans que personne n'a inscrits nulle part.
+
+### Les écrans DÉCOUVERTS À L'IMPLÉMENTATION
+
+*Quatrième cas. Aucun n'a été dessiné : ce sont des propositions, toutes marquées « à valider ».*
+
+| Écran | Cycle qui l'a découvert | Pourquoi il manquait | Composants employés | Zone |
+|---|---|---|---|---|
+| *(aucun à ce jour)* | | | | |
+
+**Une seule chose arrête encore un cycle : un COMPOSANT qui manque à la bibliothèque.** Un écran
+s'assemble, un composant se dessine. La frontière porte sur le vocabulaire, pas sur les phrases
+qu'on en fait.
 
 Rappel : **le HTML de maquette n'est jamais copié vers `app/`.** C'est une cible, pas une
 source — autonome, non sémantique, sans i18n, sans mode sombre câblé, sans RBAC. On lit ses

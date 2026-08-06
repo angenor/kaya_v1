@@ -5,17 +5,24 @@ tierce ajoutée au binaire.*
 
 **Ce document couvre ce qui est redistribué dans le produit livré**, pas les dépendances du projet.
 La distinction commande l'obligation : une bibliothèque de développement ne voyage pas chez le
-client et n'appelle aucune attribution ; un fichier de police embarqué dans un binaire Tauri, si.
+client et n'appelle aucune attribution ; un fichier de police **servi au navigateur du client**, si.
 
-L'inventaire des versions vit dans `docs/versions-gelees.md` et dans les lockfiles. Celui-ci ne
+L'inventaire des versions vit dans `docs/versions-reference.md` et dans les lockfiles. Celui-ci ne
 répond qu'à une question : **qu'est-ce qui part chez le client, et à quelles conditions.**
 
 ---
 
 ## Pourquoi l'obligation existe ici et pas ailleurs
 
-Kaya est distribué comme **binaire Tauri, vendu par abonnement**. C'est une redistribution
-commerciale, ce qui referme les deux échappatoires qu'on invoque d'habitude :
+Kaya est distribué comme **PWA installable, vendue par abonnement**. C'est une redistribution
+commerciale, ce qui referme les deux échappatoires qu'on invoque d'habitude.
+
+> ⚠️ **Le passage de Tauri à la PWA (2026-08-06) ne change rien à l'obligation, et il faut le dire
+> parce qu'on croirait l'inverse.** L'intuition — « c'est un site web, rien n'est distribué » — est
+> fausse à deux titres : le service worker **met les fichiers en cache sur l'appareil du client**,
+> et l'application **s'installe**. Les polices partent chez le client exactement comme avant, et
+> l'avis doit les accompagner. Ce qui change est le chemin — `app/assets/fonts/` servi par HTTP au
+> lieu d'un binaire —, pas le fait.
 
 - ce n'est pas un usage interne — le logiciel est livré à des tiers ;
 - ce n'est pas gratuit — l'OFL autorise la vente **avec** un logiciel, à condition que la police ne
@@ -104,5 +111,5 @@ source de vérité du design.
 
 - `app/assets/fonts/MODIFICATIONS.md` — le détail technique de ce qui a été modifié, et pourquoi
 - `scripts/ci/ressources-embarquees.sh` — la porte P-21b, contrôle 5
-- `docs/versions-gelees.md` §3.2 — les versions des paquets d'origine
+- `docs/versions-reference.md` §3.2 — les versions des paquets d'origine
 - `.specify/memory/constitution.md` — principe XII (référence visuelle), principe IX (sécurité)

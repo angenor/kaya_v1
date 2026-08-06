@@ -2,16 +2,26 @@
 
 *Complément d'exécution du Document de cadrage v1 — Pilote : Résidence Hôtel Deloria, Abengourou — Développement : solo + Claude Code + Spec Kit*
 
+*Version 1.1 — 2026-08-06 : l'ordre d'exécution change (§0.1 et §0.5), le contenu des stories ne change pas, sauf le module MOB qui devient PWA.*
+
 ---
 
 ## 0. Mode d'emploi
 
-### 0.1 Avec Claude Code + Spec Kit
+### 0.1 Avec Claude Code + Spec Kit *(réécrit le 2026-08-06)*
 
-- **Un module = un epic = un cycle Spec Kit** : coller la section du module dans `/speckit-specify`, dérouler `/speckit-plan` en pointant le cadrage v1 (§13 stack, §14 provisions) comme contrainte, puis `/speckit-tasks` et implémentation.
-- **Implémenter par tranches verticales (§0.5)**, pas module par module de bout en bout.
-- Le **contrat OpenAPI est la source de vérité** : toute story qui touche l'API met d'abord à jour les annotations utoipa, puis régénère le client TypeScript (TRX-01).
-- **Dernières versions stables** : à l'initialisation, le gel est fait et sourcé dans `docs/versions-gelees.md` — le consommer, ne pas revérifier ; revue mensuelle groupée.
+**Ce document dit CE QUI est à construire. `docs/Kaya_Prompts_SpecKit.md` §3 dit DANS QUEL ORDRE, et l'ordre a changé** : le modèle de données d'abord, l'application entière ensuite avec des données simulées, le backend en dernier (cadrage §13.0).
+
+| Phase | Ce qu'on lit dans ce document | Ce qu'on en fait |
+|---|---|---|
+| **1 — Modèle de données** | **toutes les stories, d'un coup** — elles sont la source des entités | `docs/modele-donnees/{schema}.sql`, provisions comprises |
+| **2 — Application** | les stories du parcours traité, pour leurs **critères d'acceptation d'interface** | des écrans qui marchent sur données simulées |
+| **3 — Backend** | les stories du module, pour leurs **règles métier** | endpoints, migrations, tests — et la suppression des simulations correspondantes |
+
+- **Un module = un epic = un cycle Spec Kit en phase 3.** En phase 2, un cycle est **un parcours** et traverse plusieurs modules : la réception lit HEB et SEJ, les points de vente lisent PDV et QRC.
+- Le **contrat OpenAPI est la source de vérité** de l'API : toute story qui touche l'API met d'abord à jour les annotations utoipa, puis régénère le client TypeScript (TRX-01).
+- **Le modèle de données SQL est source de vérité au même titre** : toute migration met à jour `docs/modele-donnees/{schema}.sql` dans le même changement, et un test compare le schéma réel aux fichiers.
+- **Versions** : `docs/versions-reference.md` fait foi. La dernière stable, sauf conflit constaté ; ajouter comme monter est libre pourvu que les tests passent ; **plus de revue périodique**.
 
 ### 0.2 Priorités
 
@@ -31,37 +41,62 @@
 - **M. Diarra (comptable externe)** — vient une fois par mois, veut un export exploitable, ne veut pas apprendre le logiciel.
 - **Admin éditeur (toi)** — console web, provisionne les tenants, diagnostique à distance depuis Abidjan.
 
-### 0.4 Definition of Done (commune)
+### 0.4 Definition of Done (commune) *(révisée le 2026-08-06 — par phase)*
+
+**Les points 1, 7, 9 et 11 valent aux trois phases.** Les autres portent la phase où ils s'appliquent ; hors de cette phase, ils se déclarent **« sans objet »**, jamais cochés en silence.
 
 1. Critères d'acceptation couverts par des tests (unitaires + intégration sur les transitions d'état).
-2. Annotations utoipa à jour ; client TypeScript régénéré sans diff manuel.
-3. Migration sqlx versionnée ; `cargo sqlx prepare` vert ; seeds à jour.
-4. **RLS activée et forcée** sur toute nouvelle table, avec test d'isolation multi-tenant.
-5. **Classe hors-ligne déclarée** (A/B/C/D) pour toute nouvelle entité, avec le test correspondant (§0.7).
-6. Événement outbox émis pour tout changement d'état métier (TRX-02).
+2. *(phase 3)* Annotations utoipa à jour ; client TypeScript régénéré sans diff manuel.
+3. *(phase 3)* Migration sqlx versionnée ; `cargo sqlx prepare` vert ; seeds à jour.
+4. *(phases 1 et 3)* **RLS activée et forcée** sur toute nouvelle table, avec test d'isolation multi-tenant.
+5. *(phases 1 et 3)* **Classe hors-ligne déclarée** (A/B/C/D) pour toute nouvelle entité, avec le test correspondant (§0.7).
+6. *(phase 3)* Événement outbox émis pour tout changement d'état métier (TRX-02).
 7. **Clés i18n fr et en** externalisées ; aucune chaîne en dur.
-8. **Écran vérifié en mode clair et en mode sombre.**
+8. *(phase 2)* **Écran vérifié en mode clair et en mode sombre, EN NAVIGATEUR RÉEL, sur Chromium et sur WebKit** — un test qui monte un composant ne prouve pas qu'une page s'atteint.
 9. Paramètres exposés dans la configuration d'établissement quand la story dit « paramétrable ».
-10. Tout document imprimé vérifié sur imprimante thermique réelle.
+10. *(phase 3, cycle IMP)* Tout document imprimé vérifié sur imprimante thermique réelle. *(En phase 2, l'équivalent est l'aperçu à l'écran au gabarit exact : 80 mm, ~42 caractères, sans couleur.)*
+11. **`docs/modele-donnees/{schema}.sql` est à jour** — en phase 1 il est le livrable, en phase 3 il est mis à jour dans le même changement que la migration.
+12. *(phase 2)* **Le jeu de données simulées a la forme du modèle** : mêmes noms de champs, mêmes types, mêmes valeurs d'énumération.
+13. *(phase 3)* **Les données simulées des endpoints livrés sont supprimées.** Une simulation qui survit à son endpoint fait échouer le build.
 
-### 0.5 Ordre d'implémentation — 5 tranches verticales
+### 0.5 Ordre d'implémentation *(réécrit le 2026-08-06 — trois phases, cadrage §13.0)*
 
-**Incrément 1 — « Deloria sans papier » (S4–S17)**
+**PHASE 1 — Le modèle de données** *(cycles D1, D2 — aucun écran, aucun endpoint)*
 
-| Tranche | Semaines | Contenu | Démo de fin de tranche |
-|---|---|---|---|
-| **T1 — Colonne vertébrale** | S4–S8 | TRX-01→05a (TRX-05b en fin de tranche), ETB-01→05 **+ ETB-02b/02c**, CPT-01→04, HEB-01→05, SEJ-01/02/04, SYN-01/02 | Yao enregistre un client en chambre B3 pour 2 nuits, puis un passage de 4 h en A1 — la disponibilité empêche tout chevauchement, tout est tracé. |
-| **T2 — Services et note** | S9–S12 | PDV-01→06, SEJ-03/05, CAI-01→04, IMP-01/02 | Aminata prend une commande au bar hors réseau, elle s'ajoute à la note de la chambre B3 ; Adjoua encaisse, imprime un ticket, boucle son shift. |
-| **T3 — Fiscalité et clôture** | S13–S17 | FIS-01→07, CAI-05/06, IMP-03, DIR-01, SYN-03/04 | Une facture Deloria est certifiée FNE avec la taxe de nuitée en ligne distincte ; la clôture journalière tombe au franc près ; l'état de reversement communal est généré. |
+| Cycle | Contenu | Livrable |
+|---|---|---|
+| **D1 — Socle** | Toutes les stories, pour leurs entités : TRX, ETB, CPT, CAI, FIS, SYN, DIR, ADM, MET + les provisions du cadrage §14 | `docs/modele-donnees/` : `00-conventions.sql`, `etablissements.sql`, `comptes.sql`, `caisse.sql`, `fiscalite.sql`, `documents.sql`, `synchronisation.sql`, `pilotage.sql`, `editeur.sql`, `metriques.sql` |
+| **D2 — Capacités et verticales** | HEB, SEJ, RSV, PDV, QRC, STK | `stocks.sql`, `hebergement.sql`, `ventes.sql`, `pressing.sql` |
 
-**Incrément 2 — « Mobilité et clients » (S18–S31)**
+**PHASE 2 — L'application entière, en données simulées** *(cycles F1 à F7)*
 
-| Tranche | Semaines | Contenu | Démo de fin de tranche |
-|---|---|---|---|
-| **T4 — Mobile et QR** | S18–S25 | CPT-05/06, MOB-01→05, QRC-01→04, SEJ-06, RSV-01→05, **HEB-09** | Aminata prend les commandes sur son Android enrôlé ; un client scanne le QR de sa table, Aminata valide d'un tap ; une réservation est posée sur le planning ; un petit-déjeuner inclus se décompte sans être facturé. |
-| **T5 — Pilotage** | S26–S31 | STK-01→04, DIR-02→05, ADM-01→06, MET-01→03 | M. Koffi voit ses deux établissements en temps réel depuis son téléphone ; le stock du bar se décrémente sur vente ; un tenant est provisionné et facturé depuis la console. |
+Un cycle est **un parcours**, pas un module : il traverse plusieurs préfixes de stories et n'en retient que les critères d'interface.
 
-**Incrément 3 — « Échelle » (S32–S45)** : iOS, contrats et cautions des résidences meublées, nœud de site LAN, paquet auto-hébergé durci, second adaptateur de juridiction, comptes clients entreprises.
+| Cycle | Stories lues | Ce que je dois pouvoir faire à l'écran à la fin |
+|---|---|---|
+| **F1 — Fondations** | TRX-08, SYN-01/02 | Ouvrir l'application installée, hors ligne, en clair et en sombre ; voir le styleguide ; basculer l'application en mode dégradé depuis l'interface |
+| **F2 — Entrée** | CPT-01→03, ETB-06 | Me connecter, voir l'accueil d'Adjoua puis celui d'un maquis, basculer d'établissement en deux taps |
+| **F3 — Réception** | HEB-01→06, SEJ-01→05 | Enregistrer un passage de 4 h **en moins de 30 s**, ouvrir une note, voir le planning à granularité horaire, faire un départ |
+| **F4 — Points de vente** | PDV-01→08, QRC-01→04 | Prendre une commande de six lignes debout et **hors ligne**, l'envoyer, déposer au pressing, scanner un QR et voir la commande arriver à confirmer |
+| **F5 — Caisse** | CAI-01→06 | Ouvrir un shift, encaisser en deux modes sur la même note, compter, **buter sur une clôture bloquée**, puis la réussir |
+| **F6 — Fiscalité** | FIS-01→08, IMP-01→03, SYN-03 | Voir les cinq états d'un document, trancher un indéterminé, réconcilier une écriture orpheline, lire un ticket et une facture à l'aperçu |
+| **F7 — Direction et configuration** | DIR, ETB-01→05, RSV, STK, ADM | Voir mes deux établissements depuis un téléphone, régler une formule et son barème, poser une réservation, provisionner un tenant |
+
+> **À la fin de F7, tous les écrans du produit existent.** C'est le moment de la revue visuelle complète, et de la démonstration à Abengourou — **jalon J0** du cadrage §16.
+
+**PHASE 3 — Le backend** *(un cycle par module, ordre de dépendance)*
+
+Le contenu des tranches ne change pas ; ce qui change est qu'elles s'appuient sur des écrans qui existent déjà et sur un modèle arrêté.
+
+| Tranche | Contenu | Démo de fin de tranche |
+|---|---|---|
+| **T1 — Colonne vertébrale** | TRX-01→05a (TRX-05b en fin de tranche), ETB-01→05 **+ ETB-02b/02c**, CPT-01→04, HEB-01→05, SEJ-01/02/04, SYN-01/02 | Yao enregistre un client en chambre B3 pour 2 nuits, puis un passage de 4 h en A1 — la disponibilité empêche tout chevauchement, tout est tracé. |
+| **T2 — Services et note** | PDV-01→06, SEJ-03/05, CAI-01→04, IMP-01/02 | Aminata prend une commande au bar hors réseau, elle s'ajoute à la note de la chambre B3 ; Adjoua encaisse, imprime un ticket, boucle son shift. |
+| **T3 — Fiscalité et clôture** | FIS-01→07, CAI-05/06, IMP-03, DIR-01, SYN-03/04 | Une facture Deloria est certifiée FNE avec la taxe de nuitée en ligne distincte ; la clôture journalière tombe au franc près ; l'état de reversement communal est généré. |
+| **T4 — Mobilité et clients** | CPT-05/06, PWA-01→05, QRC-01→04, SEJ-06, RSV-01→05, **HEB-09** | Aminata prend les commandes sur son Android avec l'application installée et enrôlée ; un client scanne le QR de sa table, Aminata valide d'un tap ; une réservation est posée sur le planning ; un petit-déjeuner inclus se décompte sans être facturé. |
+| **T5 — Pilotage** | STK-01→04, DIR-02→05, ADM-01→06, MET-01→03 | M. Koffi voit ses deux établissements en temps réel depuis son téléphone ; le stock du bar se décrémente sur vente ; un tenant est provisionné et facturé depuis la console. |
+
+**Incrément 3** : contrats et cautions des résidences meublées, nœud de site LAN, paquet auto-hébergé durci, second adaptateur de juridiction, comptes clients entreprises, et **Capacitor si et seulement si un besoin natif constaté le justifie**.
 
 ### 0.6 Vue d'ensemble
 
@@ -80,7 +115,8 @@
 | Synchronisation & hors-ligne | SYN | 4 | — | — | T1/T3 |
 | Impression & documents | IMP | 3 | 1 | — | T2/T3 |
 | Stocks | STK | 4 | — | — | T5 |
-| Mobile (Tauri Android/iOS) | MOB | 5 | 1 | — | T4 |
+| **Modèle de données** | **DAT** | — | — | — | **Phase 1 (D1, D2)** |
+| Installation et capacités de plateforme | **PWA** *(ex-MOB)* | 5 | 1 | — | T4, sauf PWA-02 dû en phase 2 |
 | Direction & pilotage | DIR | 5 | — | — | T3/T5 |
 | Console éditeur & abonnements | ADM | 6 | — | — | T5 |
 | Métriques | MET | 2 | 1 | — | T5 |
@@ -93,6 +129,26 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - **Classe A** : test de rejeu — la même écriture envoyée trois fois produit un seul enregistrement. Test de désordre — trois écritures appliquées dans les six ordres possibles produisent le même état final.
 - **Classe D** : test de double soumission au retour du réseau.
 - Toute entité rattachée à un séjour : test du **scénario orphelin** (SYN-03).
+
+> **En phase 2, ces tests ont un pendant à l'écran, et il compte autant.** Une opération de classe B, C ou D doit être **refusée hors ligne, avec son explication, AVANT que l'utilisateur ne tente l'action** — même quand rien n'est branché et que la simulation pourrait tout accepter. Un écran qui accepte en phase 2 ce que le serveur refusera en phase 3 est un écran à refaire, et le mensonge ne se découvre qu'au branchement.
+
+---
+
+## Module DAT — Modèle de données *(phase 1)*
+
+> **Nouveau le 2026-08-06.** Ce module n'a pas de story numérotée parce qu'il n'apporte aucune fonctionnalité : il **matérialise en SQL les entités de tous les autres modules**, avant qu'aucune ligne de code n'existe. Son périmètre est donc l'union de tous les autres, et sa source est ce document plus `docs/registre-classes-offline.md`.
+
+**DAT-01 — Modèle de données complet, en SQL de référence (P0, phase 1)**
+- Livrable : `docs/modele-donnees/{schema}.sql`, un fichier par schéma Postgres, **applicable sur une base vierge**, plus un `README.md` d'index.
+- Contenu : **tout le MVP, provisions du cadrage §14 comprises**. Une provision est une table sans logique ; elle coûte zéro ici et une migration ailleurs.
+- Chaque table porte : `tenant_id`, `ENABLE` **et** `FORCE ROW LEVEL SECURITY`, sa politique `USING`/`WITH CHECK`, ses privilèges **qui reflètent sa classe hors-ligne**, et un commentaire d'en-tête donnant sa classe A/B/C/D, son code de branche et la story qui l'introduit.
+- **Les privilèges prouvent la classe** : une entité append-only de classe A reçoit `SELECT, INSERT` et jamais `UPDATE` ni `DELETE` ; une provision reçoit `SELECT` seul, ou rien quand rien n'a de raison de la lire.
+- Toute entité nommée ici est déclarée dans `docs/registre-classes-offline.md` — quand celui-ci décrit une table sans la nommer, c'est ce cycle qui pose le nom.
+
+**DAT-02 — Règle de tenue du modèle (P0, permanente)**
+- **Toute migration de phase 3 met à jour le fichier de son schéma dans le même changement.** Jamais après, jamais dans un lot de rattrapage.
+- **Un test compare le schéma réel de la base aux fichiers et fait échouer le build sur tout écart** — dans les deux sens : une table du code absente du modèle, une table du modèle absente du code.
+- Motif : sans ce test, les fichiers deviennent une photo périmée en trois cycles. **Une source de vérité périmée est pire que pas de source du tout**, parce qu'on continue de la croire.
 
 ---
 
@@ -148,7 +204,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Consentement recueilli et tracé à l'enregistrement d'un client.
 
 **TRX-07 — Mise à jour et télémétrie du parc (P1)**
-- Serveur de mise à jour auto-hébergé pour les cibles desktop (plugin updater Tauri).
+- **Mise à jour de l'application par rechargement** (PWA-01) : aucun serveur de mise à jour à écrire, aucune revue d'éditeur. *(Cette ligne prévoyait un serveur de mise à jour auto-hébergé pour les cibles desktop de Tauri ; le passage en PWA la supprime.)*
 - Télémétrie minimale du parc auto-hébergé : version, santé, erreurs. Sans elle, aucun diagnostic à distance.
 - Export d'un **bundle de diagnostic** déclenchable par le client.
 
@@ -247,12 +303,12 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - **Module de premier plan, pas un journal technique** — c'est ce que M. Koffi achète.
 
 **CPT-05 — Enrôlement d'appareil (P1, tranche T4)**
-- Le gérant approuve un appareil une fois ; une paire de clés est générée dans le Keystore Android / Keychain iOS et **signe chaque requête**.
+- Le gérant approuve un appareil une fois ; une paire de clés **non extractible** est générée par WebCrypto, rangée en IndexedDB, et **signe chaque requête** (PWA-05).
 - Liste des appareils enrôlés dans le back-office, avec révocation immédiate.
 - Remplace le verrouillage par adresse MAC, techniquement impossible (cadrage §12.2).
 
 **CPT-06 — Attestation et géorepérage souple (P1, tranche T4)**
-- Play Integrity (Android) et DeviceCheck + App Attest (iOS) vérifiés côté serveur.
+- ⚠️ **L'attestation d'intégrité est ABANDONNÉE : il n'existe aucun équivalent web** de Play Integrity ni d'App Attest (cadrage §12.2, décision du 2026-08-06). Ce qui la remplace vit entièrement côté serveur : signature de requête par clé d'appareil (CPT-05), révocation immédiate, journal d'audit. Le modèle de menace réel est l'employé qui détourne des espèces, pas l'attaquant qui modifie l'application.
 - Géorepérage : rayon paramétrable, **300 m par défaut**, position simulée détectée → **alerte au gérant, jamais blocage**.
 - **Jamais bloquant sur une action critique** : un caissier qui ne peut pas encaisser parce que le GPS dérive est un client perdu.
 
@@ -423,7 +479,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Génération d'un PDF de plaque téléchargeable par table.
 
 **QRC-02 — Page publique de commande (P0)**
-- Nuxt SSR, **hors application Tauri**, hors authentification.
+- Nuxt SSR, **hors de l'application du personnel**, hors authentification — surface publique séparée, dans `web/qr`.
 - Catalogue du point de vente en lecture, panier, validation.
 - **Aucune donnée personnelle demandée** : pas de compte, pas de téléphone, pas d'email.
 - Table fermée ou jeton révoqué → page neutre « service indisponible ».
@@ -543,7 +599,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 **SYN-02 — File d'actions hors-ligne (P0, T1)**
 - Toute écriture porte un **UUID v7 généré côté client** + horodatage local ; le serveur déduplique.
 - File locale persistante ; envoi opportuniste ; rejeu idempotent ; **le serveur fait foi en cas de conflit**.
-- **Conçue pour être vidée au retour au premier plan par défaut**, sur toutes les plateformes — iOS n'a pas de synchronisation en arrière-plan. `BGTaskScheduler` et `WorkManager` sont des optimisations, jamais des hypothèses.
+- **Conçue pour être vidée au retour au premier plan par défaut**, sur toutes les plateformes — aucune ne garantit la synchronisation en arrière-plan. L'API Background Sync (Chromium seul) est une optimisation, jamais une hypothèse.
 - **Indicateur permanent** dans l'interface : connecté / dégradé / hors ligne + nombre d'éléments en attente.
 
 **SYN-03 — Réconciliation des écritures orphelines (P0, T3)**
@@ -604,34 +660,43 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 ---
 
-## Module MOB — Mobile Tauri (tranche T4)
+## Module PWA — Installation et capacités de plateforme (tranche T4)
 
-**MOB-01 — Build Android et iOS (P0)**
-- Chaîne complète `cargo tauri android` et `cargo tauri ios`, signature, distribution.
-- **Android** : APK direct hors store possible, mécanisme d'installation à écrire ; Play Store pour la distribution large.
-- **iOS** : **aucune installation hors App Store**, toute mise à jour du binaire passe par la revue Apple. La mise à jour des assets web dans le WebView est un **correctif d'urgence, jamais le canal de livraison normal**.
-- Le plugin updater de Tauri exclut explicitement les cibles mobiles.
+> 📦 **Ce module s'appelait MOB — Mobile Tauri jusqu'au 2026-08-06.** L'application est une PWA (cadrage §13.3) : il n'y a plus de build natif, plus de plugin Swift ou Kotlin, plus de distribution par magasin. **Les besoins n'ont pas disparu — leur mise en œuvre change, et certaines limites sont désormais des faits à afficher plutôt que des développements à budgéter** (cadrage §13.4).
+>
+> Les codes passent de `MOB-xx` à `PWA-xx`. Le budget de 8 à 11 semaines de plugins natifs disparaît ; ce qui le remplace tient en quelques jours, **plus un spike bloquant en phase 0 sur l'impression thermique**.
 
-**MOB-02 — PlatformAdapter (P0)**
-- **Aucune invocation directe de `window.__TAURI__` dans un composant.** Impression, scan, OCR, stockage sécurisé, notifications, géolocalisation, réseau passent par cette interface.
-- Implémentations `desktop`, `android`, `ios`, `web`.
-- Une capacité absente sur une plateforme **le dit explicitement à l'utilisateur** et propose l'alternative.
+**PWA-01 — Installation et mise à jour (P0)**
+- Manifeste (nom, icônes, couleur de thème, `display: standalone`), service worker, stratégie de cache. **L'application s'ouvre et s'affiche hors ligne**, y compris au premier écran.
+- **Le parcours d'installation est une étape guidée du produit, pas un détail** : sur Android et desktop, une invite ; **sur iOS, l'installation passe par le menu de partage et rien ne la déclenche automatiquement** — l'écran doit l'expliquer, sans quoi le personnel ne l'installera jamais et perdra les notifications.
+- **Mise à jour au rechargement, sur toutes les plateformes, sans intermédiaire.** Un service worker peut servir une version périmée : une invite explicite propose de recharger quand une version nouvelle est disponible.
+- ⚠️ **C'est le gain principal du changement** : un correctif de calcul de taxe part le jour même, au lieu d'attendre la revue d'un magasin d'applications.
 
-**MOB-03 — Notifications push (P0)**
-- Plugin natif Swift (APNs) + Kotlin (FCM). Le plugin officiel Tauri ne couvre que les notifications locales.
-- Canal haute importance pour les alertes critiques : facture en échec de certification, stickers bas, écart de caisse, terminal déconnecté.
-- Budget : 2–3 semaines.
+**PWA-02 — PlatformAdapter (P0)**
+- **Aucune capacité de plateforme appelée directement dans un composant.** Impression, scan, caméra et OCR, stockage sécurisé, notifications, géolocalisation, état réseau passent par cette interface.
+- Une seule implémentation au MVP : `web`. Une seconde le jour de Capacitor, si ce jour vient.
+- **Une capacité absente le dit explicitement à l'utilisateur et propose l'alternative.** C'est plus important en PWA qu'en natif : les écarts entre navigateurs sont réels, connus, et ne se corrigeront pas. Le tableau du cadrage §13.4 les recense.
+- ⚠️ **Cette story est due dès la PHASE 2, cycle F1** — pas en T4. L'interface existe avant qu'aucune capacité ne soit réellement branchée, et c'est elle qui permet aux écrans d'annoncer une indisponibilité honnêtement.
 
-**MOB-04 — Impression thermique Bluetooth (P0)**
-- Plugin natif CoreBluetooth (iOS) + Android BT. Budget : 2 semaines.
-- Un caissier mobile doit pouvoir imprimer un reçu.
+**PWA-03 — Notifications (P0)**
+- **Web Push (VAPID)** — serveur d'envoi, abonnement par appareil, révocation.
+- Alertes critiques : facture en échec de certification, stickers bas, écart de caisse, terminal déconnecté.
+- ⚠️ **Sur iOS, les notifications web exigent iOS 16.4 ou plus ET que l'application soit installée.** Sans installation, pas de notification : l'écran le dit et propose d'installer (PWA-01). Ce n'est pas contournable.
 
-**MOB-05 — Stockage sécurisé et purge (P0)**
-- Keystore Android / Keychain iOS pour les clés d'appareil (CPT-05).
+**PWA-04 — Impression thermique (P0)**
+- **WebUSB** ou **Web Bluetooth** pour parler ESC/POS directement à l'imprimante 80 mm, ouverture du tiroir-caisse comprise. Disponible sur Chromium : Windows, Android, Linux, macOS.
+- ⚠️ **Absent de Safari, donc de tout iPhone et iPad.** Repli obligatoire : impression système vers une imprimante partagée, ou **envoi du ticket à un poste qui imprime**. L'écran dit *« cet appareil ne peut pas imprimer directement — le ticket part sur l'imprimante de la réception »*.
+- **File d'impression avec reprise** : une imprimante hors ligne ne bloque jamais l'encaissement (IMP-01).
+- ⚠️ **SPIKE BLOQUANT EN PHASE 0** : parler à l'imprimante réelle du pilote depuis le navigateur du poste de réception. C'est le seul point où la PWA peut échouer de façon rédhibitoire.
+
+**PWA-05 — Stockage sécurisé et purge (P0)**
+- **WebCrypto avec clés non extractibles** rangées en IndexedDB pour la clé d'appareil (CPT-05) : la clé signe sans jamais pouvoir être lue par du JavaScript.
 - **Chiffrement au repos du cache local** et **purge à la déconnexion** — ce sont des données d'identité de clients.
+- ⚠️ **Le stockage d'un navigateur peut être purgé après une longue inactivité.** Conséquence à assumer plutôt qu'à combattre : **le ré-enrôlement d'appareil doit être simple**, il arrivera. Demander la permission de stockage persistant réduit le risque sans le supprimer.
 
-**MOB-06 — Synchronisation en arrière-plan (P1)**
-- `BGTaskScheduler` (iOS) et `WorkManager` (Android). **Optimisation, jamais hypothèse** — la file se vide au premier plan par défaut (SYN-02). Budget : 1–2 semaines.
+**PWA-06 — Synchronisation en arrière-plan (P1)**
+- API **Background Sync**, disponible sur Chromium uniquement. **Optimisation, jamais hypothèse** — la file se vide au retour au premier plan par défaut (SYN-02), sur toutes les plateformes.
+- ⚠️ **L'hypothèse retenue n'a pas changé avec la plateforme** : elle était déjà la plus pessimiste.
 
 ---
 
@@ -801,6 +866,14 @@ rouvre. Trois conséquences en découlent, et elles sont vraies **maintenant** :
 
 ---
 
-## Prochaine étape
+## Prochaine étape *(réécrite le 2026-08-06)*
 
-Trancher **B-03** (source de revenus de transition), **B-02** (taxe de nuitée sur les formules infra-journalières, avec le fiscaliste) et **B-07** (barèmes de passage réels, à l'atelier terrain d'Abengourou), puis démarrer la tranche T1 : cycle TRX, cycle ETB, cycle CPT dans cet ordre, après vérification et gel des dernières versions stables de toute la stack.
+**Démarrer la phase 1 : le cycle D1, puis D2** — le modèle de données complet en SQL, avant toute autre chose (`docs/Kaya_Prompts_SpecKit.md` §3).
+
+**Rien ne bloque ce démarrage.** Les trois décisions ouvertes attendent plus loin :
+
+- **B-03** (source de revenus de transition) — ne bloque rien techniquement, tout le reste humainement ;
+- **B-02** (taxe de nuitée sur passage et demi-journée, avec le fiscaliste) — bloque les *valeurs par défaut* du cycle backend FIS, pas le modèle : le drapeau `assujettie_taxe_nuitee` et la règle de conversion sont des **colonnes**, posées au cycle D2 sans qu'on sache encore quoi y mettre ;
+- **B-07** (barèmes de passage réels du pilote) — bloque les *seeds*, donc le jeu de données simulées du cycle F1. En attendant, les valeurs du récapitulatif ci-dessus servent de défaut.
+
+**Ce qui doit être vérifié avant l'incrément 1, et qui n'attend pas** : le spike bloquant d'impression thermique depuis le navigateur, sur l'imprimante réelle du pilote (cadrage §16, phase 0).

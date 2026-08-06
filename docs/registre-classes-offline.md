@@ -4,7 +4,38 @@
 Référencé par le principe VI de `.specify/memory/constitution.md` et par le point 5 de la
 Definition of Done (`docs/user-stories-v1.md` §0.4).*
 
-**Version 1.5.0 — 2026-08-05**
+**Version 2.0.0 — 2026-08-06**
+
+> ### ⚠️ LE CLASSEMENT VAUT ; LES MENTIONS D'IMPLÉMENTATION NE VALENT PLUS
+>
+> Ce dépôt ne contient aucun code. Les mentions « le §X devient effectif », « cycle 00X », « table
+> créée », « `GRANT` accordé », ainsi que tout le **journal du §13**, décrivent une **version
+> antérieure du projet**.
+>
+> **Ce qui reste intégralement vrai — et c'est l'essentiel de ce fichier** : la classe de chaque
+> entité, sa branche de décision, et les raisonnements qui les ont fixées. Ce travail a été fait à
+> froid, il ne se refait pas, et il est **l'entrée directe du cycle D1** (`docs/Kaya_Prompts_SpecKit.md`
+> §3) : les privilèges `GRANT` du modèle de données **découlent** de la classe inscrite ici.
+>
+> **Lire les classes, ignorer les états d'avancement.**
+
+> ### 🔄 Deux conséquences du changement d'ordre du 2026-08-06
+>
+> **1. Ce registre est consommé en PHASE 1, avant tout code.** Le cycle D1 produit
+> `docs/modele-donnees/{schema}.sql`, et **les privilèges y prouvent la classe** : une entité de
+> classe A append-only reçoit `SELECT, INSERT` et jamais `UPDATE` ni `DELETE` ; une provision reçoit
+> `SELECT` seul, ou rien du tout quand rien n'a de raison de la lire. Le commentaire d'en-tête de
+> chaque table porte sa classe et sa branche. **Quand ce registre décrit une table sans la nommer**
+> — « plages de demi-journée », « liste d'articles déposés » —, c'est le cycle D1 ou D2 qui pose le
+> nom, et qui l'inscrit ici.
+>
+> **2. Les classes gouvernent l'interface DÈS LA PHASE 2, sur données simulées.** C'est le point
+> qu'on écrirait mal : une simulation peut techniquement tout accepter, donc la tentation est
+> d'ignorer les classes tant que rien n'est branché. **Elle produit un écran qui ment** — il accepte
+> en phase 2 ce que le serveur refusera en phase 3, et le mensonge ne se découvre qu'au branchement,
+> quand l'écran est à refaire. La règle d'interface du cadrage §11.1 s'applique donc telle quelle
+> aux mocks : *une action indisponible faute de réseau le dit immédiatement et explicitement, avant
+> que l'utilisateur ne la tente*.
 
 ---
 
@@ -603,8 +634,17 @@ revue mensuelle demeure.
 
 ## 13. Journal des modifications
 
+> ⚠️ **Les entrées `1.x` décrivent l'implémentation d'une version antérieure du projet, dont le
+> code n'existe plus dans ce dépôt.** Elles sont conservées parce qu'elles portent les
+> **arbitrages de nommage et de classe** — pourquoi `taxe_sejour_constat` et non
+> `assiette_taxe_sejour_figee`, pourquoi une numérotation continue est un compteur en table et
+> jamais une `SEQUENCE`, pourquoi `prestation_incluse` n'est pas redéclarée deux fois. Ces
+> décisions valent toujours et alimentent directement le cycle D1. **Leurs références à des cycles,
+> des tests et des décomptes de tables ne valent plus.**
+
 | Version | Date | Modification |
 |---|---|---|
+| **2.0.0** | **2026-08-06** | **Requalification, sans qu'une seule classe change.** Le dépôt repart de zéro : les mentions d'implémentation de ce fichier — « le §X devient effectif », « table créée », « `GRANT` accordé », les décomptes `PLANCHER_TABLES` — décrivent une version antérieure et sont sans objet. **Le classement, lui, est intact et devient l'entrée du cycle D1** : c'est de lui que découlent les privilèges du modèle de données, et le commentaire d'en-tête de chaque table y renvoie. **Une seule règle est ajoutée, et elle porte sur la phase 2** : les classes gouvernent l'interface **dès les données simulées**. Une opération de classe B, C ou D doit être refusée hors ligne, avec son explication, **avant** que l'utilisateur ne la tente — même quand rien n'est branché et que la simulation pourrait tout accepter. Sans cette règle, un écran accepte en phase 2 ce que le serveur refusera en phase 3, et l'écart ne se découvre qu'au branchement. |
 | 1.5.0 | 2026-08-05 | **Le §8 devient effectif, et il change de TITRE avant de changer de contenu.** La décision ouverte **O-04**, tranchée par le cycle 007 (research R-01), place le tronc commun de la vente dans un crate **`socle/ventes`** : la section s'intitulait « `verticales/restauration`, `verticales/bar`, `verticales/pressing` » et devient « `socle/ventes` et `verticales/pressing` ». ⚠️ **Aucune entité ne change de classe** — c'est le crate propriétaire qui change, et lui seul ; les lignes écrites d'avance le 2026-07-30 sont **honorées, pas réécrites**, comme aux cycles 003, 004 et 006. `verticales/restauration` et `verticales/bar` **restent des coquilles vides**, et le registre le dit plutôt que de leur inventer un contenu (principe X). **Sept lignes ajoutées**, correspondant à sept tables que le registre ne nommait pas : `destination_preparation` (**C**, C2 — le §8.1 classait « catégorie d'affichage » sans jamais nommer la destination, que PDV-04 exige pourtant « selon l'article » ; **table et non énumération**, « cuisine » et « bar » n'étant pas les mêmes chez tous les exploitants, et **par établissement** puisque la cuisine de Deloria sert le restaurant et le service en chambre), `lot_envoi` (**A**, A4 — le registre classait l'*opération* « envoi en préparation » sans nommer ce qu'elle produit ; le lot **est** le bon de préparation figé, **immuable par privilège** avec `GRANT SELECT, INSERT` seuls, un second envoi créant un second lot), `remise` (**B**, B3 — la ligne existait sans accents graves, donc **invisible à l'extraction** de `classes_offline.rs`, qui lit les noms entre accents graves de la première cellule), `part_addition` (**B**, B3 — le registre classait « division d'addition » sans nommer la part), `numerotation_reference` et `numerotation_retrait` (**B**, B3 — deux compteurs, deux schémas, **verrou de ligne et jamais une `SEQUENCE`** : troisième et quatrième exemplaires du patron de `numerotation_fiche_police`, duplication **assumée et écrite** en R-05 puisqu'une table commune obligerait à choisir un module propriétaire pour un compteur qui n'appartient à aucun), et `piece_deposee` (**A**, A4 — la ligne disait « liste d'articles déposés, état constaté », sans nom de table). **Une ligne d'opération ajoutée** : le **report d'une charge sur la note d'un séjour** (**B**, B3), qui n'était classé nulle part alors qu'il est l'objet même de la cible « sur la chambre » — c'est une **saga à compensation explicite**, jamais une transaction, et son cas orphelin est le chemin nominal du cadrage §11.4. ⚠️ **Deux noms de table sont PRÉCISÉS, pas changés** : `bon_de_depot` devient `bon_depot` et « catégorie d'affichage » devient `categorie_article` — `classes_offline.rs` compare des **noms de table**, et un nom divergent fait échouer le build sans dire pourquoi (précédent exact de `plage_demi_journee` au cycle 004, et de l'avertissement sur `taxe_sejour_constat` au cycle 006). `conversion_unite_mesure` rejoint le **§10 des provisions** avec **aucun `GRANT`, pas même `SELECT`** : le décompte `PROVISIONS` de `provisions_sans_logique.rs` passe de cinq à six. `PLANCHER_TABLES` passe de 44 à **57** dans `classes_offline.rs` **et** dans `rls_catalogue.rs` — deux constantes homonymes et indépendantes : un plancher laissé à 44 rendrait P-07 verte en inspectant treize tables de moins qu'attendu. |
 | 1.4.0 | 2026-08-03 | **Le §7.3 devient effectif** — les entités du cycle 006 (SEJ) qu'il déclarait d'avance depuis le 2026-07-30 reçoivent leurs tables. Comme aux cycles 003 et 004, les lignes existantes sont **honorées, pas réécrites** : `client`, `sejour`, `accompagnant`, `ligne_sejour` et `fiche_police` gardent la classe et la branche qui leur avaient été données avant qu'aucune table n'existe. **Quatre lignes ajoutées**, correspondant à quatre tables que le registre ne nommait pas : `preference_personne` (**A**, A4 — le registre écrivait « `client.preferences` », sans nom de table ; devenue table append-only sur le patron exact de `note_etablissement`, elle se déclare pour elle-même), `note_sejour` (**B**, B3 — le registre nommait `ligne_sejour`, pas la note qui les porte ; la note a son propre cycle de vie, `ouverte → arretee`, qu'une ligne ne porte pas), `numerotation_fiche_police` (**B**, B3 — compteur par établissement, sérialisé par verrou de ligne, et **non une `SEQUENCE`** : une séquence est globale au schéma et laisse des trous, deux propriétés fatales à une numérotation continue) et `taxe_sejour_constat` (**B**, B3 — le registre parlait de « `sejour` — check-out, taxe figée » sans nommer de table ; **immuable par privilège**, `GRANT SELECT, INSERT` seuls). ⚠️ **Le nom retenu est `taxe_sejour_constat`, jamais `assiette_taxe_sejour_figee`** que la spécification emploie dans ses « Key Entities » : ce cycle fige un **constat** — des faits et un paramétrage recopié —, il ne dérive aucune assiette, laquelle est la sortie de FIS-03. `classes_offline.rs` compare des **noms de table** aux entités déclarées ici : y inscrire l'autre nom ferait échouer le build sans dire pourquoi. **La décision O-01 est tranchée**, option (a) : `client` reste en **C**, avec sa friction résiduelle écrite au §12 plutôt que tue. `reconciliation_orpheline` **cesse d'être une provision** — elle reçoit son `INSERT`, un accompagnant de classe A arrivant après la clôture, et le décompte de `provisions_sans_logique.rs` passe de six à cinq ; sa **résolution** reste SYN-03, tranche T3, l'`UPDATE` n'étant pas accordé. `PLANCHER_TABLES` passe de 35 à 44 dans `classes_offline.rs` **et** dans `rls_catalogue.rs` — deux constantes homonymes et indépendantes : un plancher laissé à 35 rendrait P-07 verte en inspectant moins de tables qu'attendu. |
 | 1.3.0 | 2026-08-02 | **Le §5.6 devient effectif** — les entités que le cycle 005 (SYN) implémente y figuraient depuis le 2026-07-30, et **aucune ligne n'a été ajoutée**. C'est le premier cycle du produit dont le registre sort inchangé sur ses lignes, et le dire est nécessaire : une relecture y verrait un oubli. `reconciliation_orpheline` reçoit sa table, avec `GRANT SELECT` **seul** à `kaya_app` — les deux classes déclarées (création **A**, résolution **B**) restent justes et attendent SYN-03, tranche T3 ; ce n'est pas la classe qui est différée mais l'implémentation, et le privilège absent est ce qui **prouve** la provision (`provisions_sans_logique.rs`, décompte porté de cinq à six). La ligne « Horodatage d'autorité — attribution : serveur uniquement » **cesse d'être une convention** : la porte **P-23** de la constitution 1.8.0 refuse désormais tout calcul métier, fiscal, de clôture ou de durée appuyé sur `horodatage_client`, sur un périmètre **découvert** et non énuméré. **Le §11 est le vrai changement de ce cycle** : les tests qu'il impose existent maintenant sous forme d'**outillage instancié** — `tester_classe_a!`, `tester_classe_bcd!`, `tester_classe_d!` et leur pendant TypeScript — au lieu d'être recopiés une fois par entité, ce qui avait déjà été fait trois fois avec trois formulations. `backend/tests/outillage_classes.rs` échoue en **nommant** l'entité qui aurait une table sans instanciation : pendant exact de `classes_offline.rs`, qui vérifie qu'une classe est *déclarée* quand celui-ci vérifie qu'elle est *exercée*. À partir de ce cycle enfin, `classes_offline.rs` cesse d'énumérer ses schémas et lit `perimetre::schemas_applicatifs()` — la liste écrite à la main avait laissé un trou à chacun des trois cycles précédents. |

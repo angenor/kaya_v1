@@ -1,79 +1,111 @@
-# Kaya — Versions gelées
+# Kaya — Versions de référence
 
-*Application du principe XI de `.specify/memory/constitution.md` : dernières versions stables,
-**vérifiées sur les registres officiels avec l'URL citée**, puis **épinglées exactement** et
-figées par lockfiles.*
+*Application du principe XI de `.specify/memory/constitution.md` : **la dernière version stable
+compatible** de chaque brique, vérifiée sur le registre officiel avec l'URL citée, puis **épinglée
+exactement** et figée par lockfile.*
 
-**Version du gel : 1.0.14 — vérifié le 2026-08-04**
-**Prochaine revue : 2026-08-31** (revue mensuelle groupée) — elle traite les **montées** de version
-et les dix briques du §2. Depuis le gel 1.0.14, elle n'est plus le passage obligé d'un **ajout** :
-voir §1, règle 3.
+**Version du document : 2.0.0 — 2026-08-06**
+**Valeurs vérifiées le 2026-08-04**, sur la version précédente du projet. Elles restent le point de
+départ ; **elles sont à revérifier au cycle qui les matérialise**, le dépôt ne portant encore aucun
+manifeste.
+
+> 📦 **Ce fichier s'appelait `versions-gelees.md` jusqu'au 2026-08-06.** Le mot « gel » disait le
+> contraire de ce qu'on veut : il suggérait des valeurs figées qu'on ne touche qu'en cérémonie, et
+> il a produit exactement ça — une revue mensuelle obligatoire, des dépendances qui l'attendent, et
+> du code écrit à la main pour éviter d'ouvrir le sujet. **Ce document est une référence, pas un
+> gel** : il dit quelle version est employée et pourquoi, il se met à jour dans le changement qui
+> touche au manifeste, et **l'agent d'implémentation y écrit lui-même**.
 
 **Cible de déploiement retenue : Docker sur VPS Contabo** (mode A du cadrage §10.1, SaaS
 mutualisé). Toutes les versions ci-dessous sont vérifiées disponibles pour cette cible (§4.2).
-
-**Un seul point reste ouvert** : le choix de sqlx `0.9.0` doit être **confirmé par le spike
-GiST/`tstzrange`** de la phase 0 (cadrage §16). Tout le reste est arrêté.
 
 ---
 
 ## 1. Règles d'usage de ce document
 
-**AJOUTER EST LIBRE. MONTER NE L'EST PAS.** Les deux gestes ont été confondus jusqu'au gel
-1.0.13, et cette confusion a produit la seule dérive que ce document ait connue — sept crates
-épinglées dans les manifestes, absentes d'ici, en attente d'une revue mensuelle que la règle
-elle-même leur imposait d'attendre.
+**LA RÈGLE EST : LA DERNIÈRE STABLE, SAUF SI ELLE CASSE QUELQUE CHOSE.** Tout le reste en découle.
 
-**Le principe XI ne l'exigeait pas, il disait le contraire.** Ses termes exacts : les versions sont
-vérifiées sur les registres officiels *« avec l'URL citée **dans le changement qui les introduit** ou
-les met à jour »*, et ce qui est proscrit en cours d'incrément est *« aucune **montée majeure** »*.
-Le principe prévoit donc explicitement qu'une version entre par un changement ; c'est le §1.4 de ce
-document — *« jamais au fil de l'eau »* — qui avait durci au-delà de lui. La préséance tranche
-(constitution avant document de référence), et le durcissement tombe.
+Ce document est tenu par **une personne seule**, assistée d'un agent. Une règle qui suppose une
+revue périodique, un comité ou un second lecteur n'est pas une règle : c'est une dette à venir.
+Toutes celles qui suivent sont vérifiables par une machine ou tiennent en une phrase.
 
-1. **Aucun numéro de version n'est écrit de mémoire.** Chaque version porte l'URL du registre
-   officiel interrogé et la date de vérification — dans ce fichier pour le §2, **en commentaire du
-   manifeste** pour les §3.x. Une version non vérifiée est une version inconnue (principe XI).
-2. **Épinglage exact obligatoire** : `= 4.14.0` ou `4.14.0`, jamais `^4.14`, `~4.14` ni `4.*`.
+1. **Prendre la dernière stable, descendre d'un cran seulement quand elle est en conflit.** Le
+   conflit est **constaté**, jamais supposé : une `peerDependency` non satisfaite, une
+   contrainte de crate incompatible, une API rompue qui échoue à l'exécution. Dans ce cas on
+   descend **au minimum** — la dernière version qui satisfait la contrainte, pas deux majeures en
+   arrière — et **on écrit la contrainte et la condition de levée** à côté de la valeur. Les deux
+   dérogations connues sont Node (LTS plutôt que la dernière stable, §3.3) et TypeScript
+   (contrainte du générateur de client, §3.2).
+2. **Aucun numéro de version n'est écrit de mémoire.** Chaque version porte l'URL du registre
+   officiel interrogé et sa date de vérification — dans ce fichier pour le §2, **en commentaire du
+   manifeste** pour les §3.x. Une version non vérifiée est une version inconnue.
+3. **Épinglage exact obligatoire** : `= 4.14.0` ou `4.14.0`, jamais `^4.14`, `~4.14` ni `4.*`.
    La porte de CI **P-20** échoue sur tout intervalle et sur tout lockfile absent ou périmé.
-   **Cette règle ne connaît aucune exception** — c'est elle qui rend une reconstruction
-   reproductible, et rien de ce qui suit ne l'assouplit.
-3. **AJOUTER une dépendance absente est libre, en cours de cycle, sans autorisation.** Trois
+   **Cette règle ne connaît aucune exception, et c'est la seule de ce document dans ce cas** —
+   c'est elle qui rend une reconstruction identique à six mois d'écart. Prendre la dernière stable
+   et l'épingler exactement ne sont pas contradictoires : le premier dit *quoi choisir*, le second
+   *comment l'inscrire*.
+4. **AJOUTER une dépendance absente est libre, en cours de cycle, sans autorisation.** Trois
    obligations, aucune n'étant une permission à demander :
-   - l'épinglage est exact et le lockfile est commité (règle 2) ;
+   - l'épinglage est exact et le lockfile est commité (règle 3) ;
    - le manifeste porte, **en commentaire au-dessus de la ligne**, le rôle, l'URL du registre
-     interrogé et la date — ce que les cycles font déjà spontanément et bien ;
+     interrogé et la date ;
    - le commentaire dit **pourquoi les dépendances déjà présentes ne suffisent pas**. Pas pour
-     obtenir un accord : pour que la question soit posée. L'arbitrage `aes-gcm` du cycle 006 —
-     qui a examiné et écarté `ring`, déjà là transitivement — est le modèle.
+     obtenir un accord : pour que la question soit posée.
 
-   **L'inscription aux tableaux §3.x se fait DANS LE CHANGEMENT QUI AJOUTE**, jamais reportée à
-   une revue. Une échéance sans porte est un rappel, pas un contrôle : c'est la leçon exacte des
-   sept crates, et la règle qui les avait égarées est celle-ci, dans sa version d'avant.
-4. **MONTER une version déjà gelée reste groupé et mensuel.** Aucune montée majeure pendant un
-   incrément ; une faille de sécurité est la seule exception, consignée au §6. Motif : une montée
-   touche du code qui marche, un ajout ne touche rien.
-5. **Les dix briques du §2 ne se touchent qu'à la revue, y compris en mineur.** Rust, Actix Web,
-   sqlx, utoipa, Nuxt, Tailwind, Tauri, PostgreSQL, Redis, Garage. Elles ne sont pas des
-   dépendances parmi d'autres : monter `sqlx` de 0.9 à 1.0 réécrit les macros de chaque requête du
-   dépôt. Le §2 reste tenu à la main et **opposable** — un écart y échoue, il ne se régularise pas.
-6. **Deux crates de la même famille fonctionnelle ne cohabitent pas** — `time` et `chrono`,
+   **L'inscription aux tableaux §3.x se fait DANS LE CHANGEMENT QUI AJOUTE**, jamais reportée.
+   Une échéance sans porte est un rappel, pas un contrôle.
+5. **MONTER une version est libre aussi, sous une condition unique : que la suite de tests passe
+   après la montée.** C'est ce qui remplace la revue mensuelle, et c'est un meilleur contrôle
+   qu'une lecture humaine — une montée qui casse quelque chose le montre en dix minutes, une revue
+   de calendrier ne montre rien du tout. Trois précisions :
+   - la montée s'inscrit ici **dans le même changement**, avec l'URL et la date ;
+   - une montée **majeure** d'une brique du §2 est signalée dans le rapport de cycle, pas
+     interdite : elle est simplement plus susceptible d'échouer, et on veut savoir qu'elle a eu
+     lieu ;
+   - une montée qui casse et qu'on ne sait pas réparer en une heure se **remet en arrière**, et
+     la raison s'écrit au §6. Une montée abandonnée sans trace se retentera dans trois mois.
+6. **AUCUNE REVUE PÉRIODIQUE N'EST PROGRAMMÉE.** Les versions se regardent quand un événement les
+   appelle : ouverture d'un cycle, ajout d'une dépendance, avis de sécurité, blocage constaté. Le
+   développeur est seul ; une échéance calendaire qu'il manque une fois est une règle morte, et
+   une règle morte discrédite les autres.
+7. **Deux dépendances de la même famille fonctionnelle ne cohabitent pas** — `time` et `chrono`,
    `thiserror` et `anyhow` en bibliothèque, deux clients HTTP, deux moteurs de chiffrement. La
    liberté d'ajouter ne vaut que pour ce qui manque, et la liste des familles exclusives est au
-   §3.4.
-7. Reproduire la vérification : les commandes exactes sont au §5.
+   §3.4. **C'est le seul garde-fou qui demande un jugement**, et c'est pour ça qu'il est court.
+8. Reproduire la vérification : les commandes exactes sont au §5.
 
-> **Les tableaux §3.x sont destinés à être GÉNÉRÉS depuis les manifestes**, `docs/versions-gelees.md`
-> devenant le miroir vérifié du code plutôt qu'un document parallèle qui en dévie. Le contrôle
-> devient alors trivial et complet dans les deux sens : *le gel commité est-il celui que les
-> manifestes engendrent ?* Tant que le générateur n'existe pas, les tableaux §3.x s'écrivent à la
-> main **dans le même changement que le manifeste** — ce que la règle 3 impose déjà. Voir §4.3.
+> **Les tableaux §3.x sont destinés à être GÉNÉRÉS depuis les manifestes**, ce document devenant le
+> miroir vérifié du code plutôt qu'un document parallèle qui en dévie. Le contrôle devient alors
+> trivial et complet dans les deux sens : *ce fichier est-il celui que les manifestes engendrent ?*
+> Tant que le générateur n'existe pas, les tableaux §3.x s'écrivent **dans le même changement que
+> le manifeste** — ce que la règle 4 impose déjà. Voir §4.3.
+
+### Ce que ce régime a coûté dans sa version d'avant
+
+Écrit ici pour qu'on ne le rétablisse pas par réflexe de prudence.
+
+L'ancien régime imposait une revue mensuelle groupée pour toute montée, et l'avait étendue aux
+ajouts. Trois effets, tous constatés :
+
+- **sept dépendances épinglées dans les manifestes et absentes de ce document**, en attente d'une
+  revue que la règle leur imposait d'attendre ;
+- **du code écrit à la main pour éviter d'ajouter une bibliothèque** — 286 lignes de repli de
+  normalisation Unicode, dont le premier motif écrit était qu'ajouter la dépendance « imposerait
+  une décision de revue mensuelle ». Une contrainte de gouvernance n'a pas à entrer dans un
+  raisonnement de conception ;
+- **une échéance manquée sans conséquence visible**, donc une règle que plus rien ne tenait.
+
+Ce qui est conservé de l'ancien régime, et pourquoi : l'**épinglage exact** (il rend la
+reconstruction reproductible, coût nul), l'**URL datée** (elle empêche d'écrire un numéro de
+mémoire, coût nul), le **lockfile commité** (même motif). Ce qui tombe : la revue calendaire, la
+distinction entre ajouter et monter, et la liste de briques intouchables.
 
 ---
 
-## 2. Les dix briques du principe XI
+## 2. Les neuf briques du principe XI
 
-| # | Brique | Version gelée | Publiée le | Registre officiel interrogé |
+| # | Brique | Version retenue | Publiée le | Registre officiel interrogé |
 |---|---|---|---|---|
 | 1 | **Rust** (toolchain stable) | **1.97.1** | 2026-07-14 | `https://static.rust-lang.org/dist/channel-rust-stable.toml` — section `[pkg.rust]` |
 | 2 | **Actix Web** | **4.14.0** | 2026-06-21 | `https://crates.io/api/v1/crates/actix-web` |
@@ -81,12 +113,17 @@ document — *« jamais au fil de l'eau »* — qui avait durci au-delà de lui.
 | 4 | **utoipa** | **5.5.0** | 2026-05-04 | `https://crates.io/api/v1/crates/utoipa` |
 | 5 | **Nuxt** | **4.5.1** | — | `https://registry.npmjs.org/nuxt/latest` |
 | 6 | **Tailwind CSS** | **4.3.3** | — | `https://registry.npmjs.org/tailwindcss/latest` |
-| 7 | **Tauri** (crate) | **2.11.5** | 2026-07-01 | `https://crates.io/api/v1/crates/tauri` |
-| 8 | **PostgreSQL** | **18.4** | 2026-05-14 | `https://www.postgresql.org/versions.json` |
-| 9 | **Redis** | **8.8.1** | 2026-07-23 | `https://api.github.com/repos/redis/redis/releases` |
-| 10 | **Garage** | **2.3.0** | 2026-04-16 | `https://git.deuxfleurs.fr/api/v1/repos/Deuxfleurs/garage/releases` |
+| 7 | **PostgreSQL** | **18.4** | 2026-05-14 | `https://www.postgresql.org/versions.json` |
+| 8 | **Redis** | **8.8.1** | 2026-07-23 | `https://api.github.com/repos/redis/redis/releases` |
+| 9 | **Garage** | **2.3.0** | 2026-04-16 | `https://git.deuxfleurs.fr/api/v1/repos/Deuxfleurs/garage/releases` |
 
-### Arbitrages du gel
+> ⚠️ **Tauri était la brique n° 7 et ne l'est plus.** Décision du 2026-08-06 : l'application est
+> une **PWA Nuxt**, et Capacitor viendra si le besoin natif se manifeste (cadrage §13.3). La ligne
+> n'est pas supprimée par oubli — elle est retirée parce que la coquille n'existe plus au périmètre.
+> Le jour où Capacitor entre, il entre **ici**, avec sa version vérifiée, et la brique redevient
+> dixième. Les paquets `@tauri-apps/*` sont retirés du §3.2 dans le même mouvement.
+
+### Arbitrages retenus
 
 Le critère retenu n'est pas l'âge d'une version, c'est **son coût en terrain non défriché pour
 un développeur solo**. Une version fraîche est acceptée quand elle ne change rien au code ou
@@ -162,8 +199,7 @@ entrent dans le lockfile et la porte P-20 les couvre.
 |---|---|---|---|
 | `utoipa-swagger-ui` | **9.0.2** | Swagger UI, protégée hors production | dépend de `utoipa ^5` et `actix-web ^4` → **compatible** |
 | `utoipa-actix-web` | **0.1.2** | Intégration utoipa ↔ Actix | dépend de `utoipa ^5`, `actix-web ^4` → **compatible** |
-| `actix-cors` | **0.7.1** ⚠️ | CORS — l'application est une **SPA servie depuis une autre origine** que l'API | dépend d'`actix-web ^4` → **compatible**. `0.x` assumé : crate officiel de l'écosystème Actix, branche 0.7 stable depuis 2025-03-11 |
-| `tauri-build` | **2.6.3** | Build de la coquille Tauri | aligné sur `tauri` 2.11.x |
+| `actix-cors` | **0.7.1** ⚠️ | CORS — l'application est une **PWA servie depuis une autre origine** que l'API | dépend d'`actix-web ^4` → **compatible**. `0.x` assumé : crate officiel de l'écosystème Actix, branche 0.7 stable depuis 2025-03-11 |
 | `tokio` | **1.53.1** | Runtime asynchrone | — |
 | `serde` | **1.0.229** | Sérialisation | — |
 | `uuid` | **1.24.0** | **UUID v7 côté client** (principe VI) | feature `v7` **présente et vérifiée** |
@@ -198,8 +234,7 @@ entrent dans le lockfile et la porte P-20 les couvre.
 
 | Paquet | Version | Rôle |
 |---|---|---|
-| `@tauri-apps/cli` | **2.11.4** | CLI Tauri (build Android/iOS/desktop) |
-| `@tauri-apps/api` | **2.11.1** | Pont JS ↔ Rust — **consommé uniquement par `PlatformAdapter`** (principe VII) |
+| `@vite-pwa/nuxt` | **à vérifier au cycle qui l'ajoute** | **Service worker, manifeste d'application, invite d'installation** — la coquille de la PWA (cadrage §13.3). Enveloppe `vite-plugin-pwa` et Workbox ; une seule ligne épingle la chaîne. Vérifier `peerDependencies` contre Nuxt 4.5.1 et le Vite qu'il embarque, comme pour `@vitejs/plugin-vue` |
 | `@nuxtjs/i18n` | **10.6.0** | i18n fr/en, fr par défaut (principe VIII) |
 | `openapi-typescript` | **7.13.0** | **Génère les types TS depuis `openapi.json`** — le seul artefact généré (principe I·a, porte P-01) |
 | `openapi-fetch` | **0.17.0** | Client fetch typé, ~6 kB — **écrit à la main, jamais généré** |
@@ -244,10 +279,14 @@ entrent dans le lockfile et la porte P-20 les couvre.
 > `chromium-1234`, ou image `mcr.microsoft.com/playwright`), sinon chaque exécution repart du
 > réseau.
 >
-> ⚠️ **DEUX navigateurs depuis le 2026-08-02, et le second pèse trois fois le premier.** P-22
-> exerce `chromium` **et** `webkit` : la cible est Tauri, qui n'embarque aucun navigateur et
-> emprunte celui du système — WebKit couvre **macOS, iOS et Linux**, Chromium couvre Windows et
-> Android. Le même `browsers.json` de `playwright-core@1.62.1` impose WebKit **rev 2336**
+> ⚠️ **DEUX navigateurs, et le second pèse trois fois le premier.** P-22 exerce `chromium` **et**
+> `webkit`. Le motif a changé le 2026-08-06 sans changer la conclusion : il tenait à Tauri, qui
+> empruntait le navigateur du système ; il tient désormais au fait qu'une **PWA s'exécute dans le
+> navigateur réel de l'utilisateur** — Chromium sur Android et sur les postes Windows,
+> **WebKit sur tout iPhone et iPad, sans exception possible** (iOS impose WebKit à tous les
+> navigateurs). Une PWA testée sur Chromium seul n'est pas testée sur la moitié de son parc, et
+> c'est la moitié la plus contrainte : installation, stockage, notifications et impression y
+> obéissent à d'autres règles. Le même `browsers.json` de `playwright-core@1.62.1` impose WebKit **rev 2336**
 > (version 26.5), relevé sur
 > `https://cdn.jsdelivr.net/npm/playwright-core@1.62.1/browsers.json` le **2026-08-02**.
 > Installation : `pnpm exec playwright install webkit`. **294 Mio sur le poste**, mesurés — pas
@@ -271,8 +310,7 @@ entrent dans le lockfile et la porte P-20 les couvre.
 > Le placer dans `app/` le rendrait aveugle aux deux autres, ou imposerait de le déclarer trois
 > fois.
 >
-> **À reporter à la revue du 2026-08-31** comme les paquets des gels 1.0.5, 1.0.6, 1.0.9 et
-> 1.0.10.
+> **Inscrit ici, rien à reporter** — le régime du §1 ne connaît plus de revue différée.
 
 > **Deux paquets ajoutés au gel 1.0.10 — les polices de texte embarquées, dernière dette du
 > cycle 002.** `docs/design/theme.css`, section « POLICES », prescrit de les servir en local
@@ -326,7 +364,7 @@ entrent dans le lockfile et la porte P-20 les couvre.
 > **complément d'alignement sur quatre octets** que le décodeur de référence exige. Le décodeur
 > écrit pour ce script les relisait sans rien voir.
 >
-> **À reporter à la revue du 2026-08-31** comme les paquets des gels 1.0.5, 1.0.6 et 1.0.9.
+> **Inscrit ici, rien à reporter** — le régime du §1 ne connaît plus de revue différée.
 
 > **Deux paquets ajoutés au gel 1.0.9 — la police d'icônes, dette ouverte du cycle 002.** La
 > maquette charge Phosphor depuis `unpkg.com` ; reprise telle quelle, elle rend l'écran dépendant
@@ -458,15 +496,13 @@ raisonnée** au « dernière stable », de même nature que celle de Node LTS : 
 outil prime sur la fraîcheur.
 
 **Condition de levée** : `openapi-typescript` publie une version déclarant `typescript ^7`. À
-vérifier à chaque revue mensuelle, sur `peerDependencies` — pas sur le numéro de version de
-l'outil, qui peut monter sans changer sa contrainte.
+vérifier **au cycle qui touche au générateur de client**, sur `peerDependencies` — pas sur le
+numéro de version de l'outil, qui peut monter sans changer sa contrainte.
 
-> Le décalage `tauri` 2.11.5 (crate) / `@tauri-apps/cli` 2.11.4 est normal : les deux
-> versionnements sont indépendants dans la même branche 2.11.x.
 
 ### 3.3 Environnement d'exécution
 
-Absent de la liste du principe XI, mais Nuxt ne s'exécute pas sans. Ajouté au gel pour que la
+Absent de la liste du principe XI, mais Nuxt ne s'exécute pas sans. Inscrit ici pour que la
 reconstruction soit reproductible.
 
 | Brique | Version | Publiée le | Registre |
@@ -481,20 +517,22 @@ reconstruction soit reproductible.
 
 ### 3.4 Familles exclusives — le seul garde-fou de la liberté d'ajouter
 
-La règle 3 du §1 rend l'ajout libre. Son unique limite : **une famille, une implémentation.** Deux
-crates qui font la même chose ne cohabitent pas — c'est ce qui produit deux formats de date dans un
-même dépôt, ou deux moteurs de chiffrement dont un seul est audité.
+La règle 4 du §1 rend l'ajout libre. Son unique limite : **une famille, une implémentation.** Deux
+dépendances qui font la même chose ne cohabitent pas — c'est ce qui produit deux formats de date
+dans un même dépôt, ou deux moteurs de chiffrement dont un seul est audité.
 
 | Famille | Retenu | Écartés — ne pas introduire |
 |---|---|---|
 | Date et heure (Rust) | `time` | `chrono` |
 | Erreurs de bibliothèque (Rust) | `thiserror` | `anyhow`, `eyre` — acceptables dans un **binaire**, jamais dans un crate de `crates/` |
-| Chiffrement symétrique | `aes-gcm` (RustCrypto) | `ring`, `aws-lc-rs`, `openssl`, `pgcrypto` — motif au §6, gel 1.0.13 |
+| Chiffrement symétrique | `aes-gcm` (RustCrypto) | `ring`, `aws-lc-rs`, `openssl`, `pgcrypto` — motif au §6 |
 | Dérivation de clé et hachage | `argon2` | `bcrypt`, `scrypt`, `pbkdf2` |
 | Décimales exactes | `rust_decimal` | `bigdecimal`, et **tout flottant** sur une quantité (principe V) |
 | Client HTTP sortant | *aucun encore* | dès qu'un cycle en a besoin, **il tranche pour tout le dépôt** et l'inscrit ici |
 | Sérialisation | `serde` / `serde_json` | — |
-| Accès base | `sqlx` | `diesel`, `sea-orm` — brique du §2, hors ajout libre |
+| Accès base | `sqlx` | `diesel`, `sea-orm` — brique du §2 |
+| **Données simulées du front** *(phase 2)* | *à trancher au premier cycle d'écran* | Une seule mécanique de mocks pour toute l'application — pas un module qui invente des objets littéraux et un autre qui charge un JSON. Voir `Kaya_Prompts_SpecKit.md` §3 phase 2 |
+| **Coquille native** *(différée)* | *aucune — l'application est une PWA* | Tauri, Electron, React Native. Le jour où le besoin natif se manifeste, c'est **Capacitor** qui entre (cadrage §13.3), et il entre au §2 |
 
 **Une famille absente de ce tableau n'est pas une famille libre : c'est une famille non encore
 rencontrée.** Le cycle qui l'ouvre choisit pour tout le dépôt et inscrit sa ligne — c'est le
@@ -518,6 +556,11 @@ Aucun générateur ne peut décider que `chrono` est écarté.
 | `pnpm-lock.yaml` | P-20 | **Commité** |
 | `.nvmrc` | P-20 | `24.18.1` |
 | `compose.yml` | P-20 | Tags d'image exacts du §4.2 — **jamais `latest`** |
+
+> ⚠️ **Aucun de ces fichiers n'existe encore dans ce dépôt.** Le tableau dit ce que le cycle de
+> démarrage doit produire, pas ce qu'il trouvera. **Les valeurs du §2 et du §3 sont à revérifier
+> à ce moment-là** : elles datent du 2026-08-04 et le régime du §1 demande la dernière stable
+> compatible, pas la dernière connue.
 
 > **`Cargo.lock` est commité même pour un binaire** : c'est ce qui rend la reconstruction
 > identique à six mois d'écart, condition du support à distance du parc auto-hébergé
@@ -552,43 +595,45 @@ développement sur poste Apple Silicon (`arm64`) et en production sur VPS Contab
 lockfiles suffisants. Il le documente lui-même et le motive bien — comparer les **valeurs** aux
 registres officiels ferait de la CI une dépendance réseau.
 
-**Mais le gel est un fichier du dépôt.** Comparer les manifestes à `docs/versions-gelees.md` ne
-demande aucun réseau, et comble le trou qui a laissé passer `typescript 7.0.2` puis sa correction
-silencieuse en `5.9.3`, puis les sept crates du gel 1.0.13.
+**Mais ce fichier est un fichier du dépôt.** Comparer les manifestes à `docs/versions-reference.md`
+ne demande aucun réseau, et comble le trou qui a laissé passer `typescript 7.0.2` puis sa
+correction silencieuse en `5.9.3`, puis sept crates absentes du document pendant six semaines.
 
-**Depuis le gel 1.0.14, le complément a deux régimes, parce que les deux moitiés du document ne
-sont pas de même nature :**
+**Le complément est un MIROIR, en un seul régime.** L'ancien en distinguait deux — un tableau
+« opposable » tenu à la main et un tableau « miroir » engendré — parce qu'il fallait protéger des
+briques que la revue seule pouvait toucher. Cette distinction tombe avec la revue :
 
-| | §2 · dix briques, §3.3, §4.2 | §3.1 et §3.2 · dépendances directes |
+| | Ce que le générateur fait | Ce qu'il ne fait pas |
 |---|---|---|
-| **Qui écrit** | la revue mensuelle, à la main | **le générateur**, depuis les manifestes |
-| **Régime** | **opposable** — l'écart échoue | **miroir** — l'écart se régularise |
-| **Ce que la porte fait** | compare et **refuse** | régénère et refuse **si le commité diffère** |
-| **Motif** | monter une brique réécrit du code qui marche | ajouter est libre (§1, règle 3) ; le gel doit suivre, pas autoriser |
+| §2, §3.1, §3.2, §3.3, §4.2 | lit les manifestes, réécrit les tableaux, **refuse si le commité diffère** | choisir une version |
+| §3.4 familles exclusives | vérifie qu'aucun couple exclu ne cohabite | décider qu'une famille est exclue |
+| Commentaires de justification | vérifie leur **présence** au-dessus de chaque ligne | juger si le motif est bon |
 
-Le contrôle du régime miroir est **plus simple et plus complet** que la comparaison bilatérale
-décrite ci-dessus : si le gel est engendré depuis les manifestes, il ne peut par construction ni
-omettre une dépendance du code, ni en inventer une que le code n'a pas. Une seule question suffit —
-*le gel commité est-il celui que les manifestes engendrent ?* — et un seul mode de réparation :
-relancer le générateur.
+Une seule question suffit — *ce fichier est-il celui que les manifestes engendrent ?* — et un seul
+mode de réparation : relancer le générateur. Par construction, il ne peut ni omettre une
+dépendance du code, ni en inventer une que le code n'a pas.
 
-Ce qui reste à vérifier dans les deux régimes :
+Ce qui reste à vérifier au-delà de la simple égalité :
 
-- **les `peerDependencies` des paquets gelés**, ce qui aurait attrapé la contradiction
-  `openapi-typescript ^5.x` ↔ `typescript 7.0.2` à la source ;
+- **les `peerDependencies` de chaque paquet**, ce qui aurait attrapé la contradiction
+  `openapi-typescript ^5.x` ↔ `typescript 7.0.2` à la source. C'est le contrôle qui **matérialise
+  la règle 1** : la dernière stable est prise sauf conflit constaté, et un conflit se constate là ;
 - **les familles exclusives du §3.4** — deux membres d'une même famille dans les manifestes est un
   échec, et c'est le seul garde-fou de la liberté d'ajouter ;
-- **la présence du commentaire de justification** au-dessus de chaque ligne ajoutée (§1, règle 3).
+- **la présence du commentaire de justification** au-dessus de chaque ligne ajoutée (§1, règle 4).
   Un ajout sans motif écrit passe la porte de la forme et perd celui de l'intention.
 
-Sans ce complément, le gel est un document que rien n'oppose au code. C'est l'illustration
-exacte de la leçon du cycle 1 : *un test négatif prouve qu'une porte sait échouer, il ne prouve
-pas qu'elle regarde tout.* Et l'illustration du gel 1.0.13 : *une échéance sans porte est un
-rappel, pas un contrôle.*
+Sans ce complément, ce fichier est un document que rien n'oppose au code — et c'est d'autant plus
+grave qu'il n'y a plus de revue humaine derrière. *Un test négatif prouve qu'une porte sait
+échouer, il ne prouve pas qu'elle regarde tout* ; *une échéance sans porte est un rappel, pas un
+contrôle*. Ces deux leçons sont les seules choses que l'ancien régime laisse en héritage, et elles
+valent toujours.
 
 ## 5. Reproduire la vérification
 
-À rejouer à chaque revue mensuelle. Aucune de ces commandes ne dépend d'un cache.
+À rejouer **quand un événement appelle une vérification** — ouverture d'un cycle, ajout d'une
+dépendance, avis de sécurité, blocage constaté (§1, règle 6). Aucune de ces commandes ne dépend
+d'un cache.
 
 ```sh
 # Rust — canal stable officiel
@@ -597,16 +642,16 @@ curl -sS https://static.rust-lang.org/dist/channel-rust-stable.toml \
 
 # Crates Rust — crates.io exige un User-Agent
 UA="kaya-version-check (angenor99@gmail.com)"
-for c in actix-web sqlx utoipa utoipa-swagger-ui utoipa-actix-web tauri tauri-build \
+for c in actix-web sqlx utoipa utoipa-swagger-ui utoipa-actix-web actix-cors \
          tokio serde uuid redis aws-sdk-s3 sentry tracing tracing-subscriber \
-         jsonwebtoken argon2 rust_decimal; do
+         jsonwebtoken argon2 rust_decimal aes-gcm serde_json time thiserror; do
   printf "%-22s " "$c"
   curl -sS -H "User-Agent: $UA" "https://crates.io/api/v1/crates/$c" \
     | python3 -c "import sys,json;print(json.load(sys.stdin)['crate']['max_stable_version'])"
 done
 
 # Paquets npm
-for p in nuxt tailwindcss @tauri-apps/cli @tauri-apps/api @nuxtjs/i18n pnpm \
+for p in nuxt tailwindcss @vite-pwa/nuxt @nuxtjs/i18n pnpm \
          openapi-typescript openapi-fetch typescript \
          @phosphor-icons/web subset-font \
          @fontsource-variable/archivo @fontsource-variable/chivo-mono \
@@ -675,16 +720,25 @@ curl -sS -H "User-Agent: $UA" \
 
 ---
 
-## 6. Journal des gels
+## 6. Journal des versions
+
+> ⚠️ **Les entrées `1.0.x` décrivent une version antérieure du projet, dont le code n'existe plus
+> dans ce dépôt.** Elles sont conservées pour une seule raison : elles portent des **arbitraires
+> vérifiés** — pourquoi TypeScript reste en `5.x`, pourquoi Redis a été reculé, pourquoi `ring` a
+> été écarté, pourquoi U+202F manquait aux deux polices. Ces constats sont du savoir acquis, et
+> les redécouvrir coûterait des heures. **Leurs références à des cycles, des portes de CI et des
+> fichiers de code sont en revanche périmées** : rien de tout cela n'existe ici. Lire les motifs,
+> ignorer les chemins.
 
 | Version | Date | Modification |
 |---|---|---|
+| **2.0.0** | **2026-08-06** | **CHANGEMENT DE RÉGIME ET DE NOM — `versions-gelees.md` devient `versions-reference.md`.** Le mot « gel » décrivait ce que le document faisait subir aux versions ; il décrit désormais ce qu'il en dit. **La règle devient : la dernière stable, sauf conflit constaté ; descendre au minimum, et écrire la contrainte et sa condition de levée.** ⚠️ **La revue mensuelle est SUPPRIMÉE, sans être remplacée par une autre échéance.** Motif : le projet est tenu par une personne seule ; une règle qui suppose un rendez-vous périodique est une dette à venir, et l'ancien régime l'avait démontré trois fois — sept dépendances en attente d'une revue, 286 lignes de code écrites à la main pour éviter d'ouvrir le sujet, une échéance manquée sans conséquence visible. **Ce qui remplace la revue** : monter est libre, à la condition unique que la suite de tests passe après la montée — un contrôle qui échoue en dix minutes vaut mieux qu'une lecture humaine qui n'a pas lieu. **La distinction ajouter/monter disparaît**, et avec elle la liste de briques intouchables : les neuf briques du §2 ne sont plus « hors ajout libre », elles sont seulement plus susceptibles de casser quelque chose, ce que les tests diront. **Ce qui est conservé intact, et pourquoi** : épinglage exact sans exception, URL de registre datée, lockfile commité, familles exclusives — les quatre sont soit vérifiables par une machine, soit d'un coût nul, et ce sont les seules du document dans ce cas. **L'agent d'implémentation écrit désormais ici lui-même**, dans le changement qui touche au manifeste ; c'est la conséquence directe de la suppression de la revue, et le §4.3 dit ce qui l'en empêche de dériver. ⚠️ **TAURI EST RETIRÉ DES BRIQUES** — l'application devient une **PWA Nuxt** (cadrage §13.3), les paquets `@tauri-apps/*` et le crate `tauri-build` sortent des §3.1 et §3.2, et `@vite-pwa/nuxt` entre au §3.2 avec sa version à vérifier au cycle qui l'ajoute. Les neuf briques restantes sont renumérotées ; Capacitor entrera en dixième le jour où le besoin natif se manifestera. **Le motif des deux navigateurs de P-22 change sans changer la conclusion** : il tenait à Tauri empruntant le moteur du système, il tient désormais au fait qu'une PWA s'exécute dans le navigateur réel — et que **tout iPhone impose WebKit**, sans exception possible. ⚠️ **Aucune valeur de ce document n'est matérialisée dans ce dépôt** : il ne porte ni `Cargo.toml`, ni `package.json`, ni lockfile. Les versions du §2 et du §3 sont le **point de départ vérifié au 2026-08-04**, à revérifier au cycle qui les écrira pour la première fois. |
 | 1.0.14 | 2026-08-04 | **CHANGEMENT DE RÉGIME — ajouter une dépendance devient libre, monter reste groupé.** Le §1 est réécrit, le §3.4 (familles exclusives) est créé, le §4.3 distingue deux régimes de contrôle. **Aucun amendement de la constitution n'a été requis, et c'est le cœur de l'affaire** : le principe XI proscrit « aucune montée majeure pendant un incrément » et prescrit une « revue de mise à jour groupée, mensuelle » — il ne dit rien des **ajouts**. C'est le §1.4 de ce document, plus strict que le principe qu'il applique, qui étendait la règle des montées aux ajouts : *« La revue est mensuelle et groupée, jamais au fil de l'eau. »* **Cette règle est la cause directe de la dérive du gel 1.0.13** — elle ordonnait aux sept crates d'attendre une revue, et six l'ont attendue six semaines. Une règle qui produit la dette qu'elle prétend organiser doit changer, pas être mieux respectée. **Ce que le régime nouveau conserve intact** : épinglage exact sans exception, aucun numéro écrit de mémoire, URL et date de vérification, lockfiles commités — P-20 est inchangée, et rien de ce gel ne l'assouplit. **Ce qu'il déplace** : l'inscription aux tableaux §3.x se fait dans le changement qui ajoute, jamais reportée ; les dix briques du §2 restent hors ajout libre, y compris en mineur, parce que monter `sqlx` réécrit les macros de chaque requête du dépôt. **Ce qu'il ajoute** : le §3.4, seul garde-fou de la liberté — une famille, une implémentation, et une famille absente du tableau est une famille non encore rencontrée, pas une famille libre. **Le coût de l'ancien régime était déjà payé** : `backend/crates/socle/comptes/src/client/repli.rs` — 286 lignes, table de correspondances écrite à la main — motive son existence en citant *en premier* le fait qu'`unicode-normalization` « n'est pas au gel » et que l'ajouter « imposerait une décision de revue mensuelle ». Le second motif de ce fichier est **techniquement juste et le sauve** (NFD ne décompose ni `Ø` ni `Đ`, lettres à barre sans décomposition canonique, et le produit gagne à décider de ce qu'il replie) — mais l'ordre des arguments dit lequel a déclenché la réflexion. **Une contrainte de gouvernance des versions n'a pas à entrer dans un raisonnement de conception** ; c'est ce que ce gel corrige. Le fichier n'est pas modifié : sa décision reste défendable, et le prochain cycle qui touche à la recherche de noms est libre de la reprendre — ou de la garder pour son bon motif, désormais le seul. |
 | 1.0.13 | 2026-08-04 | **Sept crates Rust inscrites au §3.1 — dont une seule est du cycle 006.** `aes-gcm` **0.11.0** (cycle 006), `serde_json` **1.0.151**, `time` **0.3.54**, `thiserror` **2.0.19**, `async-trait` **0.1.91**, `futures` **0.3.33**, `dotenvy` **0.15.7** (cycles 001 à 005). Toutes étaient **déjà épinglées exactement** dans `backend/Cargo.toml`, avec leur date de vérification de registre en commentaire — 2026-07-30 pour six, 2026-08-03 pour `aes-gcm`. **Aucune valeur n'est choisie ici** : le gel rattrape le code, ce que le §4.3 prescrit dans les deux sens. **Motif de l'inscription anticipée** : la revue mensuelle du 2026-08-31 était l'échéance consignée, et le rapport du cycle 006 n'annonçait qu'**une** entrée à trancher — juste pour son cycle, faux pour la revue, qui en aurait découvert sept le jour même. Le `Cargo.toml` portait la mention « à porter au gel §3.1 » **au-dessus des six autres**, écrite six semaines plus tôt et jamais exécutée : une échéance sans porte est un rappel, pas un contrôle. **Le seul arbitrage du lot** est celui d'`aes-gcm`, et il est écrit dans `backend/Cargo.toml` : `pgcrypto` écartée (la clé voyagerait dans `pg_stat_statements` et les journaux de la base — chiffrer au repos en publiant la clé n'est pas chiffrer), `ring` écartée **bien qu'à coût nul en chaîne d'approvisionnement**, déjà transitive de `rustls`, pour le motif qui avait écarté `aws_lc_rs` : chaîne `cmake`/`nasm`, et « une chaîne de construction C de plus est une panne de plus chez un client sans administrateur » (cadrage §10.1, mode B). **Ce que ce gel ne fait pas** : le complément du §4.3 reste à écrire, et c'est lui qui aurait trouvé les six — **deuxième occurrence du même trou après le gel 1.0.5**, côté Rust cette fois. Tant qu'il manque, l'écart se rouvrira au prochain cycle qui ajoute un crate. |
 | 1.0.12 | 2026-08-02 | **WebKit ajouté aux navigateurs de la porte P-22 — aucun paquet nouveau, une cible de plus.** `@playwright/test` reste en **1.62.1** : ce qui change est le jeu de moteurs que la porte exerce, pas une version. **Motif** : la cible du produit est Tauri, qui n'embarque aucun navigateur et emprunte celui du système — **WKWebView** sur macOS et iOS, **WebKitGTK** sur Linux, **WebView2** (Chromium) sur Windows, **Android System WebView** (Chromium) sur Android. Trois cibles sur cinq sont WebKit, à commencer par le poste de développement : Chromium seul validait le moteur que le produit n'utilise pas sur la majorité de ses cibles. ⚠️ **La révision n'est pas épinglable séparément, et elle pèse trois fois Chromium** : `playwright-core@1.62.1` impose WebKit **rev 2336** (version 26.5), relevée sur `https://cdn.jsdelivr.net/npm/playwright-core@1.62.1/browsers.json` le 2026-08-02 — **294 Mio sur le poste, mesurés**, contre 94,7 pour Chromium. Une CI qui ne met en cache que `chromium-1234` retéléchargera 294 Mio à chaque exécution ; la clé doit porter les deux révisions. La commande de vérification du §5 relève désormais les deux, et l'étape 3/5 de la porte **compte les cas par projet et refuse si un moteur n'en a aucun** — un moteur absent retirerait trois cibles sans changer le verdict. **Limite écrite dans la porte** : le `webkit` de Playwright **n'est pas WKWebView**, seulement plus proche de la cible que Chromium ; le contrôle réel de macOS et d'iOS viendra avec la coquille Tauri. **Hors P-21** pour le même motif que Chromium : un navigateur de test n'entre ni dans le paquet Nuxt, ni dans l'image `linux/amd64`. |
 | 1.0.11 | 2026-08-01 | **`@playwright/test` `1.62.1` inscrit — le harnais de la porte P-22.** Apache-2.0, publiée le 2026-07-30, aucune `peerDependency`, vérifiée sur `https://registry.npmjs.org/@playwright%2Ftest/latest` le 2026-08-01. **Motif** : le cycle 003 a été livré avec 24 portes vertes et 652 tests, et deux des quatre écrans du produit étaient inatteignables en navigateur — aucun outil du dépôt ne savait ouvrir une page. **Une ligne épingle la chaîne entière** : `@playwright/test` → `playwright` → `playwright-core`, toutes trois en `1.62.1` **exact**, aucun intervalle. Le paquet retenu est celui qui **embarque le runner**. ⚠️ **La révision de navigateur n'est pas épinglable séparément** : `1.62.1` impose Chromium **1234** (Chrome 151.0.7922.34) par son `browsers.json`, et le cache du poste (`1217`, `1228`) ne servait pas — 94,7 Mio téléchargés, constaté. **Hors P-21** : la porte ne vise que ce que l'application charge à l'exécution, et un navigateur de test n'entre ni dans le paquet ni dans l'image de production ; pour la même raison, Apache-2.0 n'entre pas à l'inventaire des licences tierces, réservé aux œuvres embarquées — précédent `subset-font`. Déclaré à la **racine** et non dans `app/`, comme ESLint et pour le même motif : la porte exerce `app/`, et `web/qr` et `web/console` dès qu'elles auront des écrans. |
 | 1.0.10 | 2026-07-31 | **Archivo et Chivo Mono embarquées — dernière dette du cycle 002 soldée, portes P-21 et P-21b.** `@fontsource-variable/archivo` **5.3.0** et `@fontsource-variable/chivo-mono` **5.3.0**, OFL-1.1, publiées le 2026-07-19, aucune dépendance ni `peerDependency`, vérifiées sur `https://registry.npmjs.org/@fontsource-variable%2Farchivo` et `https://registry.npmjs.org/@fontsource-variable%2Fchivo-mono` le 2026-07-31. L'application tournait sur les polices système de repli, alors que `theme.css` prescrit le local et que `tokens.md` §2 confie l'alignement des colonnes de montants à Chivo Mono tabulaire. **Variable retenue sur mesure** : 4 fichiers / 114,0 ko contre 12 fichiers / 152,7 ko en statique, pour les quatre graisses d'Archivo et les deux de Chivo Mono réellement employées. **Aucun sous-réglage de caractères** — le texte est dynamique, contrairement aux icônes : `latin` **et** `latin-ext`, sous-ensembles de script entiers. ⚠️ **U+202F absent de la source, ajouté à la `cmap`** (associé au dessin de U+2009, chasse mesurée : 193 en Archivo, 600 en Chivo Mono donc cellule pleine) : le caractère n'existe ni dans les `woff2` de Fontsource ni dans les `ttf` amont de Google Fonts, ce que seule la lecture de la table révèle — la `unicode-range` déclarée annonce `U+2000-206F`. Déterminisme à l'octet vérifié ; validité confirmée par harfbuzz, qui a d'abord **refusé** les fichiers auxquels manquait le complément d'alignement sur quatre octets. |
-| 1.0.9 | 2026-07-31 | **La police d'icônes embarquée — dette du cycle 002 soldée, porte P-21.** `@phosphor-icons/web` **2.1.2** (source des glyphes) et `subset-font` **2.5.0** (outil de sous-réglage), vérifiés sur `https://registry.npmjs.org/` le 2026-07-31, licences MIT et BSD-3-Clause, `peerDependencies` contrôlées — aucune pour le premier, aucune pour le second. La maquette charge Phosphor depuis `unpkg.com` ; l'application ne le fait **jamais**. Sous-ensemble de **77 glyphes sur ~1530**, soit **9,4 ko** au lieu de 279 ko. La version est **alignée sur celle des maquettes** : deux versions différentes donneraient deux dessins d'icône, écart qu'aucune porte ne verrait. Déterminisme à l'octet vérifié, condition du mode `--verifier`. **À reporter à la revue du 2026-08-31** comme les paquets des gels 1.0.5 et 1.0.6. |
+| 1.0.9 | 2026-07-31 | **La police d'icônes embarquée — dette du cycle 002 soldée, porte P-21.** `@phosphor-icons/web` **2.1.2** (source des glyphes) et `subset-font` **2.5.0** (outil de sous-réglage), vérifiés sur `https://registry.npmjs.org/` le 2026-07-31, licences MIT et BSD-3-Clause, `peerDependencies` contrôlées — aucune pour le premier, aucune pour le second. La maquette charge Phosphor depuis `unpkg.com` ; l'application ne le fait **jamais**. Sous-ensemble de **77 glyphes sur ~1530**, soit **9,4 ko** au lieu de 279 ko. La version est **alignée sur celle des maquettes** : deux versions différentes donneraient deux dessins d'icône, écart qu'aucune porte ne verrait. Déterminisme à l'octet vérifié, condition du mode `--verifier`. **Inscrit ici, rien à reporter** — le régime du §1 ne connaît plus de revue différée. |
 | 1.0.8 | 2026-07-31 | **`actix-cors` `0.7.1` inscrit — manque révélé par le PREMIER ÉCRAN du produit.** L'application est une SPA servie depuis une autre origine que l'API : `localhost:3000` en développement, `tauri://localhost` sous Tauri. Sans en-têtes CORS, le navigateur bloque chaque appel et **aucun écran ne fonctionne** — le préflight `OPTIONS` rendait `404`. Le cycle 001 ne pouvait pas le rencontrer, n'ayant livré aucun écran ; `G1` l'a révélé au premier chargement réel. **`0.x` assumé, contrairement au motif qui a écarté `@hey-api/openapi-ts 0.99.0`** : c'est le crate officiel de l'écosystème Actix, maintenu par la même équipe, sa branche 0.7 est stable depuis 2025-03-11, et il déclare `actix-web ^4` — compatible avec le `4.14.0` gelé (vérifié sur `https://crates.io/api/v1/crates/actix-cors/0.7.1/dependencies` le 2026-07-31). L'alternative — écrire un CORS à la main sur un chemin de sécurité — était le mauvais échange. La politique est par **liste d'origines explicite**, jamais `*`, et son défaut ne contient que des origines locales. |
 | 1.0.7 | 2026-07-31 | **`@types/node` `24.13.3` inscrit — dette du cycle 001.** `app/tsconfig.test.json` typait `scripts/**/*.ts` sans qu'aucun paquet ne fournisse les types de `node:fs` / `node:path` : `pnpm test` échouait en permanence sur six `TypeCheckError`, alors que ses dix-huit tests passaient. Les deux fichiers non typés portent les portes **P-16** et **P-17**. Version alignée sur la ligne majeure du runtime gelé (Node `24.18.1` LTS), donc dernière `24.x` et non `latest` (`26.1.2`) — même dérogation raisonnée que Node. Vérifiée sur `https://registry.npmjs.org/@types/node` le 2026-07-31. Suivi : toute montée de Node au §3.3 impose la même montée ici. |
 | 1.0.6 | 2026-07-31 | **Trois paquets de test front inscrits — décision T004 du cycle 002, tranchée dans le sens de l'ajout.** `@vue/test-utils` **2.4.11**, `happy-dom` **20.11.1**, `@vitejs/plugin-vue` **6.0.8**, vérifiés sur `https://registry.npmjs.org/` le 2026-07-31, `peerDependencies` contrôlées une par une contre Vue 3 / Vite de Nuxt 4.5.1. `plan.md` laissait le choix ouvert entre ajouter et refuser, sans version : refuser aurait réduit SC-005 à un test de la fonction de sélection, c'est-à-dire à vérifier l'intention plutôt que le HTML produit — or « un service inactif est absent, jamais grisé » est une propriété de rendu. **Le plan n'en annonçait que deux** : le troisième est la dépendance technique qui compile un `.vue` hors du pipeline Nuxt, signalée ici plutôt que glissée dans le lot. À reporter à la revue du 2026-08-31 comme les six du gel 1.0.5. |

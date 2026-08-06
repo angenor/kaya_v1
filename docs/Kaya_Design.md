@@ -1,13 +1,38 @@
-# Kaya — Prompts Design (fichier unique et complet)
+# Kaya — Design (référence)
 
-> ⚠️ **Décompte de composants : ce fichier dit « 14 », et c'était vrai au maquettage.**
+> ### 🔄 Trois changements du 2026-08-06
+>
+> **1. La doctrine d'écran est assouplie — voir §2 bis.** La règle « un écran qui n'hérite d'aucun
+> motif ne se code pas » est remplacée par **quatre cas**, dont le quatrième autorise l'écran
+> découvert à l'implémentation, à condition qu'il s'inscrive à la matrice dans le même changement.
+> Un cycle ne s'arrête plus sur un écran manquant ; il ne s'arrête plus que sur un **composant**
+> manquant.
+>
+> **2. L'interface se construit AVANT le backend, sur des données simulées** (cadrage §13.0). Ce
+> document ne change pas de statut pour autant : il reste ce qui est opposable à l'implémentation,
+> et c'est même maintenant qu'il sert le plus.
+>
+> **3. La cible est une PWA, plus une coquille Tauri** (cadrage §13.3). Les contraintes de la
+> partie III sont **inchangées** — le matériel visé, le contraste, les cibles tactiles et le budget
+> d'animation ne dépendent pas de la technologie de la coquille.
+>
+> ✅ **Ce qui ne change pas du tout : les maquettes produites.** `docs/design/` est complet et fait
+> foi. Rien n'est à refaire.
+
+> 📦 **Allégé le 2026-08-06 : les prompts de maquettage ont été retirés.**
+> La maquette est produite et déposée dans `docs/design/` — les prompts qui ont servi à
+> l'obtenir n'avaient plus de lecteur. Ce fichier ne garde que ce qui reste **opposable au
+> développement** : principes, spécification de simplicité, contraintes de fondation, zones,
+> motifs posés, validation et garde-fous. Les valeurs exactes sont dans les fichiers produits,
+> qui font foi (`tokens.md`, `mouvement.md`, `composants.md`, `lexique.md`, `derivation.md`).
+
+> ⚠️ **Décompte de composants : ce fichier disait « 14 », et c'était vrai au maquettage.**
 > Il y en a **seize** au 2026-08-02 — le n° 15 (barre de proportion) et le n° 16 (champ de
-> saisie, composé depuis les tokens faute de maquette). `docs/design/composants.md` **fait
-> foi** sur le nombre ; les mentions ci-dessous sont des constats d'époque, laissés tels quels.
-> Si vous recollez un prompt de la partie III, corrigez le décompte avant de l'envoyer.
+> saisie, composé depuis les tokens faute de maquette). `docs/design/composants.md` **fait foi**
+> sur le nombre ; les mentions « 14 » subsistantes sont des constats d'époque.
 
-*Compagnon du Cadrage v1 et des User Stories v1 — Maquettage avant développement*
-*Version 2.0 — Remplace `Kaya_Prompts_Design.md`, `Kaya_Design_Personnalite_Mouvement.md` et `Kaya_Design_Plan_Resserre.md`, qui peuvent être archivés.*
+*Compagnon du Cadrage v1 et des User Stories v1.*
+*Version 2.1 — Remplace `Kaya_Prompts_Design.md`, `Kaya_Design_Personnalite_Mouvement.md` et `Kaya_Design_Plan_Resserre.md`, qui peuvent être archivés.*
 
 ---
 
@@ -39,13 +64,51 @@ On ne maquette pas un écran parce qu'il est important. **On maquette un écran 
 | Il décide de l'adoption (fréquence ou enjeu) | Il est consulté rarement, par un utilisateur formé |
 | Il doit être confronté au terrain | Personne n'a de doute sur ce à quoi il ressemble |
 
-**Résultat : la fondation + 10 cibles maquettées, et 30 écrans dérivés** (partie V).
+**La maquette est produite** — la fondation, 11 écrans maquettés en 29 fichiers d'états, les prototypes animés, les documents imprimés. Elle est dans `docs/design/` et **elle ne se refait pas** : c'est l'entrée du développement de l'interface, pas son livrable.
 
 Le risque de coder sans maquette n'est pas la laideur, c'est la **dérive** : trente écrans inventés un par un finissent par ne plus se ressembler. La matrice de dérivation est ce qui l'évite.
 
+### 2 bis. Les quatre cas où un écran se code *(assoupli le 2026-08-06)*
+
+> ⚠️ **Ce paragraphe remplace une règle qui disait « un écran qui n'hérite d'aucun motif ne se
+> code pas ». Elle était fausse, et coûteuse.**
+>
+> Elle supposait que les documents avaient tout prévu. Ils n'ont pas tout prévu, et ils ne le
+> peuvent pas : c'est en construisant un parcours qu'on découvre qu'il manque un écran pour le
+> terminer — la table fermée d'un QR scanné, la confirmation d'une action irréversible, la reprise
+> après une erreur. **Arrêter le cycle à cet endroit-là, c'est arrêter le travail pour produire un
+> document, alors que l'écran manquant est souvent évident.**
+
+| Cas | Ce que c'est | Référence citée |
+|---|---|---|
+| **a — Maquetté** | L'un des 11 écrans dessinés | le fichier d'état exact de `docs/design/html/` |
+| **b — Dérivé** | Il hérite d'un motif maquetté | sa ligne de `docs/design/derivation.md` |
+| **c — Composé** | Assemblé **uniquement** à partir des seize composants canoniques, en **zone de charme** | sa ligne de `derivation.md`, avec les composants employés |
+| **d — Découvert à l'implémentation** | Les documents ne l'avaient pas prévu, et sans lui un parcours ne se termine pas | **son inscription à `derivation.md`, faite dans le même changement** |
+
+**Le quatrième cas est autorisé et n'arrête pas le cycle.** Trois obligations, qui tiennent en une
+tâche :
+
+1. il n'emploie que les **composants, tokens et termes du lexique existants** ;
+2. s'il tombe en **zone de vitesse** (§1), il se code quand même mais il est **signalé « à
+   maquetter avant le pilote »** — un écran de comptoir porte une intention dessinée qu'un
+   assemblage ne retrouve pas ;
+3. il **s'inscrit à `docs/design/derivation.md` dans le même changement**, avec la mention
+   « découvert à l'implémentation, à valider » et la liste des composants employés.
+
+> **Ce qu'on refuse n'est pas d'inventer un écran, c'est de l'inventer EN SILENCE.** La dérive ne
+> vient pas de l'écran manquant qu'on ajoute ; elle vient des trente écrans que personne n'a
+> inscrits nulle part et qui, six mois plus tard, ne se ressemblent plus. L'inscription coûte deux
+> lignes ; l'arrêt du cycle coûtait une demi-journée et une décision différée.
+
+**Une seule chose arrête encore un cycle : un COMPOSANT qui manque à la bibliothèque.** Un écran
+s'assemble, un composant se dessine. Si un motif d'interaction nouveau est requis — un contrôle
+qu'aucun des seize ne sait rendre —, le cycle s'arrête et le signale. C'est la frontière juste :
+elle porte sur le vocabulaire, pas sur les phrases qu'on en fait.
+
 ## 3. Conventions
 
-Les prompts Spec Kit référencent `docs/design/png/{code}`. Le code est **stable et ne change jamais** — il apparaît dans les tâches, les commits et les revues.
+Les prompts Spec Kit référencent `docs/design/html/{code}`. Le code est **stable et ne change jamais** — il apparaît dans les tâches, les commits et les revues.
 
 | Préfixe | Domaine |
 |---|---|
@@ -67,7 +130,7 @@ Export par écran : `html/{code}-{nom-lisible}.html` (référence), plus les cap
 
 **Format d'export — le HTML est la référence normative.**
 
-L'export HTML de Claude Design est ce que lit l'agent d'implémentation : il y trouve les **valeurs exactes** (couleurs, espacements, tailles, rayons, durées d'animation) et la **hiérarchie DOM**, au lieu de les estimer depuis une image. Sur les prototypes animés, les courbes et durées se lisent directement dans le CSS.
+L'export HTML est ce que lit l'agent d'implémentation : il y trouve les **valeurs exactes** (couleurs, espacements, tailles, rayons, durées d'animation) et la **hiérarchie DOM**, au lieu de les estimer depuis une image. Sur les prototypes animés, les courbes et durées se lisent directement dans le CSS.
 
 Le PNG reste produit, pour l'humain : revue rapide, impression A3 de l'atelier terrain d'Abengourou, comparaison visuelle avant/après.
 
@@ -80,7 +143,7 @@ Le PNG reste produit, pour l'humain : revue rapide, impression A3 de l'atelier t
 >
 > **0. Tailwind d'abord, CSS en dernier recours.** La maquette cible un projet Nuxt 4 + Tailwind 4 : plus elle est écrite en utilitaires Tailwind, plus la transposition est directe. Voir §3 bis.
 >
-> **1. Le HTML de maquette n'est JAMAIS copié dans `app/` — à une exception près : `theme.css`.** Le bloc `@theme` est précisément fait pour être transplanté ; c'est lui qui porte les tokens. Tout le reste (markup, styles d'écran) est une cible, pas une source. C'est une *cible*, pas une *source*. L'export est autonome, non sémantique, sans i18n, sans gestion de rôles, sans mode sombre câblé, avec des styles en ligne. Le copier produit des composants inmaintenables qui divergeront au premier changement. **On le lit, on ne le colle pas.**
+> **1. Le HTML de maquette n'est JAMAIS copié dans `app/` — à une exception près : `theme.css`.** Le bloc `@theme` est précisément fait pour être transplanté ; c'est lui qui porte les tokens. Tout le reste (markup, styles d'écran) est une *cible*, pas une *source*. L'export est autonome, non sémantique, sans i18n, sans gestion de rôles, sans mode sombre câblé, avec des styles en ligne. Le copier produit des composants inmaintenables qui divergeront au premier changement. **On le lit, on ne le colle pas.**
 >
 > **2. `tokens.md` est extrait UNE SEULE FOIS du HTML, puis prime sur lui.** Sans cette règle, chaque composant re-dérive ses valeurs depuis un fichier différent et tu obtiens quatorze nuances de gris. En cas de divergence entre un export et `tokens.md`, `tokens.md` gagne — et l'export est corrigé.
 >
@@ -88,7 +151,7 @@ Le PNG reste produit, pour l'humain : revue rapide, impression A3 de l'atelier t
 
 ---
 
-## 3 bis. Tailwind d'abord — règles d'écriture de la maquette
+## 3 bis. Tailwind d'abord — règles d'écriture
 
 La maquette n'est pas un exercice de style libre : c'est la **spécification d'une implémentation Nuxt 4 + Tailwind 4**. Chaque écart entre son vocabulaire et celui du projet est du travail de traduction, donc une occasion de divergence.
 
@@ -102,11 +165,11 @@ La maquette n'est pas un exercice de style libre : c'est la **spécification d'u
 **Les quatre règles :**
 
 1. **Le mode sombre passe par la variante `dark:`**, jamais par une seconde feuille de style ni une palette dupliquée. C'est ce qui rend la transposition mécanique.
-2. **Les valeurs arbitraires (`w-[347px]`, `text-[#3a3a3a]`) sont un signal, pas une solution.** Elles veulent dire qu'une valeur manque à l'échelle de tokens. Elles sont autorisées en maquette, mais doivent être **listées** pour qu'on décide : soit la valeur entre dans `@theme`, soit on s'aligne sur l'échelle existante.
+2. **Les valeurs arbitraires (`w-[347px]`, `text-[#3a3a3a]`) sont un signal, pas une solution.** Elles veulent dire qu'une valeur manque à l'échelle de tokens. Tolérées en maquette, elles doivent être **listées** pour qu'on décide : soit la valeur entre dans `@theme`, soit on s'aligne sur l'échelle existante.
 3. **Aucun nom de classe personnalisé** qui exigerait une feuille de style séparée en production. Si un composant se répète, c'est un composant Nuxt, pas une classe CSS.
 4. **Le CSS résiduel est regroupé et commenté**, jamais dispersé en styles en ligne. On doit pouvoir répondre en dix secondes à : « qu'est-ce qui n'a pas pu se faire en Tailwind, et pourquoi ? »
 
-> ⚠️ **Un piège à connaître** : la maquette chargera vraisemblablement Tailwind par CDN, qui génère les utilitaires à la volée. Le build Nuxt, lui, ne compile que ce qu'il trouve dans les sources. Une classe qui fonctionne dans la maquette peut donc être absente en production si elle vient d'un plugin ou d'une version différente. **S'en tenir au noyau Tailwind 4**, et vérifier au cycle 1 que le styleguide s'affiche à l'identique dans le projet réel.
+> ⚠️ **Un piège à connaître** : la maquette charge Tailwind par CDN, qui génère les utilitaires à la volée. Le build Nuxt, lui, ne compile que ce qu'il trouve dans les sources. Une classe qui fonctionne dans la maquette peut donc être absente en production si elle vient d'un plugin ou d'une version différente. **S'en tenir au noyau Tailwind 4**, et vérifier au cycle 1 que le styleguide s'affiche à l'identique dans le projet réel.
 
 **Livrables :**
 
@@ -114,25 +177,15 @@ La maquette n'est pas un exercice de style libre : c'est la **spécification d'u
 docs/design/                        ← ÉTAT RÉEL DU DÉPÔT
 ├── theme.css          # bloc @theme Tailwind 4 — SEUL fichier copié dans app/
 ├── tokens.md          # valeurs curées, clair ET sombre — PRIME sur tout export
-├── composants.md      # les 14 composants canoniques et leurs états
+├── composants.md      # les composants canoniques et leurs états — FAIT FOI
 ├── mouvement.md       # durées, courbes, sept patrons
-├── styleguide.html    # les 14 composants dans tous leurs états, clair + sombre
+├── styleguide.html    # les composants dans tous leurs états, clair + sombre
 ├── README.md          # ce qui se copie, ce qui se lit, valeurs arbitraires en attente
 ├── lexique.md         # ✅ vocabulaire utilisateur — NORMATIF
-├── derivation.md      # ⚠️ À RÉDIGER — quel écran hérite de quel motif
-├── html/              # 27 fichiers — RÉFÉRENCE NORMATIVE, un par écran ET par état
+├── derivation.md      # ✅ quel écran hérite de quel motif — NORMATIF
+├── html/              # 29 fichiers — RÉFÉRENCE NORMATIVE, un par écran ET par état
 │                      #   Nommage : {code}-{nom-lisible}[-{etat}].html
 │                      #   Lu par l'agent, JAMAIS copié dans app/
-│   ├── R1-accueil[-maquis|-serveuse|-proprietaire].html
-│   ├── R4-passage[-complet|-connu|-hors-ligne|-enregistre].html
-│   ├── P2-saisie-commande[-desktop|-hors-ligne].html
-│   ├── R7-note-depart[-envoi|-echec].html
-│   ├── C4-cloture[-bloquee|-reussie].html
-│   ├── V1-planning[-dense].html
-│   ├── M4-mes-etablissements[-alerte].html
-│   ├── F2-registre-grave.html   S2-registre-grave.html
-│   ├── Q1-page-client[-panier|-attente].html
-│   └── G2-offre-hebergement[-residence].html
 ├── fondation/         # fondation-directions, -mouvement, -plaisir, -difficiles,
 │                      #   -illustrations
 ├── documents/         # D1-D5-tickets-thermiques, D6-note-provisoire,
@@ -145,29 +198,13 @@ docs/design/                        ← ÉTAT RÉEL DU DÉPÔT
 
 | Phase | Contenu | Quand |
 |---|---|---|
-| Fondation | Directions visuelles, palettes, typographie, 14 composants, mouvement | Phase 0, S1 |
-| Les 10 cibles | Production groupée par familles | Phase 0, S1–S2 |
-| Illustrations | Famille d'états vides et d'onboarding | Phase 0, S2 |
-| Prototypes animés | Les 6 de la partie VI | Phase 0, S2 |
-| Validation terrain | Atelier d'Abengourou, protocole partie VIII | Phase 0, S2–S3 |
+| Fondation | Directions visuelles, palettes, typographie, composants, mouvement | Phase 0, S1 — ✅ fait |
+| Les 10 cibles | Production groupée par familles | Phase 0, S1–S2 — ✅ fait |
+| Illustrations | Famille d'états vides et d'onboarding | Phase 0, S2 — ✅ fait |
+| Prototypes animés | Les 6 de la partie VI | Phase 0, S2 — ✅ fait |
+| **Validation terrain** | **Atelier d'Abengourou, protocole partie VIII** | **à faire — et le jalon J0 du cadrage §16 en est le bon moment** : l'application entière tourne alors sur données simulées, donc les tests chronométrés se font sur le produit réel plutôt que sur des impressions A3 |
 | Corrections | Reprise des cibles selon les retours | Phase 0, S3 |
-| Documents imprimés | Les 7 modèles | S8, avant le cycle IMP |
-
-Tout tient dans la phase 0, sans repousser le développement.
-
-**Production groupée** — la cohérence d'une famille est meilleure quand elle est conçue d'un bloc :
-
-| Groupe | Contenu |
-|---|---|
-| 1 | Fondation |
-| 2 | Cœur opérationnel — `R1`, `R4`, `P2` |
-| 3 | L'argent — `R7`, `C4` |
-| 4 | Moments difficiles — `F2`, `S2`, et l'état bloqué de `C4` |
-| 5 | Temps et consultation — `V1`, `M4` |
-| 6 | Surfaces particulières — `Q1`, `G2` |
-| 7 | Illustrations et personnage |
-| 8 | Prototypes animés |
-| 9 | Documents imprimés (S8) |
+| Documents imprimés | Les 7 modèles | Produits ; à confronter au matériel avant le cycle IMP |
 
 ---
 
@@ -221,346 +258,90 @@ facture » — sont dans `docs/design/lexique.md`, avec la procédure d'ajout d'
 
 ---
 
-# PARTIE III — PROMPTS DE FONDATION
+# PARTIE III — FONDATION
 
-## 8. Fondation (à coller une seule fois)
+> Les prompts qui ont produit cette fondation sont retirés. Ce qui suit est ce qui reste
+> opposable : les contraintes qui gouvernent aussi le code, pas seulement la maquette.
+> Les valeurs sont dans `tokens.md`, `mouvement.md` et `composants.md`.
 
-```
-Je conçois le design system d'une application de gestion pour hôtels, maquis, bars
-et pressings en Afrique de l'Ouest. Elle s'appelle Kaya (nom provisoire). Avant
-tout écran, produis-moi la fondation : identité visuelle, palettes, typographie,
-échelles, système de mouvement, et les 14 composants canoniques.
+## 8. Contraintes non négociables
 
-L'AMBITION : je veux un logiciel de gestion qui donne ENVIE d'être ouvert. La
-quasi-totalité des logiciels vendus aux PME africaines sont gris, froids et
-vaguement hostiles. Le mien doit être chaleureux, vivant et un peu joueur — c'est
-un vrai différenciateur commercial, pas de la coquetterie. Une gérante qui trouve
-son logiciel agréable l'utilisera ; une gérante qui le subit reviendra au cahier.
+Elles ont gouverné la fondation et gouvernent toujours l'implémentation.
 
-MAIS IL Y A DEUX ZONES, et tu dois concevoir pour les deux :
+1. **Mode sombre dès maintenant.** Deux palettes complètes, pas une palette et un filtre. Le sombre sert le bar le soir, le clair sert la réception le jour.
+2. **Français par défaut, anglais prévu.** Dessiner avec les libellés français, les plus longs. Aucun bouton dont la largeur est calée sur son texte.
+3. **Montants en franc CFA** : entiers, jamais de décimale, séparateur de milliers par espace fine, de 500 à 500 000. Typographie tabulaire pour l'alignement des colonnes.
+4. **Contraste** : la réception est en plein soleil. WCAG AA minimum, AAA sur les montants et les statuts. Aucune information portée par la seule couleur.
+5. **Cibles tactiles** : 48 px minimum sur mobile, 40 px sur desktop tactile.
+6. **Performance** : Android d'entrée de gamme. Tout le mouvement en `transform` et `opacity` uniquement, jamais en propriétés déclenchant un recalcul de mise en page. Budget : 60 images/s tenues sur un appareil à 2 Go de RAM.
+7. **Simplicité** : les neuf règles de la partie II.
 
-ZONE DE CHARME — accueil, tableau de bord du propriétaire, états vides, écrans de
-réussite, onboarding, planning, configuration. Ici je veux de la générosité : des
-illustrations, du mouvement expressif, des micro-récompenses, de la couleur. C'est
-là que se crée l'attachement.
+**Matériel réel visé** : poste de réception Windows d'entrée de gamme, 1366×768, souvent en plein soleil ; Android d'entrée de gamme 5,5" pour la serveuse, utilisé debout, à une main, en lumière faible.
 
-ZONE DE VITESSE — enregistrement d'un client pressé au comptoir, prise de commande
-debout dans un bar, encaissement, clôture de caisse, écrans fiscaux. Ici tout est
-instantané et rien ne distrait. Une animation peut habiller un changement d'état
-DÉJÀ EFFECTUÉ, jamais le retarder ni le conditionner.
+**Direction visuelle retenue** : ancrage ouest-africain **structurel** — rythme, proportions, saturation — jamais décoratif ni folklorique. Voir `fondation/fondation-directions.html`.
 
-Ce n'est pas deux design systems. C'est un seul système avec deux réglages
-d'intensité. Montre-moi comment tu articules ça.
-
-CONTEXTE D'USAGE — il commande tout :
-- Utilisateurs : une gérante d'hôtel de 45 ans à Abengourou, un réceptionniste,
-  une serveuse de bar de 25 ans, un propriétaire qui consulte depuis son
-  téléphone. Aucun n'a d'appétence technologique. Ils remplacent un cahier papier
-  qu'ils maîtrisent parfaitement.
-- Matériel réel : poste de réception Windows d'entrée de gamme, 1366×768, souvent
-  en plein soleil. Android d'entrée de gamme pour la serveuse, 5,5", utilisé
-  debout, à une main, dans un bar en lumière faible.
-
-DIRECTION VISUELLE — je veux une piste ancrée culturellement, pas un thème SaaS
-international de plus. L'Afrique de l'Ouest a une culture visuelle riche :
-géométrie rythmée, couleurs franches et chaudes, contrastes assumés. Inspire-t'en
-STRUCTURELLEMENT — rythme, proportions, saturation — sans jamais tomber dans le
-pastiche décoratif ni le motif plaqué en fond d'écran. Le résultat doit être
-raffiné et intemporel, pas folklorique.
-
-Propose-moi DEUX directions visuelles distinctes, chacune avec une planche
-d'ambiance et une justification. Je choisirai. Ne fusionne pas les deux.
-
-CONTRAINTES NON NÉGOCIABLES :
-1. MODE SOMBRE dès maintenant. Deux palettes complètes, pas une palette et un
-   filtre. Le sombre sert le bar le soir, le clair sert la réception le jour. Le
-   sombre est une occasion d'élégance, traite-le comme tel.
-2. FRANÇAIS PAR DÉFAUT, anglais prévu. Dessine avec les libellés français, les
-   plus longs. Aucun bouton dont la largeur est calée sur son texte.
-3. MONTANTS EN FRANC CFA : entiers, jamais de décimale, séparateur de milliers par
-   espace fine, de 500 à 500 000. Typographie tabulaire pour l'alignement des
-   colonnes. Les montants méritent une attention particulière — c'est ce que les
-   gens regardent le plus.
-4. CONTRASTE : la réception est en plein soleil. WCAG AA minimum, AAA sur les
-   montants et les statuts. Aucune information portée par la seule couleur.
-5. CIBLES TACTILES : 48 px minimum sur mobile, 40 px sur desktop tactile.
-6. PERFORMANCE : Android d'entrée de gamme. Tout le mouvement en transform et
-   opacity uniquement, jamais en propriétés déclenchant un recalcul de mise en
-   page. Budget : 60 images par seconde tenues sur un appareil à 2 Go de RAM.
-7. SIMPLICITÉ : une action principale par écran, trois décisions maximum sur un
-   écran fréquent, aucune information à mémoriser, zéro jargon.
-
-LES 14 COMPOSANTS CANONIQUES, avec tous leurs états ET leurs micro-interactions :
-1. Bouton — primaire, secondaire, discret, destructif ; normal, survol, pressé,
-   désactivé, en cours. Le pressé doit être satisfaisant.
-2. Champ de saisie — texte, nombre, montant, date, heure, recherche.
-3. Sélecteur — liste déroulante et groupe de pastilles.
-4. Tableau de données — en-tête collant, ligne, sélection, montants à droite,
-   total, état vide illustré.
-5. Modale — confirmation, formulaire, destructive. Rappel : elle est RARE dans ce
-   produit, réservée à l'irréversible.
-6. Tuile de KPI — avec transition chiffrée quand la valeur change.
-7. SÉLECTEUR DE CONTEXTE — barre permanente, établissement et poste actifs,
-   bascule en deux taps.
-8. INDICATEUR DE SYNCHRONISATION — connecté, dégradé, hors ligne, avec le nombre
-   d'éléments en attente. Permanent à l'écran : donne-lui de la vie, c'est un des
-   rares endroits où une animation continue est justifiée.
-9. Badge de statut — unités, documents, commandes. Couleur ET forme.
-10. Navigation composable — dessine-la avec 3 entrées, 6 et 9. Les modules absents
-    ne sont pas grisés, ils n'existent pas.
-11. Panneau latéral — détail d'une note, d'un séjour, d'un document.
-12. Bandeau d'alerte — information, avertissement, erreur, blocage.
-13. SÉLECTEUR DE DURÉE — le composant le plus utilisé du produit : choisir 1 h,
-    2 h, 3 h, 4 h ou une plage horaire en un geste. Il mérite le meilleur travail
-    de la fondation. Zone de vitesse : instantané, mais il peut être beau.
-14. Sélecteur d'unité — grille de chambres avec statut, sélectionnable.
-
-FORMAT DE LIVRAISON : produis un STYLEGUIDE HTML AUTONOME (styleguide.html)
-présentant les 14 composants dans tous leurs états, en mode clair ET sombre.
-
-ÉCRIS-LE EN TAILWIND 4, PAS EN CSS. Ma cible est un projet Nuxt 4 + Tailwind 4 :
-- déclare TOUS les tokens dans un bloc @theme (couleurs, espacements, rayons,
-  polices, durées) — c'est le seul fichier que je copierai tel quel dans mon
-  projet ;
-- écris le markup avec des UTILITAIRES TAILWIND DU NOYAU référençant ces tokens
-  (bg-surface, p-4, rounded-lg), jamais avec des styles en ligne ni des classes
-  personnalisées ;
-- le mode sombre passe par la variante dark:, jamais par une seconde palette ;
-- réserve le CSS explicite à ce que Tailwind n'exprime pas — @keyframes, styles
-  d'impression — et REGROUPE-LE en fin de fichier avec un commentaire expliquant
-  pourquoi chaque bloc n'a pas pu être fait en Tailwind ;
-- si tu emploies une valeur arbitraire (w-[347px]), LISTE-LA en fin de livraison :
-  soit elle entre dans @theme, soit on s'aligne sur l'échelle existante. C'est ce fichier qui servira de
-référence à l'implémentation Nuxt + Tailwind 4 : les valeurs doivent y être
-exactes et lisibles, pas approximatives. Je ne le copierai pas dans mon code — je
-le lirai pour en extraire les tokens une seule fois.
-
-LIVRE-MOI : les deux directions visuelles, puis pour celle que je retiendrai les
-deux palettes en valeurs hexadécimales nommées sémantiquement (surface,
-surface-elevee, texte, texte-attenue, bordure, primaire, succes, alerte, danger,
-info — pas de nom de couleur littéral), l'échelle typographique avec la police et
-sa justification, les espacements, rayons et élévations, et les 14 composants en
-clair et en sombre.
-```
+**Composants canoniques** : `docs/design/composants.md` fait foi (16 au 2026-08-02), et `styleguide.html` les montre dans tous leurs états, clair et sombre. Quatre méritent une vigilance particulière parce qu'ils sont vus des centaines de fois par jour ou portent une règle produit : le **sélecteur de durée** (le geste le plus répété), l'**indicateur de synchronisation** (permanent à l'écran), le **sélecteur de contexte** (établissement et poste actifs, bascule en deux taps) et la **navigation composable** (les modules absents n'existent pas, ils ne sont pas grisés).
 
 ## 9. Système de mouvement
 
-```
-Établis le système de mouvement de Kaya. Je veux qu'il soit défini une fois et
-appliqué partout, pas improvisé écran par écran.
+Défini une fois, appliqué partout. Valeurs exactes dans `docs/design/mouvement.md` ; sensation dans `proto/`.
 
-DÉFINIS-MOI :
+**Les sept patrons** — apparition d'une liste (décalage progressif **plafonné**) · transition entre écrans (direction porteuse de sens) · ouverture du panneau latéral · changement de valeur d'un montant (le geste le plus répété : perceptible et satisfaisant) · retour tactile sur un bouton · changement d'état d'un badge · état de chargement (squelettes plutôt que roues, sauf attente réseau réellement indéterminée).
 
-1. DURÉES — une échelle nommée, pas des valeurs au hasard : instantané (retour
-   tactile), rapide (changement d'état), standard (transition d'écran), ample
-   (moment de célébration). Donne les millisecondes et l'usage de chacune.
+**Le réglage d'intensité** : le même patron s'exprime généreusement en zone de charme et réduit au minimum perceptible en zone de vitesse.
 
-2. COURBES — les fonctions d'accélération avec leur rôle. Distingue au moins :
-   entrée d'élément, sortie d'élément, déplacement, et une courbe élastique
-   réservée aux moments de plaisir.
+**Règles d'accessibilité et de performance :**
+- La préférence système « réduire les animations » est respectée : tout devient instantané, rien ne casse, rien ne manque.
+- Aucune animation ne bloque une saisie. On peut toujours taper pendant une transition.
+- Aucune animation ne dépasse 400 ms sur un chemin fréquent.
+- `transform` et `opacity` uniquement.
 
-3. LES SEPT PATRONS DE MOUVEMENT DU PRODUIT :
-   - Apparition d'une liste — décalage progressif entre éléments, PLAFONNÉ pour
-     qu'une liste de 40 lignes ne prenne pas trois secondes.
-   - Transition entre écrans — direction porteuse de sens (avancer, revenir).
-   - Ouverture du panneau latéral.
-   - Changement de valeur d'un montant — le total d'une note qui monte quand on
-     ajoute une consommation. Ce moment doit être perceptible et satisfaisant :
-     c'est le geste le plus répété du produit.
-   - Retour tactile sur un bouton — la sensation de fermeté.
-   - Changement d'état d'un badge — une chambre qui passe d'occupée à à-nettoyer.
-   - État de chargement — squelettes plutôt que roues qui tournent, sauf pour les
-     attentes réseau réellement indéterminées.
+## 10. Les huit moments de plaisir
 
-4. LE RÉGLAGE D'INTENSITÉ — comment le même patron s'exprime en zone de charme
-   (généreux) et en zone de vitesse (réduit au minimum perceptible). Montre-moi un
-   exemple du même composant dans les deux régimes.
+Numérotés — les autres parties y renvoient par leur numéro. Conception : `fondation/fondation-plaisir.html`.
 
-5. ACCESSIBILITÉ ET PERFORMANCE :
-   - Respect de la préférence système « réduire les animations » : tout devient
-     instantané, rien ne casse, rien ne manque.
-   - Aucune animation ne bloque une saisie. On peut toujours taper pendant une
-     transition.
-   - Aucune animation ne dépasse 400 ms sur un chemin fréquent. Au-delà, ce n'est
-     plus du plaisir, c'est de l'attente.
-   - Transform et opacity uniquement.
+| N° | Moment | Ce qu'il doit produire |
+|---|---|---|
+| **1** | **La clôture réussie** | Le sommet émotionnel de la journée d'Adjoua, et l'animation la plus importante du produit : « c'est bouclé, c'est propre, tu peux rentrer chez toi » |
+| 2 | Le passage enregistré en moins de 30 s | Micro-célébration très brève : la chambre s'allume, l'heure de fin s'inscrit |
+| **3** | **La facture certifiée** | L'arrivée du sceau officiel et du QR code, traitée comme un petit événement — la conformité est acquise |
+| 4 | Le retour du réseau | Le compteur d'éléments en attente qui descend jusqu'à zéro : visiblement rassurant |
+| 5 | Les états vides | Une vingtaine d'occasions gratuites de personnalité, illustrées, jamais condescendantes |
+| 6 | Le premier lancement | Le basculement du papier au logiciel mérite d'être marqué |
+| **7** | **Le tableau de bord du propriétaire** | La vitrine : chiffres qui montent, indicateurs qui prennent vie, comparaison qui s'anime |
+| 8 | L'indicateur de synchronisation | Le pouls du produit : respiration discrète en connecté, rythme différent en dégradé |
 
-Livre-moi le système en tableau de valeurs nommées, exploitable directement en
-variables CSS, plus des prototypes HTML animés des sept patrons — je veux juger la
-sensation, pas la description.
-```
-
-## 10. Moments de plaisir
-
-```
-Identifie et conçois les MOMENTS DE PLAISIR de Kaya — les instants où le produit a
-le droit, et le devoir, d'être expressif.
-
-J'en vois huit. Confirme, corrige, complète, puis conçois-les.
-
-1. LA CLÔTURE RÉUSSIE — le sommet émotionnel de la journée d'Adjoua. Elle passait
-   une heure sur son cahier ; là ça lui prend quinze minutes et les chiffres
-   tombent justes. Ce moment mérite une vraie récompense visuelle. Pas des
-   confettis génériques : quelque chose qui exprime « c'est bouclé, c'est propre,
-   tu peux rentrer chez toi ». C'est l'animation la plus importante du produit.
-
-2. LE PASSAGE ENREGISTRÉ EN MOINS DE 30 SECONDES — une micro-célébration très
-   brève qui ne retarde rien. La chambre s'allume, l'heure de fin s'inscrit. Yao
-   doit ressentir la fluidité sans jamais l'attendre.
-
-3. LA FACTURE CERTIFIÉE — l'administration a validé, le sceau et le QR code
-   apparaissent. Il y a du soulagement dans ce moment : la conformité est acquise.
-   Traite l'arrivée du sceau officiel comme un petit événement.
-
-4. LE RETOUR DU RÉSEAU — les éléments en attente partent et le compteur descend
-   jusqu'à zéro. Aminata a travaillé une heure hors ligne en se demandant si tout
-   était perdu. La resynchronisation doit être visiblement rassurante.
-
-5. LES ÉTATS VIDES — aucune réservation aujourd'hui, aucune table ouverte, aucun
-   document en attente. Une vingtaine d'occasions gratuites de personnalité.
-   Conçois-en une famille cohérente, illustrée, chaleureuse, jamais condescendante.
-
-6. LE PREMIER LANCEMENT — la toute première ouverture chez un nouveau client, et
-   le premier séjour créé. C'est le moment où l'établissement bascule du papier au
-   logiciel. Il mérite d'être marqué.
-
-7. LE TABLEAU DE BORD DU PROPRIÉTAIRE — M. Koffi le consulte plusieurs fois par
-   jour, par plaisir autant que par nécessité. Chiffres qui montent à
-   l'apparition, indicateurs qui prennent vie, comparaison entre établissements
-   qui s'anime. L'écran le plus « produit grand public » du système.
-
-8. L'INDICATEUR DE SYNCHRONISATION — présent partout en permanence. Une
-   respiration discrète en mode connecté, un rythme différent en mode dégradé.
-   C'est le pouls du produit.
-
-Pour chacun : conçois-le, et donne-moi un prototype HTML animé que je puisse
-ressentir. La description ne suffit pas pour juger un moment de plaisir.
-
-CONTRAINTE ABSOLUE : aucun de ces moments ne rallonge une action. Ils habillent un
-état déjà atteint. Si l'animation de la clôture dure deux secondes, Adjoua peut
-partir au bout de zéro seconde — l'animation continue derrière elle.
-```
+**Contrainte absolue** : aucun de ces moments ne rallonge une action. Ils habillent un état déjà atteint. Si l'animation de la clôture dure deux secondes, Adjoua peut partir au bout de zéro seconde — l'animation continue derrière elle.
 
 ## 11. Le registre sobre — où le plaisir est interdit
 
-```
-Certains écrans de Kaya ne doivent JAMAIS être joyeux. Établis-moi leur traitement,
-aussi soigné que le reste mais dans un registre différent : sobre, respectueux,
-direct.
+**La règle** : quand quelqu'un perd de l'argent, risque une sanction fiscale, ou est fatigué à 22 h devant un blocage — l'enjouement se lit comme du mépris.
 
-LA RÈGLE : quand quelqu'un perd de l'argent, risque une sanction fiscale, ou est
-fatigué à 22 h devant un blocage — l'enjouement se lit comme du mépris.
+Les écrans concernés : **clôture bloquée** · **document fiscal indéterminé** · **réconciliation d'une écriture orpheline** · **écart de caisse** · **journal d'audit** (outil de contrôle du propriétaire : vocabulaire neutre, aucune connotation policière) · **perte de données ou échec de synchronisation irrécupérable**.
 
-Les écrans concernés :
+Ces écrans restent **visuellement cohérents** avec le reste — même typographie, même palette, mêmes composants — en changeant seulement de registre : c'est un exercice de retenue, pas d'appauvrissement. Ni illustration amusante, ni personnage désolé ; de la clarté et de l'aide. Traitement : `fondation/fondation-difficiles.html`.
 
-- CLÔTURE BLOQUÉE — Adjoua veut rentrer chez elle et le logiciel refuse. Le ton :
-  « voici exactement ce qui bloque, voici comment le résoudre, je suis de ton
-  côté ». Pas d'illustration amusante, pas de personnage désolé. De la clarté et
-  de l'aide.
+## 12. Illustrations
 
-- DOCUMENT FISCAL INDÉTERMINÉ — on ne sait pas si la facture a été certifiée, il
-  faut aller vérifier manuellement. Aucune légèreté, aucune icône expressive. Un
-  texte impeccable et deux actions bien différenciées.
+Famille produite dans `fondation/fondation-illustrations.html` : une vingtaine d'états vides, six écrans d'onboarding, quatre moments de réussite, trois erreurs non critiques.
 
-- RÉCONCILIATION D'UNE ÉCRITURE ORPHELINE — une consommation est arrivée sur une
-  facture déjà émise. De l'argent en jeu, une décision à prendre.
-
-- ÉCART DE CAISSE — quelqu'un va devoir s'expliquer. Le produit constate, il ne
-  commente pas et il n'accuse pas.
-
-- JOURNAL D'AUDIT — outil de contrôle du propriétaire sur son personnel, il sera
-  vécu comme de la surveillance. Vocabulaire neutre, aucune connotation policière,
-  aucune mise en scène.
-
-- PERTE DE DONNÉES OU ÉCHEC DE SYNCHRONISATION IRRÉCUPÉRABLE — le pire moment
-  possible. Sobriété totale, information complète, chemin de sortie clair.
-
-Montre-moi comment ces écrans restent VISUELLEMENT COHÉRENTS avec le reste — même
-typographie, même palette, mêmes composants — tout en changeant complètement de
-registre. C'est un exercice de retenue, pas d'appauvrissement.
-```
-
-## 12. Illustrations et personnage
-
-```
-Conçois la famille d'illustrations de Kaya.
-
-USAGES : une vingtaine d'états vides, six écrans d'onboarding, quatre moments de
-réussite, trois écrans d'erreur non critique.
-
-CONTRAINTES :
-- Style vectoriel simple, lisible en petit, fonctionnant en clair ET en sombre.
-- Poids maîtrisé : chargées sur des connexions faibles.
-- REPRÉSENTATION JUSTE : si des personnes apparaissent, ce sont des Africains de
-  l'Ouest dans un environnement crédible — un comptoir de réception, un bar, une
-  buanderie de pressing. Pas d'illustration internationale interchangeable, et
-  surtout pas de cliché exotique. Mes utilisateurs doivent se reconnaître.
-- Univers cohérent : un même vocabulaire de formes, une palette restreinte.
-
-QUESTION OUVERTE — un personnage récurrent ?
-Propose-moi une piste AVEC et une piste SANS.
-Avec : un personnage discret dans les états vides et l'onboarding, qui donne de la
-chaleur et aide à la mémorisation. Risque : il vieillit mal, il agace à la
-centième apparition, il coûte cher à décliner.
-Sans : des illustrations de situation, plus sobres, plus faciles à étendre.
-
-Dis-moi laquelle tu recommandes et pourquoi. Je trancherai après avoir montré les
-deux à ma cliente pilote — c'est elle qui sait ce qui plaira à son équipe.
-```
+Contraintes maintenues pour toute illustration ajoutée : vectoriel simple lisible en petit, fonctionnant en clair et en sombre, poids maîtrisé pour les connexions faibles, vocabulaire de formes et palette restreinte communs. **Représentation juste** — si des personnes apparaissent, ce sont des Africains de l'Ouest dans un environnement crédible (comptoir de réception, bar, buanderie de pressing), sans illustration internationale interchangeable ni cliché exotique. Les utilisateurs doivent se reconnaître.
 
 ---
 
 # PARTIE IV — LES 10 CIBLES
 
-## 13. Rappel à insérer dans chaque prompt d'écran
+## 13. Contrat d'écran
 
-```
-Applique la fondation : direction visuelle retenue, palettes clair et sombre,
-typographie, espacements, système de mouvement, et les 14 composants canoniques —
-n'invente pas de nouveau composant sans me dire pourquoi ceux qui existent ne
-suffisent pas.
+Ce qui était rappelé dans chaque prompt reste la grille de revue de tout écran, maquetté ou dérivé :
 
-Précise pour cet écran : sa ZONE (charme ou vitesse) et le réglage d'intensité de
-mouvement qui en découle ; les micro-interactions présentes avec leur durée et
-leur courbe ; et s'il porte un moment de plaisir identifié, sa conception complète.
-
-CONTRAINTE DE SIMPLICITÉ :
-- UNE seule action principale, portant le poids visuel dominant.
-- Trois décisions au maximum si l'écran est fréquent. Dis-moi combien tu en
-  demandes et lesquelles tu as retirées.
-- Aucune information à mémoriser.
-- Des valeurs par défaut justes neuf fois sur dix. Explique tes choix.
-- Actions réversibles : exécution immédiate avec possibilité d'annuler. Pas de
-  modale de confirmation, sauf sur l'irréversible.
-- ZÉRO jargon : applique docs/design/lexique.md. Si un concept n'y figure pas,
-  propose-moi sa formulation.
-- Toute erreur dit ce qui s'est passé, pourquoi, et quoi faire ensuite. Elle
-  n'accuse jamais l'utilisateur.
-- Rien d'indispensable derrière un geste non découvrable.
-- Un écran vide propose toujours une action.
-
-FORMAT : livre chaque écran en HTML AUTONOME, un fichier par état, important le
-même bloc @theme que styleguide.html. C'est la référence que lira l'agent
-d'implémentation — les valeurs doivent être exactes.
-TAILWIND 4 D'ABORD : utilitaires du noyau référençant les tokens, variante dark:
-pour le mode sombre, aucune classe personnalisée, aucun style en ligne. CSS
-explicite uniquement pour ce que Tailwind n'exprime pas, regroupé et commenté.
-Signale toute valeur arbitraire employée.
-
-PRODUIS SYSTÉMATIQUEMENT :
-- l'écran en mode clair et en mode sombre ;
-- l'état chargé nominal, l'état vide ILLUSTRÉ, l'état d'erreur ;
-- l'état hors ligne quand l'écran comporte une action indisponible sans réseau —
-  annoncée AVANT que l'utilisateur tente l'action, jamais après ;
-- l'état en préférence « animations réduites » si le mouvement est structurant.
-
-Le sélecteur de contexte et l'indicateur de synchronisation sont présents partout.
-Libellés en français. Montants en FCFA entiers.
-
-Puis fais passer le TEST DES CINQ SECONDES à ta propre proposition : si je regarde
-cet écran cinq secondes, qu'est-ce que je comprends, et quelle action me paraît
-évidente ? Si tu n'es pas sûr de la réponse, simplifie avant de me livrer.
-```
+- **La zone** (charme ou vitesse) est déclarée, et le réglage d'intensité de mouvement en découle.
+- **Les composants viennent de `composants.md`.** Un nouveau composant doit dire pourquoi les existants ne suffisent pas.
+- **Les neuf règles de simplicité** (§5) s'appliquent intégralement, lexique compris.
+- **Les états produits systématiquement** : clair et sombre · chargé nominal · vide **illustré** · erreur · **hors ligne** quand l'écran comporte une action indisponible sans réseau — annoncée **avant** que l'utilisateur tente l'action, jamais après · « animations réduites » si le mouvement est structurant.
+- **Le sélecteur de contexte et l'indicateur de synchronisation sont présents partout** (sauf sur la surface publique `Q1`).
+- **Libellés en français, montants en FCFA entiers.**
+- **Test des cinq secondes** avant de considérer l'écran fini.
 
 ## 14. Zone de chaque cible
 
@@ -573,349 +354,27 @@ cet écran cinq secondes, qu'est-ce que je comprends, et quelle action me paraî
 | `C4` Clôture | **Les deux** | Sobre en vérification et blocage, moment de plaisir n°1 à la réussite |
 | `V1` Planning | **Charme** | Visualisation soignée, transitions amples |
 | `M4` Tableau de bord propriétaire | **Charme** | Vitrine du produit, moment de plaisir n°7 |
-| `F2` / `S2` Moments difficiles | **Registre sobre** | La partie III §11 s'applique intégralement |
+| `F2` / `S2` Moments difficiles | **Registre sobre** | Le §11 s'applique intégralement |
 | `Q1` Page publique QR | **Charme** | Seule surface vue par un client final |
 | `G2` Formules et barèmes | **Charme** | Configuration soignée, mais paramètre fiscal sensible |
 
-## 15. Cible 1 — `R1` Accueil composé
-
-```
-Écran : la page d'accueil de l'application, après connexion.
-
-LA CONTRAINTE STRUCTURELLE : ce n'est pas un menu figé. C'est un tableau de bord
-composé de tuiles filtrées par les permissions de l'utilisateur ET par les modules
-d'activité actifs sur l'établissement. Un module inactif est ABSENT, jamais grisé,
-jamais mentionné.
-
-Les rôles sont CUMULABLES et c'est la norme : Adjoua est gérante, caissière ET
-réceptionniste. L'écran doit servir cette réalité sans devenir un fourre-tout.
-
-Dessine-moi la MÊME page pour quatre utilisateurs :
-1. Adjoua — gérante + caissière + réceptionniste, hôtel complet (hébergement,
-   restaurant, bar, pressing, salle de réunion).
-2. Aminata — serveuse seule, même établissement.
-3. M. Koffi — propriétaire de deux établissements, ne saisit jamais rien.
-4. Le gérant d'un MAQUIS — module restauration uniquement, rien d'autre. Cet écran
-   doit avoir l'air conçu POUR LUI, pas d'un hôtel amputé de ses fonctions.
-
-LE QUATRIÈME CAS EST LE TEST DE VÉRITÉ DU PRODUIT. S'il donne l'impression d'un
-logiciel d'hôtel dont on aurait masqué des morceaux, la conception est à revoir.
-
-Contenu type : actions du moment (arrivées, départs, tables ouvertes, unités à
-nettoyer), alertes (documents non certifiés, écart de caisse, stock bas), accès aux
-modules actifs, indicateurs du jour.
-
-Variantes : les quatre utilisateurs, plus l'état de début de journée où rien ne
-s'est encore passé.
-
-MOTIF POSÉ : la composition par permissions et modules. Onze autres écrans en
-hériteront.
-```
-
-## 16. Cible 2 — `R4` Check-in passage
-
-```
-Écran : enregistrement d'un PASSAGE — location horaire d'une chambre, de 1 à 4 h,
-la formule la plus fréquente en volume dans une grande partie du parc hôtelier
-ivoirien.
-
-Persona : Yao, réceptionniste. Un client se présente au comptoir, il est pressé, il
-n'y a pas de conversation. Yao encaisse souvent en même temps.
-
-LA CONTRAINTE QUI COMMANDE TOUT : le parcours complet doit tenir en MOINS DE
-30 SECONDES, depuis l'écran d'accueil jusqu'à la chambre attribuée. Au-delà de
-90 secondes, le personnel contournera le logiciel et reprendra le cahier. C'est un
-critère d'acceptation, pas un souhait.
-
-Conséquence : ce n'est PAS le formulaire de check-in classique avec des champs en
-moins. C'est un parcours distinct, conçu pour la vitesse.
-
-Contenu :
-- Choix de la durée en UN GESTE : 1 h (1 500), 2 h (2 800), 3 h (4 000),
-  4 h (5 000). Le prix est visible SUR le bouton, pas dans un récapitulatif.
-- Attribution d'une chambre disponible : proposition automatique, changement
-  possible en un tap sur la grille d'unités.
-- Identité du client : réduite au strict nécessaire légal. Montre-moi ce que tu
-  proposes et DIS-MOI CE QUE TU AS RETIRÉ.
-- Heure de fin calculée et affichée en grand — c'est l'information que Yao devra
-  redonner au client.
-- Confirmation en un tap.
-
-Montre-moi DEUX propositions de parcours différentes, avec le NOMBRE DE GESTES de
-chacune, et dis-moi laquelle tu recommandes et pourquoi.
-
-Variantes : nominal, aucune chambre disponible dans la catégorie, client déjà
-connu (reconnu au téléphone), hors ligne.
-
-MOTIF POSÉ : le parcours court — décision unique, confirmation immédiate.
-```
-
-## 17. Cible 3 — `P2` Prise de commande
-
-```
-Écran : saisie d'une commande au bar ou au restaurant.
-
-Persona : Aminata, serveuse, 25 ans. Android d'entrée de gamme, écran 5,5", utilisé
-DEBOUT et À UNE MAIN, dans un bar en lumière faible, avec du bruit. Le réseau tombe
-régulièrement.
-
-Contraintes :
-- Ajout d'un article en DEUX TAPS maximum depuis l'écran de commande.
-- Le catalogue de Deloria fait une trentaine d'articles en catégories.
-- La quantité se modifie sans ouvrir de modale.
-- CET ÉCRAN FONCTIONNE INTÉGRALEMENT HORS LIGNE — c'est le cœur du besoin. L'état
-  hors ligne ne doit pas être anxiogène : Aminata doit savoir que sa saisie est
-  conservée, sans que ça la ralentisse. Trouve le traitement juste entre
-  « invisible » (elle ne saura pas que ses commandes ne sont pas parties) et
-  « alarmant » (elle arrêtera de saisir).
-- La cible de facturation — table, chambre, comptoir — se choisit à l'ouverture,
-  pas à chaque ligne. Quand le module hébergement n'est pas actif (un maquis seul),
-  la cible « chambre » N'EXISTE PAS DU TOUT : ne la grise pas, retire-la.
-- Le total courant est visible en permanence sans masquer le catalogue.
-
-Variantes : nominal, hors ligne avec 4 lignes en attente, catalogue filtré par
-recherche, ligne envoyée qu'on veut annuler (avec motif obligatoire), commande vide.
-
-Produis AUSSI la version desktop — le même écran sur le poste du restaurant, en
-tirant parti de la largeur sans devenir un écran différent.
-
-MOTIF POSÉ : la saisie répétitive hors ligne, à une main.
-```
-
-## 18. Cible 4 — `R7` Note de séjour et check-out
-
-```
-Écran : la note d'un client logé, et sa clôture avec émission du document fiscal.
-
-Deux états d'un même écran : la note vivante pendant le séjour, puis le check-out.
-
-LA NOTE — c'est l'un des cinq problèmes explicites du cahier des charges du
-pilote : « le total provisoire d'une chambre n'est pas toujours visible
-instantanément ». Contenu : lignes d'hébergement, consommations par point de vente,
-extras, remises, et LE TOTAL PROVISOIRE mis en évidence. Sur impression, mention
-obligatoire « Document non fiscal — ne tient pas lieu de facture ».
-
-LE CHECK-OUT — récapitulatif, calcul final, TAXE DE SÉJOUR EN LIGNE DISTINCTE
-(c'est une obligation légale, elle ne peut pas être fondue dans le prix), TVA, taxe
-de développement touristique, puis envoi aux impôts pour validation.
-
-L'envoi aux impôts prend quelques secondes et peut échouer. Montre-moi le
-traitement de l'attente, du succès et de l'échec — sachant que LE CLIENT EST DEBOUT
-DEVANT LE COMPTOIR pendant ce temps. Le succès porte le moment de plaisir n°3 :
-l'arrivée du sceau officiel et du QR code.
-
-Variantes : note vide, note chargée de 20 lignes, note avec remise, note d'un
-séjour au mois, envoi en cours, envoi échoué, plateforme fiscale injoignable,
-départ anticipé avec régularisation.
-
-MOTIF POSÉ : le document à lignes — lignes, sous-totaux, taxes, total, action
-finale. Six autres écrans en hériteront, dont l'addition, l'encaissement et les
-documents imprimés.
-```
-
-## 19. Cible 5 — `C4` Clôture journalière
-
-```
-Écran : clôture de la journée d'exploitation.
-
-Persona : Adjoua, gérante. Elle fait ça tous les soirs. Aujourd'hui ça lui prend
-environ une heure sur le cahier papier. L'objectif mesuré est MOINS DE 15 MINUTES.
-
-C'est l'écran qui décide si Adjoua préfère le logiciel au cahier. Traite-le comme
-le plus important du produit.
-
-Contenu : recettes par service (hébergement, restaurant, bar, pressing, salle de
-réunion), encaissements par mode de règlement, taxes collectées, écarts de caisse.
-Ventilation de l'hébergement PAR FORMULE — nuitées, passages, demi-journées.
-Distinguer les recettes de passage est un besoin réel qu'aucun cahier ne couvre.
-
-LE POINT DÉLICAT : la clôture est REFUSÉE tant que quatre conditions ne sont pas
-réunies — plus rien en attente d'envoi, aucune facture en attente ou refusée par
-les impôts, aucun terminal déconnecté depuis plus de 15 min, aucune addition de
-table restée ouverte.
-
-Le refus doit être CONSTRUCTIF, pas punitif. Adjoua doit voir immédiatement ce qui
-bloque, combien d'éléments sont concernés, et pouvoir agir DEPUIS CET ÉCRAN sans
-partir en chasse. Un blocage opaque à 22 h la fera revenir au cahier dès le
-lendemain. Registre sobre (partie III §11).
-
-Montre-moi comment tu traites : un blocage unique et simple ; trois blocages
-simultanés ; un blocage qu'Adjoua ne peut pas résoudre elle-même (la plateforme
-fiscale est injoignable).
-
-LA RÉUSSITE porte le moment de plaisir n°1 — l'animation la plus importante du
-produit. « C'est bouclé, c'est propre, tu peux rentrer chez toi. »
-
-Variantes : clôture possible, clôture bloquée (trois cas), clôture en cours,
-réussie, journée déjà clôturée.
-
-MOTIF POSÉ : la vérification préalable et le blocage constructif.
-```
-
-## 20. Cible 6 — `V1` Planning horaire
-
-```
-Écran : le planning d'occupation des unités.
-
-CE QUI LE DISTINGUE DE TOUS LES PLANNINGS HÔTELIERS EXISTANTS : il a une
-GRANULARITÉ HORAIRE. Les passages de 1 à 4 heures et les demi-journées doivent y
-être lisibles, pas écrasés dans une case de journée. Une même chambre peut avoir
-une nuitée, puis deux passages, puis une demi-journée dans la même semaine.
-
-Ajoute les temps de remise en état entre deux occupations — 30 min après un
-passage, 2 h après une nuitée — qui bloquent réellement l'unité.
-
-C'est un problème de visualisation difficile : MONTRE-MOI DEUX APPROCHES
-DIFFÉRENTES et recommande-en une.
-
-Variantes : semaine calme, semaine dense avec passages multiples, vue d'une
-journée, conflit de disponibilité signalé.
-
-MOTIF POSÉ : la visualisation temporelle à granularité fine.
-```
-
-## 21. Cible 7 — `M4` Tableau de bord propriétaire mobile
-
-```
-Écran : la vue consolidée de M. Koffi sur ses deux établissements, sur téléphone.
-
-C'est LA DEMANDE EXPLICITE du persona propriétaire : voir en temps réel ce qui se
-passe dans ses établissements sans se déplacer.
-
-8 à 10 indicateurs, comparaison entre établissements, alertes. Il ne saisit jamais
-rien — cet écran est en lecture, conçu pour être consulté en 20 secondes plusieurs
-fois par jour.
-
-ZONE DE CHARME, et vitrine du produit : c'est l'écran le plus « grand public » du
-système, celui qu'il montrera à ses relations. Il porte le moment de plaisir n°7 —
-chiffres qui montent à l'apparition, indicateurs qui prennent vie, comparaison qui
-s'anime.
-
-Variantes : deux établissements, cinq établissements, un établissement en alerte,
-début de journée.
-
-MOTIF POSÉ : la consultation mobile et le régime de charme.
-```
-
-## 22. Cible 8 — `F2` et `S2` Les moments difficiles
-
-```
-Deux écrans de la même famille, à concevoir ensemble pour garantir leur cohérence
-de registre. Applique intégralement le registre sobre.
-
-────────────────────────────────────────
-F2 — DOCUMENT FISCAL INDÉTERMINÉ
-
-Contexte technique à comprendre avant de dessiner : la plateforme fiscale
-ivoirienne valide chaque facture avant qu'elle puisse être remise au client. Sur un
-timeout réseau, il est IMPOSSIBLE de savoir si la facture a été validée. La renvoyer
-produirait une double validation et consommerait un jeton payant en double.
-
-Il n'existe donc aucune solution automatique. Un humain doit aller vérifier dans
-l'espace fiscal de l'établissement et trancher.
-
-Persona : Adjoua, qui n'a aucune notion technique.
-
-Le défi : expliquer une situation techniquement subtile à quelqu'un qui doit agir
-correctement du premier coup, sans jargon, sans l'effrayer, et sans qu'elle puisse
-cliquer sur « réessayer » par réflexe.
-
-Contenu : ce qui s'est passé en langage ordinaire ; ce qu'elle doit aller vérifier
-et où ; les deux issues possibles et leur conséquence ; une action pour chacune,
-visuellement bien différenciées. AUCUN bouton « réessayer » atteignable par
-inadvertance.
-
-Variantes : un document indéterminé, une liste de cinq, un document résolu.
-
-────────────────────────────────────────
-S2 — RÉCONCILIATION D'UNE ÉCRITURE ORPHELINE
-
-Le scénario : Aminata sert une bière à 21 h 40 au client de la chambre B3, sans
-réseau. À 21 h 55, Adjoua fait le check-out de B3 et la facture part aux impôts.
-À 22 h 10, le réseau revient et la bière arrive sur un séjour qui n'existe plus.
-
-C'est le conflit le plus fréquent en exploitation réelle et il n'a AUCUNE solution
-automatique. Un rejet silencieux perd de l'argent ; un ajout d'office fausse une
-facture déjà validée.
-
-Adjoua doit trancher entre trois issues :
-(a) émettre un avoir et refacturer — mais l'avoir fiscal se fait PAR QUANTITÉ, pas
-    par montant, ce qui impose d'annuler la ligne entière ;
-(b) prendre la consommation en charge sur l'établissement ;
-(c) la rattacher au prochain séjour du même client.
-
-Le défi : elle doit comprendre en quelques secondes ce qui s'est passé, voir le
-montant en jeu, et choisir en connaissance de cause. AIDE-LA À DÉCIDER — la bonne
-réponse dépend le plus souvent du montant et de la relation client.
-
-Contenu : le contexte (qui, quoi, quand, quel séjour, quel montant), les trois
-options avec leur conséquence concrète, et pour l'option (a) la manipulation
-complète guidée pas à pas.
-
-Variantes : un cas isolé de 1 500 F, un cas de 45 000 F, une liste de six cas
-accumulés après une panne réseau d'une journée.
-
-────────────────────────────────────────
-Montre-moi comment ces deux écrans restent visuellement cohérents avec le reste du
-produit tout en changeant complètement de registre.
-
-MOTIF POSÉ : le registre sobre des moments difficiles. Cinq autres écrans en
-hériteront.
-```
-
-## 23. Cible 9 — `Q1` Page publique de commande
-
-```
-Écran : la page web que voit le client après avoir scanné le QR de sa table.
-
-Contexte : téléphone personnel du client, connexion mobile parfois faible, PAS
-D'APPLICATION À INSTALLER, PAS DE COMPTE À CRÉER.
-
-AUCUNE DONNÉE PERSONNELLE N'EST DEMANDÉE — ni téléphone, ni email, ni nom. C'est
-une page publique anonyme.
-
-Contenu : catalogue du point de vente, panier, validation. Puis un écran d'attente
-expliquant que le serveur va confirmer la commande — car rien ne part en cuisine
-avant qu'Aminata ait constaté la présence du client à la table.
-
-CETTE PAGE EST LA SEULE SURFACE DU PRODUIT VUE PAR UN CLIENT FINAL. Elle doit être
-agréable et rapide, sans devenir une application. Elle obéit à des règles
-différentes du reste : pas de sélecteur de contexte, pas d'indicateur de
-synchronisation, pas de navigation composable.
-
-Variantes : catalogue, panier, envoyé et en attente de confirmation, confirmé,
-table fermée ou QR expiré.
-
-MOTIF POSÉ : la surface client — règles entièrement distinctes du produit interne.
-```
-
-## 24. Cible 10 — `G2` Formules et barèmes
-
-```
-Écran : configuration de l'offre d'hébergement.
-
-C'est ici que se paramètrent les quatre familles de formules : nuitée, PASSAGE
-horaire à paliers dégressifs, DEMI-JOURNÉE en plages fixes, mensuel.
-
-Le barème de passage est une table de paliers — 1 h : 1 500, 2 h : 2 800,
-3 h : 4 000, 4 h : 5 000, heure supplémentaire : +1 200 — plus une règle de bascule
-en nuitée au-delà d'un seuil.
-
-Chaque formule porte aussi son traitement fiscal : est-elle soumise à la taxe de
-séjour, et selon quelle règle. CE PARAMÈTRE EST SENSIBLE — mal réglé, il met le
-client en infraction. Traite-le avec un niveau d'avertissement approprié, sans
-pour autant transformer l'écran en champ de mines.
-
-Cet écran est en zone de charme : il est consulté rarement, par quelqu'un qui prend
-son temps. Il peut être soigné et pédagogique. Un aperçu de l'effet de chaque
-réglage serait précieux.
-
-Variantes : configuration d'un hôtel complet, configuration d'une résidence
-meublée de 4 unités, création d'une formule, paramètre fiscal non renseigné.
-
-MOTIF POSÉ : la configuration structurée avec paramètre sensible. Sept autres
-écrans en hériteront.
-```
+## 15–24. Les dix cibles, et le motif que chacune pose
+
+Les maquettes font foi (`docs/design/html/`). Ce tableau garde **l'intention** : pourquoi l'écran existe, et ce dont trente autres écrans héritent.
+
+| Code | Écran et persona | Ce qui commande la conception | Motif posé |
+|---|---|---|---|
+| `R1` | **Accueil composé** — après connexion | Ce n'est pas un menu figé : des tuiles filtrées par les permissions **et** par les modules actifs. Un module inactif est **absent**, jamais grisé. Les rôles sont cumulables et c'est la norme. **Le test de vérité : l'accueil d'un maquis doit avoir l'air conçu pour lui**, pas d'un hôtel amputé | Composition par permissions et modules — 11 écrans en héritent |
+| `R4` | **Check-in passage** — Yao, réceptionniste, client pressé au comptoir | **Moins de 30 s** de l'accueil à la chambre attribuée ; au-delà de 90 s le personnel revient au cahier. Durée choisie en **un geste**, prix visible **sur** le bouton, chambre proposée automatiquement, heure de fin affichée en grand, identité réduite au strict nécessaire légal | Le parcours court — décision unique, confirmation immédiate |
+| `P2` | **Prise de commande** — Aminata, serveuse, Android 5,5" debout, à une main, bruit, réseau instable | Ajout d'un article en **deux taps**, quantité modifiée sans modale, **fonctionnement intégralement hors ligne** ni invisible ni alarmant, cible de facturation choisie à l'ouverture, total courant toujours visible. Sans module hébergement, la cible « chambre » n'existe pas | La saisie répétitive hors ligne, à une main |
+| `R7` | **Note de séjour et check-out** | Le total provisoire doit être visible **instantanément** (un des cinq problèmes du pilote). Taxe de séjour **en ligne distincte** (obligation légale), TVA, taxe de développement touristique. L'envoi aux impôts prend quelques secondes et peut échouer — **le client est debout devant le comptoir** pendant ce temps | Le document à lignes : lignes, sous-totaux, taxes, total, action finale — 6 écrans en héritent |
+| `C4` | **Clôture journalière** — Adjoua, tous les soirs | Une heure sur le cahier, **objectif : moins de 15 minutes**. Recettes par service, ventilation de l'hébergement **par formule** (nuitées, passages, demi-journées). La clôture est **refusée** tant que quatre conditions ne sont pas réunies : rien en attente d'envoi, aucune facture en attente ou refusée, aucun terminal déconnecté depuis plus de 15 min, aucune addition ouverte. **Le refus est constructif** : ce qui bloque, combien, et l'action possible depuis cet écran | La vérification préalable et le blocage constructif |
+| `V1` | **Planning horaire** | **Granularité horaire** — ce qui le distingue de tout planning hôtelier existant : passages de 1 à 4 h et demi-journées lisibles, pas écrasés dans une case de journée. Temps de remise en état bloquants entre deux occupations (30 min après un passage, 2 h après une nuitée) | La visualisation temporelle à granularité fine |
+| `M4` | **Tableau de bord propriétaire mobile** — M. Koffi, deux établissements | Demande explicite du persona : voir en temps réel sans se déplacer. 8 à 10 indicateurs, comparaison entre établissements, alertes. **Lecture seule**, consulté en 20 s plusieurs fois par jour | La consultation mobile et le régime de charme |
+| `F2` | **Document fiscal indéterminé** | Sur un timeout, il est **impossible** de savoir si la facture a été validée ; la renvoyer produirait une double validation et un jeton payant consommé deux fois. Aucune solution automatique : un humain vérifie et tranche. Expliquer sans jargon à Adjoua, avec deux issues bien différenciées et **aucun bouton « réessayer » atteignable par réflexe** | Registre sobre (avec `S2`) — 5 écrans en héritent |
+| `S2` | **Réconciliation d'une écriture orpheline** | Une bière servie hors ligne arrive sur un séjour déjà facturé. Le conflit le plus fréquent en exploitation réelle, sans solution automatique. Trois issues : avoir et refacturation (l'avoir fiscal se fait **par quantité**, donc ligne entière annulée) · prise en charge par l'établissement · rattachement au prochain séjour. **Aider à décider** : la bonne réponse dépend du montant et de la relation client | idem `F2` |
+| `Q1` | **Page publique de commande** — client final, son propre téléphone | Pas d'application à installer, pas de compte, **aucune donnée personnelle demandée**. Catalogue, panier, validation, puis attente de confirmation par le serveur — rien ne part en cuisine avant qu'Aminata ait constaté la présence du client. **Seule surface vue par un client final** : ni sélecteur de contexte, ni indicateur de synchronisation, ni navigation composable | La surface client — règles entièrement distinctes du produit interne |
+| `G2` | **Formules et barèmes** | Quatre familles : nuitée, **passage horaire à paliers dégressifs** (1 h : 1 500, 2 h : 2 800, 3 h : 4 000, 4 h : 5 000, heure supplémentaire : +1 200, plus une règle de bascule en nuitée), demi-journée en plages fixes, mensuel. Chaque formule porte son traitement de taxe de séjour — **paramètre sensible** : mal réglé, il met le client en infraction | La configuration structurée avec paramètre sensible — 7 écrans en héritent |
 
 ---
 
@@ -928,10 +387,13 @@ MOTIF POSÉ : la configuration structurée avec paramètre sensible. Sept autres
 > constitution interdit. `derivation.md` est le chemin que citent les prompts Spec Kit, la
 > Definition of Done et la porte P-19.
 
-**Ce que le fichier contient** : les 30 écrans non maquettés, chacun avec le motif dont il
-hérite et ce qui change ; le décompte des 41 écrans du produit (11 maquettés en 29 fichiers
-d'états, 30 dérivés) ; et la règle opposable — un écran absent des deux cas ne se code pas,
-il part en maquettage.
+**Ce que le fichier contient** : les écrans non maquettés, chacun avec le motif dont il hérite et
+ce qui change ; le décompte des écrans du produit (11 maquettés en 29 fichiers d'états, plus les
+dérivés et les composés) ; et **la liste tenue à jour des écrans découverts à l'implémentation**
+(§2 bis, quatrième cas), chacun portant la mention « à valider » et les composants employés.
+
+⚠️ **Le décompte se lit dans `derivation.md`, jamais ici.** Il change à chaque cycle de la phase 2,
+par construction : c'est le propre du quatrième cas.
 
 ---
 
@@ -939,37 +401,17 @@ il part en maquettage.
 
 ## 26. Les six prototypes
 
-Claude Design produit surtout des cibles statiques. Pour juger une sensation, il faut du HTML animé.
+Les cibles sont statiques ; pour juger une **sensation**, il faut du HTML animé. Tous fonctionnent en clair et en sombre, respectent la préférence « animations réduites », et déclarent leurs durées et courbes en variables CSS nommées — c'est de là que sort `mouvement.md`.
 
-```
-Produis-moi un prototype HTML animé, autonome et ouvrable dans un navigateur, pour
-chacun de ces moments. Je veux juger la SENSATION, pas la description.
-
-1. Les sept patrons de mouvement du système, sur une page de démonstration avec un
-   curseur de vitesse pour que je puisse évaluer les durées.
-
-2. Le sélecteur de durée du passage — 1 h, 2 h, 3 h, 4 h — avec son retour tactile
-   et l'inscription de l'heure de fin. C'est le geste le plus répété du produit.
-
-3. L'ajout d'une consommation à une note, avec le total qui monte. Enchaîne-en cinq
-   à la suite pour que je vérifie que ça reste agréable et jamais lassant.
-
-4. La clôture réussie, dans son intégralité — le moment de plaisir n°1.
-
-5. Le retour du réseau et la vidange de la file d'attente, avec le compteur qui
-   descend de 23 à 0.
-
-6. L'indicateur de synchronisation dans ses trois états, en boucle, pour vérifier
-   qu'il ne devient pas fatigant après huit heures à l'écran.
-
-Chaque prototype doit fonctionner en clair et en sombre, et respecter la préférence
-« animations réduites ».
-
-Déclare toutes les durées et courbes en VARIABLES CSS nommées en tête de fichier
-(--duree-rapide, --courbe-entree, etc.) plutôt qu'en valeurs littérales dispersées.
-C'est de ces variables que je tirerai docs/design/mouvement.md, et c'est ce que
-l'agent d'implémentation lira pour reproduire la sensation exacte.
-```
+| Fichier | Ce qu'il permet de juger |
+|---|---|
+| `proto-0-sommaire.html` | Index des prototypes |
+| `proto-1-sept-patrons.html` | Les sept patrons, avec un curseur de vitesse pour évaluer les durées |
+| `proto-2-selecteur-duree.html` | Le geste le plus répété du produit : retour tactile et inscription de l'heure de fin |
+| `proto-3-ajout-consommation.html` | Le total qui monte, **enchaîné cinq fois** — reste-t-il agréable ? |
+| `proto-4-cloture-reussie.html` | Le moment de plaisir n°1 dans son intégralité |
+| `proto-5-retour-reseau.html` | La vidange de la file d'attente, compteur de 23 à 0 |
+| `proto-6-indicateur-sync.html` | Les trois états en boucle — fatigue-t-il après huit heures ? |
 
 ---
 
@@ -977,43 +419,24 @@ l'agent d'implémentation lira pour reproduire la sensation exacte.
 
 ## 27. Les sept modèles
 
-> Ce ne sont pas des écrans mais des spécifications de mise en page. À produire en S8, avant le cycle IMP.
+Ce ne sont pas des écrans mais des spécifications de mise en page. Produits ; à confronter au matériel réel avant le cycle IMP.
 
-```
-Produis les maquettes de sept documents imprimés.
+**Contrainte thermique (D1 à D5)** — 80 mm de large, environ 42 caractères par ligne, **pas de couleur**, pas de nuance de gris fiable, pas d'image autre qu'un logo monochrome simple. Les caractères accentués français doivent rester lisibles. La coupe papier est prévue. Fichier : `documents/D1-D5-tickets-thermiques.html`.
 
-CONTRAINTE THERMIQUE (D1 à D5) : 80 mm de large, environ 42 caractères par ligne,
-PAS DE COULEUR, pas de nuance de gris fiable, pas d'image autre qu'un logo
-monochrome simple. Les caractères accentués français doivent être lisibles. Prévois
-la coupe papier.
+| Code | Document |
+|---|---|
+| `D1` | Ticket de commande client (point de vente) |
+| `D2` | Bon de préparation cuisine ou bar |
+| `D3` | Bon de dépôt pressing, avec numéro de retrait bien visible |
+| `D4` | Reçu d'encaissement |
+| `D5` | Rapport de fin de shift |
 
-D1 — Ticket de commande client (point de vente)
-D2 — Bon de préparation cuisine ou bar
-D3 — Bon de dépôt pressing, avec numéro de retrait bien visible
-D4 — Reçu d'encaissement
-D5 — Rapport de fin de shift
+**Contrainte PDF A4 :**
 
-CONTRAINTE PDF A4 (D6 et D7) :
+- **`D6` — Note provisoire de séjour** (`documents/D6-note-provisoire.html`). Mention obligatoire et **visible** : « Document non fiscal — ne tient pas lieu de facture ». Cette mention protège juridiquement le client ; elle n'est pas en petits caractères en bas de page.
+- **`D7` — Facture fiscale** (`documents/D7-facture-fiscale.html`). Le document le plus contraint du produit : identification complète de l'établissement et du client, désignation détaillée des prestations, prix hors taxes, TVA à 18 %, **taxe communale de nuitée en ligne distincte** du hors-taxes et de la TVA (obligation légale), taxe de développement touristique, total. Plus les éléments renvoyés par l'administration après validation : numéro normalisé, visuel officiel, QR code de vérification et sceau électronique — dont l'emplacement est **dimensionné et réservé**, à confronter aux spécimens exacts dès leur réception.
 
-D6 — NOTE PROVISOIRE DE SÉJOUR. MENTION OBLIGATOIRE ET VISIBLE : « Document non
-fiscal — ne tient pas lieu de facture ». Cette mention protège juridiquement le
-client ; elle ne doit pas être en petits caractères en bas de page.
-
-D7 — FACTURE FISCALE. Le document le plus contraint du produit. Doivent y figurer :
-identification complète de l'établissement et du client, désignation détaillée des
-prestations, prix hors taxes, TVA à 18 %, TAXE COMMUNALE DE NUITÉE EN LIGNE
-DISTINCTE séparée du hors-taxes et de la TVA (obligation légale), taxe de
-développement touristique, total. Plus les éléments renvoyés par l'administration
-après validation : numéro normalisé, visuel officiel, QR code de vérification et
-sceau électronique.
-
-Réserve un emplacement dimensionné pour ces éléments officiels — je te donnerai les
-spécimens exacts après la réponse de l'administration. DIS-MOI QUELLES DIMENSIONS
-TU AS RÉSERVÉES pour que je vérifie la compatibilité.
-
-Tous les documents portent le branding de l'établissement : logo, coordonnées,
-mentions légales, paramétrables par client.
-```
+Tous les documents portent le branding de l'établissement : logo, coordonnées, mentions légales, paramétrables par client.
 
 ---
 
@@ -1049,7 +472,8 @@ Tout retour va dans `docs/design/notes-terrain.md`. **Un retour qui contredit le
 
 ## 30. Règles de conduite
 
-- **Un écran sans maquette ni motif d'héritage déclaré n'est pas codé.** Les prompts Spec Kit référencent `docs/design/html/{code}.html` ou une ligne de `docs/design/derivation.md` ; sans l'un ou l'autre, le cycle ne démarre pas.
+- **Tout écran cite sa référence, dans l'un des quatre cas du §2 bis** — maquetté, dérivé, composé, ou découvert à l'implémentation et **inscrit à `docs/design/derivation.md` dans le même changement**. *(Cette règle disait « un écran sans maquette ni motif d'héritage déclaré n'est pas codé » jusqu'au 2026-08-06 ; elle arrêtait le cycle sur un écran que les documents n'avaient pas prévu, ce qui coûtait une demi-journée pour un écran souvent évident. Ce qui est refusé désormais est l'écran inventé **sans trace**, pas l'écran inventé.)*
+- **Un composant qui manque, en revanche, arrête le cycle.** Un écran s'assemble, un composant se dessine.
 - **Le HTML de `docs/design/html/` ne migre jamais vers `app/`.** Aucun `git mv`, aucun copier-coller de bloc. On lit les valeurs, on réimplémente en composants Nuxt avec i18n, mode sombre, RBAC et chargement paresseux — toutes choses que l'export ne contient pas.
 - **Une seule extraction de tokens.** `tokens.md` est produit au moment de la fondation, à partir de `styleguide.html`. Ensuite il prime : un export qui diverge est corrigé, pas suivi.
 - **Le code stable prime sur le nom.** `R4` restera `R4` même refait trois fois.
@@ -1064,7 +488,7 @@ Tout retour va dans `docs/design/notes-terrain.md`. **Un retour qui contredit le
 
 ## 30 bis. Correspondance avec les maquettes produites
 
-Claude Design a nommé les maquettes selon sa propre logique. Les codes de ce document restent la référence des prompts Spec Kit et de la matrice de dérivation. **Convention de nommage de fichier retenue : `{code}-{nom-lisible}.html`** — le code pour la référence stable, le nom pour la lecture humaine.
+Les maquettes ont été nommées selon la logique de l'outil de design. Les codes de ce document restent la référence des prompts Spec Kit et de la matrice de dérivation. **Convention retenue : `{code}-{nom-lisible}[-{etat}].html`** — le code pour la référence stable, le nom pour la lecture humaine.
 
 ### Écrans du produit
 
@@ -1079,132 +503,32 @@ Claude Design a nommé les maquettes selon sa propre logique. Les codes de ce do
 | Kaya — Saisie de commande | `P2` | Saisie répétitive hors ligne, une main |
 | Kaya — La note et le départ | `R7` | Document à lignes : lignes, taxes, total, action finale |
 | Kaya — Clôture de la journée | `C4` | Vérification préalable et blocage constructif |
-| Kaya — Registre grave | `F2` + `S2` | Registre sobre des moments difficiles |
+| Kaya — Registre grave | `F2` + `S2` | Registre sobre des moments difficiles (livrés en deux fichiers distincts) |
 
 ### Fondations, prototypes, documents
 
 | Maquette produite | Rôle | Fichier |
 |---|---|---|
-| Kaya — Directions visuelles | Identité, palettes, typographie | `fondation-directions.html` |
-| Kaya — Système de mouvement | Source de `mouvement.md` | `fondation-mouvement.html` |
-| Kaya — Moments de plaisir | Les 8 moments expressifs | `fondation-plaisir.html` |
-| Kaya — Moments difficiles | Le registre sobre | `fondation-difficiles.html` |
-| Kaya — Illustrations | États vides, onboarding | `illustrations.html` |
-| Prototypes animés (sommaire) | Index | `proto-0-sommaire.html` |
-| Proto 1 → 6 | Sensation de mouvement | `proto-1-patrons.html` … `proto-6-indicateur-sync.html` |
-| D1-D5 — Tickets thermiques | Impression 80 mm | `D1-D5-tickets-thermiques.html` |
-| D6 — Note provisoire | Document non fiscal | `D6-note-provisoire.html` |
-| D7 — Facture fiscale | Document légal | `D7-facture-fiscale.html` |
+| Kaya — Directions visuelles | Identité, palettes, typographie | `fondation/fondation-directions.html` |
+| Kaya — Système de mouvement | Source de `mouvement.md` | `fondation/fondation-mouvement.html` |
+| Kaya — Moments de plaisir | Les 8 moments expressifs | `fondation/fondation-plaisir.html` |
+| Kaya — Moments difficiles | Le registre sobre | `fondation/fondation-difficiles.html` |
+| Kaya — Illustrations | États vides, onboarding | `fondation/fondation-illustrations.html` |
+| Styleguide | Les composants canoniques, tous états, clair + sombre | `styleguide.html` |
+| Prototypes animés | Sensation de mouvement | `proto/proto-0-sommaire.html` … `proto-6-indicateur-sync.html` |
+| D1-D5 — Tickets thermiques | Impression 80 mm | `documents/D1-D5-tickets-thermiques.html` |
+| D6 — Note provisoire | Document non fiscal | `documents/D6-note-provisoire.html` |
+| D7 — Facture fiscale | Document légal | `documents/D7-facture-fiscale.html` |
 
-> ⚠️ **Point à vérifier avant l'export : où sont les 14 composants canoniques ?**
-> Ils sont peut-être inclus dans « Directions visuelles », ou pas produits du tout. C'est de ce fichier que sortent `theme.css` et `tokens.md` — sans lui, l'extraction des tokens se fait par glanage dans dix écrans, et les valeurs divergeront. **Si `styleguide.html` n'existe pas, le produire avant l'export.**
+## 31. Ce que l'export a laissé au projet
 
----
+L'archive de design est décompressée dans `docs/design/`. Trois questions, dont `README.md` porte les réponses détaillées :
 
-## 31. Prompt d'export final
-
-À exécuter dans Claude Design **une fois les 10 cibles et les prototypes terminés**. Il produit l'archive à décompresser dans `docs/design/` du dépôt.
-
-```
-Package tout le travail de design de Kaya dans une archive .zip que je vais
-décompresser dans le dossier docs/design/ de mon projet.
-
-STRUCTURE ATTENDUE — respecte-la exactement, mes prompts de développement
-référencent ces chemins :
-
-kaya-design/
-├── README.md              Ce que contient l'archive, et surtout : ce qui se copie
-│                          dans le projet (theme.css SEULEMENT) et ce qui ne se
-│                          copie jamais (tout le reste — référence à lire)
-├── theme.css              LE bloc @theme Tailwind 4 complet : couleurs clair et
-│                          sombre, espacements, rayons, polices, durées, courbes.
-│                          C'est le SEUL fichier que je copierai tel quel dans mon
-│                          projet Nuxt. Il doit fonctionner seul, sans retouche.
-├── tokens.md              Les mêmes valeurs en tableau lisible, avec le nom du
-│                          token, sa valeur claire, sa valeur sombre, son usage
-├── mouvement.md           Durées, courbes et les sept patrons de mouvement, avec
-│                          les noms de variables CSS correspondants
-├── composants.md          Les 14 composants canoniques : rôle, états, classes
-│                          Tailwind employées, règles d'usage
-├── styleguide.html        Les 14 composants dans tous leurs états, clair + sombre
-├── fondation/
-│   ├── fondation-directions.html      (« Directions visuelles »)
-│   ├── fondation-mouvement.html       (« Système de mouvement »)
-│   ├── fondation-plaisir.html         (« Moments de plaisir »)
-│   ├── fondation-difficiles.html      (« Moments difficiles »)
-│   └── illustrations.html             (« Illustrations »)
-├── html/                  Un fichier par écran ET PAR ÉTAT.
-│   │                      Nommage : {code}-{nom-lisible}[-{etat}].html
-│   ├── R1-accueil.html            R1-accueil-maquis.html
-│   │   R1-accueil-serveuse.html   R1-accueil-proprietaire.html
-│   ├── R4-passage.html            R4-passage-complet.html
-│   │   R4-passage-connu.html      R4-passage-hors-ligne.html
-│   ├── P2-saisie-commande.html    P2-saisie-commande-hors-ligne.html
-│   │   P2-saisie-commande-desktop.html
-│   ├── R7-note-depart.html        R7-note-depart-envoi.html
-│   │   R7-note-depart-echec.html
-│   ├── C4-cloture.html            C4-cloture-bloquee.html
-│   │   C4-cloture-reussie.html
-│   ├── V1-planning.html           V1-planning-dense.html
-│   ├── M4-mes-etablissements.html M4-mes-etablissements-alerte.html
-│   ├── F2-registre-grave.html     S2-registre-grave.html
-│   ├── Q1-page-client.html        Q1-page-client-panier.html
-│   │   Q1-page-client-attente.html
-│   └── G2-offre-hebergement.html  G2-offre-hebergement-residence.html
-├── documents/
-│   ├── D1-D5-tickets-thermiques.html
-│   ├── D6-note-provisoire.html
-│   └── D7-facture-fiscale.html
-├── proto/                 proto-0-sommaire.html à proto-6-indicateur-sync.html
-└── png/                   Captures de chaque écran, clair et sombre — pour ma
-                           revue et pour l'impression A3 de l'atelier terrain
-
-EXIGENCES SUR LE CONTENU :
-
-1. TAILWIND 4, PAS CSS. Chaque fichier HTML utilise des utilitaires Tailwind du
-   noyau référençant les tokens de theme.css. Mode sombre par la variante dark:.
-   Aucune classe personnalisée, aucun style en ligne. Le CSS explicite est
-   regroupé en fin de fichier, commenté, et limité à ce que Tailwind n'exprime
-   pas — @keyframes, styles d'impression thermique.
-
-2. theme.css DOIT ÊTRE AUTOSUFFISANT. Je le copie dans mon projet et il marche.
-   Pas de dépendance à un fichier de la maquette, pas de valeur laissée en dur
-   ailleurs. Si un token manque, l'écran correspondant est incohérent — vérifie.
-
-3. VALEURS ARBITRAIRES : liste dans README.md toutes les valeurs arbitraires
-   employées (w-[347px], text-[#3a3a3a]…) avec l'écran concerné. Chacune est une
-   décision en attente : soit elle entre dans @theme, soit on s'aligne sur
-   l'échelle. Ne les masque pas.
-
-4. CHAQUE ÉTAT EST UN FICHIER. Un HTML ne montre qu'un état ; ce que les captures
-   rendaient évident par leur nombre doit rester explicite ici. Si un écran a
-   quatre états, il a quatre fichiers. Le préfixe de code (R1, R4, P2…) est
-   OBLIGATOIRE dans le nom : mes prompts de développement le référencent.
-
-4 bis. LE STYLEGUIDE. Si les 14 composants canoniques ne sont pas déjà dans un
-   fichier dédié, PRODUIS-LE avant l'export : styleguide.html, les 14 composants
-   dans tous leurs états, clair et sombre, écrit en Tailwind 4 avec le bloc
-   @theme complet. C'est de ce fichier que je tire theme.css et tokens.md — sans
-   lui je devrais glaner les valeurs dans dix écrans, et elles divergeraient.
-   « Kaya — Registre grave » couvre deux écrans distincts (F2 document fiscal
-   indéterminé, S2 réconciliation d'une écriture orpheline) : livre-les en deux
-   fichiers séparés.
-
-5. LES PROTOTYPES déclarent leurs durées et courbes en variables CSS nommées,
-   reprises de theme.css. C'est de là que sort mouvement.md.
-
-6. README.md doit répondre à trois questions en tête de fichier :
-   - qu'est-ce que je copie dans mon projet ? (theme.css, et rien d'autre)
-   - qu'est-ce que je lis sans jamais le copier ? (tout le HTML)
-   - quelles décisions restent à prendre ? (les valeurs arbitraires listées)
-
-Si tu ne peux pas produire d'archive .zip, livre-moi les fichiers un par un en
-respectant strictement cette arborescence dans leurs noms, et dis-le-moi.
-```
+- **Qu'est-ce qui se copie dans le projet ?** `theme.css`, et rien d'autre. Il est autosuffisant : copié dans le projet Nuxt, il fonctionne sans retouche. Il rejoint `app/assets/css/` **au cycle F1** (phase 2), quand `app/` naît.
+- **Qu'est-ce qui se lit sans jamais se copier ?** Tout le HTML — écrans, fondation, prototypes, documents.
+- **Quelles décisions restent à prendre ?** Les valeurs arbitraires listées dans `README.md` : chacune entre dans `@theme` ou s'aligne sur l'échelle existante.
 
 ## 32. Checklist avant le cycle 1
-
-La maquette est déposée. Il reste six actions, dont trois bloquantes.
 
 ### Bloquant — ✅ les trois actions sont faites au 2026-07-30
 
@@ -1212,7 +536,7 @@ La maquette est déposée. Il reste six actions, dont trois bloquantes.
 |---|---|---|
 | 1 | `docs/design/derivation.md` — les 30 écrans et le motif dont chacun hérite | ✅ **fait** — la partie V y a été **déplacée**, pas recopiée : une seule source |
 | 2 | `docs/design/lexique.md` — la traduction des concepts techniques | ✅ **fait** — le §6 y a été **déplacé**, pas recopié |
-| 3 | `docs/Kaya_Design.md` déposé au dépôt | ✅ **fait** — 1 266 lignes, présent |
+| 3 | `docs/Kaya_Design.md` déposé au dépôt | ✅ **fait** — allégé des prompts de maquettage le 2026-08-06, doctrine d'écran assouplie le même jour (§2 bis) |
 
 > Les deux tableaux ont été **déplacés et non dupliqués** : le document annonçait « recopier »,
 > mais deux copies divergeraient, ce que le principe I de la constitution interdit. Ce fichier
@@ -1222,12 +546,10 @@ La maquette est déposée. Il reste six actions, dont trois bloquantes.
 
 | # | Action | Pourquoi |
 |---|---|---|
-| 4 | **Vérifier `styleguide.html` dans un projet Nuxt 4 réel**, avec `theme.css` importé | Si un utilitaire manque, il venait du CDN et pas du noyau Tailwind 4. Le découvrir maintenant coûte une heure, au cycle 8 une refonte |
-| 5 | **Trancher les valeurs arbitraires** listées dans `README.md` | Chacune entre dans `@theme` ou s'aligne sur l'échelle. Les laisser dispersées, c'est quarante valeurs uniques au cycle 8 |
-| 6 | **Produire `Q1-page-client-ferme.html`** — table fermée ou QR expiré | État réel et spécifié : c'est ce que voit quelqu'un qui scanne un QR arraché ou photographié. Sans lui, le cycle 15 devra l'inventer |
+| 4 | **Vérifier `styleguide.html` dans un projet Nuxt 4 réel**, avec `theme.css` importé | Si un utilitaire manque, il venait du CDN et pas du noyau Tailwind 4. Le découvrir au cycle **F1** coûte une heure, le découvrir plus tard coûte une refonte. **C'est un livrable du cycle F1**, pas une action séparée |
+| 5 | **Trancher les valeurs arbitraires** listées dans `README.md` | Chacune entre dans `@theme` ou s'aligne sur l'échelle. Les laisser dispersées, c'est quarante valeurs uniques à la fin de la phase 2. **À faire au cycle F1** |
+| 6 | ~~**Produire `Q1-page-client-ferme.html`**~~ — table fermée ou QR expiré | ✅ **Cette action tombe avec l'assouplissement du §2 bis.** L'état est réel et spécifié — c'est ce que voit quelqu'un qui scanne un QR arraché — mais il n'a plus besoin d'être maquetté d'avance : le cycle **F4** le code au titre du quatrième cas et l'inscrit à la matrice. C'est exactement la situation que la règle stricte rendait bloquante pour rien |
 
 ### À l'atelier d'Abengourou
 
 Capturer les 10 écrans principaux en PNG pour l'impression A3 — les HTML ne se montrent pas à Adjoua sur un écran de portable. Créer `docs/design/notes-terrain.md` et y consigner tous les retours.
-
-`theme.css` reste dans `docs/design/` et n'est copié vers `app/assets/css/` **qu'au cycle 1**, quand `app/` existe.

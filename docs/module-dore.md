@@ -1,12 +1,45 @@
 # Kaya — Le module doré
 
-*Patron de référence de tous les cycles. Six couches produites par le cycle 001 (TRX) sur
-`note_etablissement` ; la **septième — le patron d'écriture front** — ajoutée après le cycle 002
-(ETB) sur la bascule d'un service ; la **huitième — le cycle de vie de l'application** — après la
-vérification en navigateur du cycle 003 (CPT), qui a trouvé deux écrans inatteignables alors que
-24 portes et 652 tests étaient verts.*
+*Patron de référence de tous les cycles. Six couches produites sur `note_etablissement` ; la
+**septième — le patron d'écriture front** — ajoutée sur la bascule d'un service ; la **huitième —
+le cycle de vie de l'application** — après une vérification en navigateur qui a trouvé deux écrans
+inatteignables alors que 24 portes et 652 tests étaient verts.*
 
-**Version 1.2.0 — 2026-08-01**
+**Version 2.0.0 — 2026-08-06**
+
+> ### ⚠️ CE DOCUMENT DÉCRIT UN CODE QUI N'EXISTE PLUS DANS CE DÉPÔT
+>
+> Les huit couches ci-dessous ont été écrites, exercées et débattues sur une **version antérieure
+> du projet**. Ce dépôt ne contient aucun code : ni `backend/`, ni `app/`, ni `.specify/`.
+>
+> **Ce qui reste vrai, et c'est presque tout** : les décisions par couche, les pièges nommés, les
+> arbitrages datés, les fautes qu'on écrirait par réflexe. C'est du **savoir acquis au prix de
+> temps réel**, et le redécouvrir coûterait des jours.
+>
+> **Ce qui est périmé** : les chemins de fichiers, les numéros de cycle, les décomptes de tests et
+> de portes, les mentions « fait » ou « soldé ». **Lire les décisions, ignorer les chemins.**
+>
+> **Ce document redevient donc un LIVRABLE**, pas une entrée : le premier cycle de la phase 3
+> (backend) le réécrit en le vérifiant, tranche par tranche, contre le code qu'il produit.
+
+> ### 🔄 Ce que le changement d'ordre du 2026-08-06 fait à ce patron
+>
+> Les huit couches décrivent une **tranche verticale complète**, de la migration à l'écran, écrite
+> d'un seul mouvement. **Ce n'est plus l'ordre de travail** (cadrage §13.0) : le modèle de données
+> vient d'abord et pour tout le produit, les écrans ensuite et sur données simulées, le backend en
+> dernier. Le patron s'en trouve **découpé, pas invalidé** :
+>
+> | Couches | Quand elles s'appliquent désormais |
+> |---|---|
+> | Le modèle de la table — voir « Couche 0 » ci-dessous | **Phase 1**, pour tout le produit d'un coup |
+> | 7 (écriture front) et 8 (cycle de vie) | **Phase 2**, sur données simulées d'abord |
+> | 1 à 6 (migration, registre, repository, service, handler, tests) | **Phase 3**, module par module |
+>
+> Une seule chose change vraiment dans la couche 7 : en phase 2, l'appel ne passe pas encore par le
+> client généré mais par la **couche de données simulées**, derrière la même interface. Tout le
+> reste du patron — squelette de chargement, erreur traduite du `code`, action absente et non
+> grisée, refus hors ligne annoncé avant l'action — **s'applique identiquement**, et c'est
+> précisément ce qui rend le branchement de la phase 3 mécanique.
 
 ---
 
@@ -17,13 +50,41 @@ serve de patron. Ce document est ce patron.
 
 Il ne décrit pas « comment on écrit du Rust ». Il décrit **les six ou sept décisions par couche
 qui ne se devinent pas** et que chaque cycle réintroduirait de travers s'il partait d'un exemple
-trouvé en ligne. La raison est datée et précise : le gel retient **sqlx 0.9.0**, et la totalité de
-la documentation publique, des exemples et des réponses en ligne vise encore `0.8.x`. Deux
-changements suffisent à les rendre inutilisables — `#3723` impose `AssertSqlSafe` sur toute
+trouvé en ligne. La raison est datée et précise : la version retenue est **sqlx 0.9.0**, et la
+totalité de la documentation publique, des exemples et des réponses en ligne vise encore `0.8.x`.
+Deux changements suffisent à les rendre inutilisables — `#3723` impose `AssertSqlSafe` sur toute
 requête non littérale, `#3541` modifie la sortie des macros `query!()`.
 
 **Test de ce document** : un développeur doit pouvoir reproduire une seconde tranche verticale en
 ne lisant que ce fichier. S'il doit ouvrir le code du module doré, ce document est incomplet.
+
+---
+
+## Couche 0 — Le modèle de données *(nouveau, 2026-08-06)*
+
+**Elle précède les huit autres, et elle ne se fait pas par tranche.**
+
+Une table n'est plus définie par la migration qui la crée : elle est définie dans
+`docs/modele-donnees/{schema}.sql`, produit en **phase 1** pour tout le produit d'un coup
+(`docs/Kaya_Prompts_SpecKit.md` §3, cycles D1 et D2). La migration de phase 3 **matérialise** ce
+modèle ; elle ne l'invente pas.
+
+| | Le modèle (`docs/modele-donnees/`) | La migration (`backend/migrations/`) |
+|---|---|---|
+| Quand | Phase 1, avant tout code | Phase 3, au cycle du module |
+| Ce qu'il dit | l'état **cible** du schéma, lisible d'un coup | le **chemin** d'un état au suivant |
+| Il se modifie | librement, tant que rien n'est appliqué | **jamais** une fois appliquée — on en crée une nouvelle |
+| Règle de tenue | **toute migration le met à jour dans le même changement** | — |
+
+**Le contrôle qui tient l'ensemble** : un test compare le schéma réel de la base aux fichiers du
+modèle et échoue sur tout écart, **dans les deux sens** — une table du code absente du modèle, une
+table du modèle absente du code. Sans lui, les fichiers deviennent une photo périmée en trois
+cycles, et **une source de vérité périmée est pire que pas de source du tout**, parce qu'on
+continue de la croire.
+
+*Tout ce que la couche 1 dit du contenu d'une table — identifiant client, horodatages distincts,
+absence de clé étrangère inter-modules, patron RLS, privilèges qui disent la classe — s'écrit
+désormais d'abord ici.*
 
 ---
 
@@ -44,6 +105,7 @@ l'écran.
 
 | # | Couche | Fichier |
 |---|---|---|
+| **0** | **Modèle de données** | **`docs/modele-donnees/{schema}.sql` — phase 1, avant tout** |
 | 1 | Migration | `backend/migrations/0004_note_etablissement.sql` |
 | 2 | Registre hors-ligne | `docs/registre-classes-offline.md` §5.1 |
 | 3 | Repository | `backend/crates/socle/etablissements/src/note/repository.rs` |
@@ -697,7 +759,7 @@ Elle ne porte ni barre de contexte unifiée, ni témoin de synchronisation. Ce n
 | **Le témoin de synchronisation permanent** (composant 10) | ETB-06 |
 | **L'état `degrade`** — personne ne le produit | SYN |
 | **Le bandeau d'annulation** (composant 14) — aucune action de ce patron n'est destructrice | Premier cycle qui en a une |
-| **La sélection réelle de plateforme** — `adaptateurCourant()` renvoie le web | Construction de la coquille Tauri |
+| **La sélection réelle de plateforme** — `adaptateurCourant()` renvoie le web | ✅ **Sans objet depuis le 2026-08-06** : l'application est une PWA (cadrage §13.3), et `web` est la **seule** implémentation du MVP. Une seconde n'arrivera qu'avec Capacitor, si Capacitor arrive |
 
 Et les deux que le cycle 003 a soldés, gardés ici pour qu'on ne les recherche pas :
 
@@ -718,8 +780,15 @@ L'écran de notes internes n'hérite d'aucun motif :
   `M4`, `P2`, `Q1`, `R1`, `R4`, `R7`, `S2`, `V1` ;
 - la matrice de dérivation `docs/design/derivation.md` n'a aucune ligne pour lui.
 
-« Un écran qui n'hérite d'aucun motif ne se code pas » (principe XII). La couche est reportée au
-**cycle ETB**, qui dispose d'écrans réellement maquettés (`G2`, `M4`).
+La règle d'alors — « un écran qui n'hérite d'aucun motif ne se code pas » — a donc reporté la
+couche au cycle suivant, qui disposait d'écrans maquettés.
+
+> ⚠️ **Cette règle est ASSOUPLIE depuis le 2026-08-06** (`docs/Kaya_Design.md` §2 bis,
+> `docs/design/derivation.md`). Un écran découvert à l'implémentation **se code**, avec les
+> composants et le lexique existants, et **s'inscrit à la matrice dans le même changement**. Le
+> raisonnement ci-dessus reste juste sur son fond — *une entité sans intérêt métier ne méritait pas
+> d'écran* — mais il ne serait plus formulé ainsi : ce qui aurait bloqué l'écran de notes internes
+> n'est pas l'absence de motif, c'est l'absence de besoin.
 
 ### Ce que le patron ne démontrait pas alors — et par quoi c'est soldé
 
@@ -835,19 +904,24 @@ nouveau. `crates/verticales/hebergement/src/erreurs.rs` porte la forme retenue e
 contrainte d'exclusion ferait autrement passer ses violations pour des doubles attributions, et
 l'écran afficherait « Cette chambre est déjà prise sur cette période » pour un refus sans rapport.
 
-**Ce que ce retour change pour `docs/versions-gelees.md`, sans que ce document y touche** : le
-**point ouvert de son en-tête** — « le choix de sqlx `0.9.0` doit être confirmé par le spike » —
-peut être retiré, la confirmation étant acquise. Et la note du §2 gagnerait sa **limite** : dire
-que `#3918` apporte « une erreur de violation d'exclusion » est exact et incomplet, puisqu'il
-n'apporte pas l'accesseur. C'est la **revue mensuelle du 2026-08-31** qui tranche ; rien n'est
-modifié ici, un gel ne se corrige pas au fil de l'eau.
+**Ce que ce retour change pour `docs/versions-reference.md`** : le point ouvert sur sqlx `0.9.0` —
+« à confirmer par le spike GiST/`tstzrange` » — est **retiré, la confirmation étant acquise**. Et
+la note du §2 mérite sa **limite** : dire que `#3918` apporte « une erreur de violation
+d'exclusion » est exact et incomplet, puisqu'il n'apporte pas l'accesseur.
+
+> *Ce paragraphe renvoyait la correction à « la revue mensuelle du 2026-08-31 », en ajoutant qu'« un
+> gel ne se corrige pas au fil de l'eau ». **Cette revue n'existe plus** : le régime du 2026-08-06
+> veut au contraire que la correction se fasse dans le changement qui la constate. Le fichier est
+> d'ailleurs renommé `versions-reference.md`, précisément parce que « gel » induisait cette
+> attente-là.*
 
 ---
 
 ## Écarts au gel introduits par ce cycle
 
-Six crates Rust nécessaires n'étaient pas au gel §3.1. Épinglées exactement, vérifiées sur
-`crates.io` le 2026-07-30, **à porter au gel à la revue mensuelle du 2026-08-31** :
+Six crates Rust nécessaires n'étaient pas inscrites au §3.1. Épinglées exactement, vérifiées sur
+`crates.io` le 2026-07-30. *(Elles ont depuis été inscrites, et le régime du 2026-08-06 veut que
+l'inscription se fasse dans le changement qui ajoute — il n'y a plus de report possible.)*
 
 | Crate | Version | Pourquoi |
 |---|---|---|
@@ -866,6 +940,9 @@ tel trait n'est pas dyn-compatible. L'injection de dépendances du cadrage §13.
 
 ## Reproduire une tranche — la liste
 
+0. **Modèle** — la table est **déjà définie** dans `docs/modele-donnees/{schema}.sql` (phase 1).
+   La migration la matérialise. Si elle s'en écarte, le fichier est mis à jour **dans le même
+   changement**, et le test de comparaison schéma ↔ fichiers reste vert.
 1. **Migration** — identifiant client, horodatages distincts, aucune clé étrangère inter-modules,
    RLS `ENABLE` + `FORCE` + politique `USING`/`WITH CHECK`, privilèges qui reflètent la classe.
 2. **Registre** — classe A/B/C/D au §5, entrée au journal §13, **même changement**.
@@ -878,15 +955,22 @@ tel trait n'est pas dyn-compatible. L'injection de dépendances du cadrage §13.
 6. **Tests** — les deux tests de la classe, sur l'application réelle. Plus le test négatif de
    chaque porte touchée.
 7. **Client** — `scripts/ci/generer-client.sh`, commit du diff.
-8. **Écran** — seulement s'il hérite d'un motif de `docs/design/html/` ou d'une ligne de
-   `docs/design/derivation.md`. Sinon, il ne se code pas.
+8. **Écran** — **il existe déjà** : il a été livré en phase 2 sur données simulées. Le travail est
+   de **débrancher la simulation** et de la remplacer par le client généré, derrière la même
+   interface. *(Cette ligne disait « seulement s'il hérite d'un motif… sinon il ne se code pas ».
+   Deux choses ont changé : l'écran vient avant le backend, et la doctrine d'écran compte
+   désormais quatre cas — `docs/Kaya_Design.md` §2 bis.)*
+9. **Débranchement** — la donnée simulée de cet endpoint est **supprimée dans le même changement**.
+   Une simulation qui survit à son endpoint fait échouer le build.
 
 ---
 
 ## Voir aussi
 
-- `.specify/memory/constitution.md` — les douze principes, les **vingt-cinq** portes (P-01 à P-22,
-  dont P-01b, P-05b et P-21b ; P-22 est née de la vérification en navigateur du cycle 003)
+- `.specify/memory/constitution.md` — les principes et les portes. ⚠️ **La constitution est à
+  reratifier** : ce dépôt n'en contient pas, et le prompt à jour est dans
+  `docs/Kaya_Prompts_SpecKit.md` §1 — il porte un **principe 0 (ordre des trois phases)**, un
+  principe 7 réécrit pour la PWA et un principe 12 assoupli sur les écrans
 - `docs/registre-classes-offline.md` — classe de chaque entité
-- `docs/versions-gelees.md` — versions épinglées et journal des gels
+- `docs/versions-reference.md` — versions employées et journal des versions *(fichier renommé le 2026-08-06)*
 - `specs/001-socle-technique-monorepo/` — spécification, plan, recherche, modèle de données
