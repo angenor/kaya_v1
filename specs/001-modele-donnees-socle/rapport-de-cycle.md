@@ -100,3 +100,69 @@ après application du modèle, confrontée à la matrice de
 
 **Verdict : conforme.** On peut lire les `GRANT` d'une table et en déduire sa classe sans lire un
 seul commentaire — ce qui était l'objet du récit 3.
+
+---
+
+## T033 · SC-009 — la recherche de personne sur 10 000 fiches
+
+**Date** : 2026-08-06 · **Méthode** : modèle appliqué sur une base locale, 10 000 lignes de
+`comptes.personne` générées (dix patronymes ivoiriens répétés, téléphones E.164 distincts, trois
+types de pièce), `ANALYZE`, puis `EXPLAIN (ANALYZE, BUFFERS)` sur chaque recherche.
+
+**Attendu : moins de 300 ms et un parcours d'index sur les trois.**
+
+| Recherche | Index employé | Type de parcours | Temps d'exécution |
+|---|---|---|---|
+| Préfixe de `nom_normalise` (`LIKE 'kouame1%'`) | `ix_personne_nom` | Bitmap Index Scan | **0,28 ms** |
+| `telephone_e164` exact | `ix_personne_telephone` | Index Scan | **0,03 ms** |
+| `type_piece` + `numero_piece` | `ix_personne_piece` | Index Scan | **0,03 ms** |
+| *(hors SC-009)* purge TRX-06 par `piece_capturee_le` | `ix_personne_purge` | Index **Only** Scan | **0,24 ms** |
+
+**Verdict : conforme, avec trois ordres de grandeur de marge.** Parcours d'index sur les trois,
+aucun balayage séquentiel.
+
+### Le cas infixe, mesuré exprès — et ce qu'il ne justifie pas encore
+
+`LIKE '%ouame4%'` tombe en **Seq Scan**, à **3,6 ms** sur 10 000 fiches. C'est le cas que
+`pg_trgm` servirait, et il est ici mesuré plutôt que supposé.
+
+**`pg_trgm` n'est pas créée, et la mesure conforte la décision** ([D-13](./research.md)) :
+
+- l'usage réel au comptoir est **le préfixe** — on tape le début d'un nom, pas son milieu ;
+- même dégradé, l'infixe rend **3,6 ms**, soit quatre-vingts fois sous la cible de 300 ms ;
+- l'extension **s'ajoutera sans migration de données** le jour où la recherche infixe sera
+  demandée par une story et constatée trop lente sur un volume réel.
+
+> **Ce qui déclenchera `pg_trgm`** : une recherche infixe nommée par une story, sur un volume où le
+> Seq Scan sort de l'épure. Ni avant, ni « au cas où » — ouvrir une extension avant d'avoir
+> constaté qu'elle manque, c'est décider trop tôt.
+
+**Réserve honnête sur ces chiffres** : ils sont pris sur poste de développement Apple Silicon,
+table entièrement en cache (`shared hit` partout, aucun `read`). La production tourne sur VPS
+`linux/amd64` avec un cache froid ; ces mesures ne la prédisent pas. Ce qu'elles prouvent est
+**structurel et transposable** : le planificateur choisit l'index, et non un balayage.
+
+---
+
+## T034 · SC-008 — la durée de la commande unique
+
+**Date** : 2026-08-06 · **Méthode** : trois exécutions consécutives, chronométrées de bout en bout,
+base éphémère détruite entre chacune.
+
+| Exécution | Durée |
+|---|---|
+| 1 | **5 s** |
+| 2 | **5 s** |
+| 3 | **4 s** |
+| `--test-negatif` (les deux, chacun remontant sa propre base) | **9 s** |
+
+**Attendu : moins de deux minutes (SC-008). Verdict : conforme, avec un facteur 24 de marge.**
+
+Deux choix expliquent ce coût : les données de la base de vérification sont en **`tmpfs`**, et la
+base n'est démarrée **qu'une fois pour les deux portes** — P-02 réutilise ce que P-01 a monté.
+
+> **Le repère de deux minutes n'est pas un seuil de performance, c'est un seuil d'USAGE.** Le jour
+> où le script dépasse deux ou trois minutes, on cesse de le lancer — et une porte qu'on ne lance
+> plus ne prouve rien. C'est le déclencheur documenté du passage au serveur d'intégration, en
+> phase 3. À 5 s, il en est loin ; le noter maintenant donne le point de comparaison qui manquera
+> le jour où la question se posera.
