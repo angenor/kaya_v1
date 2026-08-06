@@ -205,7 +205,7 @@ saisie et B à l'annulation après envoi. Le registre classe **l'opération**, e
 | Entité ou opération | Classe | Branche | Réf. |
 |---|---|---|---|
 | `evenement_outbox` — écriture dans la transaction métier | **A** | A4 — append-only, immuable, **rétention illimitée** | TRX-02 |
-| `evenement_outbox` — marquage « publié » | **A** | A4 — jamais de suppression | TRX-02 |
+| `publication_outbox` — marquage « publié », **fait ajouté** jamais mutation | **A** | A4 — append-only ; l'événement étant immuable, la publication est une ligne, pas un `UPDATE` | TRX-02 |
 | `reconciliation_orpheline` — création de l'élément en file | **A** | A4 — constat append-only | SYN-03 |
 | `reconciliation_orpheline` — **résolution** (avoir, prise en charge, rattachement) | **B** | B3 — effet monétaire, **résolution humaine obligatoire** | SYN-03 |
 | Horodatage d'autorité — attribution | **serveur uniquement** | — | SYN-04 |
