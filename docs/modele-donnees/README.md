@@ -49,3 +49,4 @@ la base ; `public`, qui n'accueille que ces objets partagés, est hors périmèt
 - `synchronisation`
 - `pilotage`
 - `editeur`
+- `metriques`
