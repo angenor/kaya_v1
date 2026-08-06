@@ -1,58 +1,17 @@
 # Kaya — Matrice de dérivation des écrans
 
-*Source de vérité de l'héritage visuel des écrans non maquettés. Extrait de `docs/Kaya_Design.md`
-PARTIE V §25 le 2026-07-30 — ce fichier fait foi, `Kaya_Design.md` y renvoie.*
-
-**Version 2.0.0 — 2026-08-06 : la règle opposable passe de deux cas à QUATRE.** Le quatrième —
-l'écran découvert à l'implémentation — n'arrête plus le cycle ; il s'inscrit ici dans le même
-changement, avec la mention « à valider ». Voir « Règle opposable » en fin de document, et
-`docs/Kaya_Design.md` §2 bis.
-
-> ⚠️ **Les mentions « CODÉ — cycle 00X, `app/…` » du tableau décrivent une version antérieure du
-> projet, dont le code n'existe plus dans ce dépôt.** Les héritages qu'elles accompagnent, eux,
-> restent justes : c'est le travail de conception, il ne se refait pas. Lire les motifs, ignorer
-> les chemins.
-
-**Version 1.5.0** — l'écran **Les articles** ajouté le 2026-08-05 (cycle PDV), **troisième écran
-composé** du produit. Le total passe de 45 à **46**.
+*Source de vérité de l'héritage visuel des écrans non maquettés. `docs/Kaya_Design.md` y renvoie.*
 
 > **★ DÉRIVER D'UN COMPOSÉ EST INTERDIT ; S'EN RÉCLAMER COMME PRÉCÉDENT NE L'EST PAS.** La
-> distinction est fine, elle s'est déjà posée **trois fois**, et elle se reposera — elle s'écrit
-> donc ici plutôt que dans le plan d'un cycle. Un écran composé n'est **pas un motif de
+> distinction est fine et elle se pose souvent. Un écran composé n'est **pas un motif de
 > dérivation** : il n'a aucune maquette à ouvrir, aucune valeur exacte à respecter, et l'inscrire
-> à la matrice des 32 dérivés serait faux. Le plan du cycle 007 écrivait « l'écran des articles
-> hérite de `G5` » : `G5` est lui-même **composé**, et on n'hérite pas d'un assemblage.
+> parmi les dérivés serait faux — on n'hérite pas d'un assemblage.
 >
-> Mais un composé **fait précédent de composition**. `/notes` cite `G5` en toutes lettres — *« une
-> liste et un formulaire, motif posé par `G5` »* — pour dire que l'assemblage a déjà été jugé
-> acceptable sur cette forme-là. **Ce qui se transmet est le jugement sur l'assemblage, jamais un
-> dessin.** C'est pourquoi la mention « à valider à l'atelier terrain » reste due au troisième
-> composé comme aux deux premiers : personne ne l'a dessiné, c'est une proposition.
-
-**Version 1.4.0** — l'écran **Notes internes** ajouté le 2026-08-03 (cycle SYN), **deuxième écran
-composé** du produit. Le total passe de 44 à **45**.
-
-C'est le premier écran du produit dont la raison d'être est de **donner un passager à un
-mécanisme** : la file hors-ligne existait depuis deux cycles sans qu'aucun écran n'écrive en
-classe A, et un mécanisme sans passager réel est du code exporté et appelé nulle part. `S1`, lui,
-figurait déjà parmi les 32 dérivés — il n'est pas ajouté, il est **livré**.
-
-**Version 1.3.0** — `G5` Chambres et types de chambre ajouté le 2026-08-02 (cycle HEB), et avec lui
-**une catégorie qui manquait à cette matrice** : les écrans **composés**.
-
-`docs/Kaya_Design.md` §2 porte depuis l'origine une doctrine à **trois** cas — on maquette, on
-dérive, **ou on code directement** —, et son tableau « on code directement si… » en énumère les
-quatre conditions. Cette matrice n'en reflétait que deux : tout écran non maquetté y était
-« dérivé », c'est-à-dire rattaché à un motif dont il hérite. Un écran assemblé **uniquement** à
-partir des seize composants canoniques n'hérite d'aucun motif en particulier — il n'avait donc
-littéralement pas de ligne où s'inscrire, et la porte P-19 l'aurait refusé pour la mauvaise raison.
-
-Le troisième cas est **fermé à la zone de charme** : un écran de comptoir se maquette toujours.
-
-**Version 1.2.1** — `S1` référençait le composant **8** (ligne de liste) au lieu du **10**
-(témoin de synchronisation) : reste d'une numérotation antérieure, corrigé le 2026-08-02 sur
-signalement du plan du cycle 005. —  `R0` Connexion ajouté le 2026-08-01 (cycle CPT). `A1` À propos ajouté le
-2026-08-01.
+> Mais un composé **fait précédent de composition** : dire d'un écran qu'il reprend « une liste et
+> un formulaire, motif posé par `G5` » signifie que l'assemblage a déjà été jugé acceptable sur
+> cette forme-là. **Ce qui se transmet est le jugement sur l'assemblage, jamais un dessin.** C'est
+> pourquoi la mention « à valider à l'atelier terrain » reste due à chaque composé : personne ne
+> l'a dessiné, c'est une proposition.
 
 ---
 
@@ -108,8 +67,8 @@ face et de l'argent en jeu, et c'est là que le dessin décide de la vitesse.
 > manque, donc l'écran se code.
 >
 > **La route est `/articles`, jamais `/catalogue`.** *Le nom du fichier de page décide de la route,
-> et une URL est visible* — la leçon de `S1` au cycle 005, qui a fait renommer `/synchronisation`
-> en `/mes-envois`. La maquette normative `P2` emploie « article » comme mot visible (« Chercher un
+> et une URL est visible* — c'est ce qui fait que `S1` s'appelle `/mes-envois` et non
+> `/synchronisation`. La maquette `P2` emploie « article » comme mot visible (« Chercher un
 > article », « 7 articles dans Bières ») ; « catalogue » est le mot de la table.
 >
 > **Le sous-écran des destinations de préparation n'ouvre pas de route propre** : il relève du même
@@ -117,24 +76,21 @@ face et de l'argent en jeu, et c'est là que le dessin décide de la vitesse.
 >
 > **Ce que l'écran de notes ajoute au composant 08, et qui n'est pas un état nouveau.** La ligne
 > « en attente d'envoi » **figure déjà** dans les états du composant 08 (`composants.md` §08 :
-> « repos · survol · sélectionnée · **en attente d'envoi** · annulée · ligne de total »). Elle
-> n'avait simplement jamais été rendue, aucun écran n'écrivant encore en classe A. Le cycle 005
-> l'emploie pour la première fois — il ne l'invente pas.
+> « repos · survol · sélectionnée · **en attente d'envoi** · annulée · ligne de total »). Le premier
+> écran qui écrit en classe A l'emploie — il ne l'invente pas.
 
 ---
 
-## Les 32 écrans codés sans maquette
+## Les 32 écrans DÉRIVÉS
 
-## 25. Les 32 écrans codés sans maquette
-
-C'est le document qui rend sûr le fait de coder directement. Chaque écran déclare de quel motif il hérite. **Un écran qui n'hérite d'aucun motif se code quand même, mais il s'inscrit ici** — quatrième cas de la règle opposable, en fin de document. *(Cette phrase disait « ne se code pas — il se maquette d'abord » jusqu'au 2026-08-06.)*
+C'est le tableau qui rend sûr le fait de coder directement : chaque écran déclare de quel motif il hérite. **Un écran qui n'hérite d'aucun motif se code quand même, mais il s'inscrit ici** — quatrième cas de la règle opposable, en fin de document.
 
 | Écran | Hérite de | Ce qui change |
 |---|---|---|
 | `R0` Connexion | `G2` | Formulaire minimal ; états d'erreur et vides de `S3` |
 | `R2` Vue du jour | `R1` + composant 14 | Grille d'unités au lieu de tuiles |
-| `R3` Arrivée — **terme du lexique v1.6.0, « check-in » est écarté** ; route `/arrivee` | `R4` | Parcours long : plus de champs, même grammaire. **CODÉ** — cycle 006, `app/modules/sejours/EcranArrivee.vue` |
-| `R5` Fiche client et recherche — route `/clients` | `R7` | Liste + fiche, pas de total. **CODÉ** — cycle 006, `app/modules/sejours/EcranClients.vue` |
+| `R3` Arrivée — **terme du lexique, « check-in » est écarté** ; route `/arrivee` | `R4` | Parcours long : plus de champs, même grammaire |
+| `R5` Fiche client et recherche — route `/clients` | `R7` | Liste + fiche, pas de total |
 | `R6` Note temps réel | `R7` | Sans l'action finale |
 | `P1` Plan de salle | `R2` | Tables au lieu d'unités |
 | `P3` Addition et division | `R7` | Le fractionnement est le seul motif neuf — **à valider dans `R7`** |
@@ -149,7 +105,7 @@ C'est le document qui rend sûr le fait de coder directement. Chaque écran déc
 | `G3` Utilisateurs et rôles | `G2` | Configuration |
 | `G4` Journal d'audit | `R5` + `F2` | Liste filtrable, registre sobre |
 | `A1` À propos | `G2` | Configuration en **lecture seule** |
-| `S1` Panneau de synchronisation — **titre « Mes envois », route `/mes-envois`** (livré au cycle SYN) | **Composant 10** — témoin de synchronisation | Développement du composant : le témoin dit l'état d'un coup d'œil, le panneau détaille ce qui attend et permet d'agir. **Le nom du fichier de page décide de la route, et une URL est visible** : `/synchronisation` aurait fait entrer par cette porte un mot que le lexique proscrit du visible |
+| `S1` Panneau de synchronisation — **titre « Mes envois », route `/mes-envois`** | **Composant 10** — témoin de synchronisation | Développement du composant : le témoin dit l'état d'un coup d'œil, le panneau détaille ce qui attend et permet d'agir. **Le nom du fichier de page décide de la route, et une URL est visible** : `/synchronisation` aurait fait entrer par cette porte un mot que le lexique proscrit du visible |
 | `S3` États vides et erreurs | Famille d'illustrations | Couvert par la fondation |
 | `M1` Accueil mobile | `R1` + `M4` | Composition en régime mobile |
 | `M2` Commande mobile | `P2` | C'est déjà la cible mobile de `P2` |
@@ -174,10 +130,8 @@ attendant, les mentions de licence des polices et icônes embarquées vivent dan
 d'écran d'accueil : cohérent en motif, bancal sur le fond, puisque les licences du produit ne sont
 pas un réglage d'établissement. **Elles migreront vers `A1`.**
 
-**Note sur `R0` — l'écran par lequel tout le monde entre, et que personne n'avait inscrit.** Il
-n'apparaissait ni parmi les onze codes maquettés ni dans cette matrice : le cycle CPT l'a constaté
-avant d'écrire une ligne de Vue, la règle opposable ci-dessous ne laissant pas d'autre issue. Il
-hérite de **`G2`** pour la structure — en-tête, carte centrée, formulaire, action unique — et de
+**Note sur `R0` — l'écran par lequel tout le monde entre.** Il n'apparaît pas parmi les onze codes
+maquettés. Il hérite de **`G2`** pour la structure — en-tête, carte centrée, formulaire, action unique — et de
 **`S3`** pour ses états d'erreur et ses états vides, qui sont la moitié de cet écran : hors ligne,
 identifiants refusés, serveur injoignable. Deux contraintes propres, qui viennent de CPT-01 et non
 du motif : **les deux échecs d'authentification rendent la même phrase** (FR-012), et le refus
@@ -185,7 +139,7 @@ hors ligne est annoncé **avant** toute tentative.
 
 ---
 
-## Règle opposable *(assouplie le 2026-08-06 — quatre cas)*
+## Règle opposable — les quatre cas
 
 Un écran se code dans **quatre cas** :
 
@@ -199,15 +153,11 @@ Un écran se code dans **quatre cas** :
 
 ### Le quatrième cas, et ce qu'il exige
 
-> ⚠️ **Ce document disait : « Il n'y a pas de troisième cas. Un écran absent des deux NE SE CODE
-> PAS : la tâche s'arrête et l'écran part en maquettage. » Cette phrase est retirée.**
->
-> Elle supposait que les documents avaient tout prévu, ce qu'ils ne peuvent pas faire : c'est en
-> construisant un parcours qu'on découvre l'écran qui lui manque pour se terminer. La règle
-> arrêtait alors le cycle pour produire un document, sur un écran souvent évident — et elle l'a
-> fait au moins une fois pour rien (`Q1` table fermée, `docs/Kaya_Design.md` §32 action 6).
+> **Les documents ne peuvent pas avoir tout prévu** : c'est en construisant un parcours qu'on
+> découvre l'écran qui lui manque pour se terminer. Arrêter le cycle à cet endroit-là reviendrait à
+> arrêter le travail pour produire un document, sur un écran souvent évident.
 
-**Le cycle ne s'arrête plus. L'écran se code, à trois conditions :**
+**Le cycle ne s'arrête pas. L'écran se code, à trois conditions :**
 
 1. il n'emploie que les **composants, tokens et termes du lexique existants** ;
 2. s'il tombe en **zone de vitesse** — utilisateur debout, pressé, client en face, argent en jeu —
@@ -235,50 +185,40 @@ source — autonome, non sémantique, sans i18n, sans mode sombre câblé, sans 
 valeurs, on réimplémente. Seule exception : `docs/design/theme.css`, copié tel quel dans
 `app/assets/css/`.
 
+---
+
+## Notes de conception sur quatre écrans de la réception
+
+`R4` **Le passage** est maquetté, dans ses cinq états. Il est en **zone de vitesse** et ne se
+compose jamais : `docs/Kaya_Design.md` §1 est formel, et `R4` porte une intention dessinée qu'un
+assemblage ne retrouverait pas — les tailles de la durée et de l'heure de fin, la place du prix sur
+le bouton.
+
+`R3` **Arrivée** est **dérivé** de `R4` — *« parcours long : plus de champs, même grammaire »*. Les
+champs s'ajoutent sans que l'écran devienne un formulaire : le dernier geste reste le **tap sur la
+chambre**, et il n'existe aucun bouton de soumission.
+
+`R7` **La note et le départ** est **maquetté**, et il faudra trancher ce que la maquette montre et
+que le produit ne sert pas encore : les sections de note non couvertes se rendent **en creux,
+nommées**, plutôt que d'être supprimées. ⚠️ **Un point que la maquette ne dit pas et que l'écran
+doit dire** : la note se ferme **arrêtée et non réglée**. Sans cette phrase, l'écran laisse croire
+au paiement, et le trou se découvre au comptage de caisse sans qu'on sache à quel séjour il se
+rattache.
+
+`R5` **Fiche client et recherche** est **dérivé** de `R7` — *« liste + fiche, pas de total »* — et
+l'absence du bloc de total est le point qui se paierait si on l'oubliait : additionner les séjours
+d'un client afficherait un chiffre qui **ressemble à un solde**, et l'exploitant y chercherait ce
+que le client doit.
+
+⚠️ **Une ligne de ce document ne se marque « codé » que dans le changement qui livre l'écran.**
+Ce fichier est **opposable** : il autorise un écran sans maquette. Y inscrire « codé » sur un écran
+qui n'existe pas ferait mentir le seul document qui dise ce qui a le droit d'être codé — et le
+mensonge serait invisible, puisque rien ne relit un tableau de dérivation contre le système de
+fichiers.
+
 ## Voir aussi
 
+- `docs/Kaya_Design.md` §2 bis — les quatre cas, et ce qui fait foi (la grammaire, pas le dessin)
 - `docs/design/lexique.md` — le vocabulaire utilisateur, opposable au même titre
 - `docs/design/composants.md` + `styleguide.html` — les composants canoniques dans tous leurs états
 - `docs/design/tokens.md` — les valeurs curées, qui priment sur tout export
-
-
----
-
-## Note de fin de cycle 006 (SEJ) — ce qui a été codé, et ce qui ne l'a pas été
-
-**Les quatre écrans du cycle sont livrés : `R4` Le passage, `R3` Arrivée, `R7` La note et le
-départ, `R5` Fiche client et recherche.**
-
-`R4` est maquetté, dans ses cinq états (`docs/design/html/R4-passage.html` et ses quatre
-variantes). Il est en **zone de vitesse** et ne se compose jamais : `docs/Kaya_Design.md` §1 est
-formel, et `R4` porte une intention dessinée qu'un assemblage ne retrouverait pas — les tailles de
-la durée et de l'heure de fin, la place du prix sur le bouton.
-
-`R3` est **dérivé** de `R4` — *« parcours long : plus de champs, même grammaire »*. Les champs
-s'ajoutent sans que l'écran devienne un formulaire : le dernier geste reste le **tap sur la
-chambre**, et il n'existe aucun bouton de soumission.
-
-`R7` est **maquetté**, et le codage a obligé à trancher ce que la maquette montre et que le
-produit ne sert pas encore : **quatre sections de note sur cinq**, et **trois éléments de son
-volet droit**. Les sections manquantes sont rendues **en creux, nommées** ; les trois éléments
-sont **retirés**. Et le retrait du troisième — le sous-titre « compte final, encaissement,
-facture » — oblige l'écran à dire ce qui se passe vraiment : la note se ferme **arrêtée et non
-réglée**. Sans cette phrase, l'écran laisserait croire au paiement, et le trou se découvrirait au
-comptage de caisse, sans qu'on sache à quel séjour il se rattache.
-
-`R5` est **dérivé** de `R7` — *« liste + fiche, pas de total »* — et l'absence du bloc de total
-est le point qui se paierait si on l'oubliait : additionner les séjours d'un client afficherait un
-chiffre qui **ressemble à un solde**, et l'exploitant y chercherait ce que le client doit, que ce
-cycle ne calcule pas.
-
-⚠️ **Les quatre lignes ci-dessus sont passées à « CODÉ » dans le même changement que leur fichier,
-jamais avant.** `derivation.md` est **opposable** : la porte P-19 s'en sert pour autoriser un écran
-sans maquette. Y inscrire « codé » sur un écran qui n'existe pas ferait mentir le seul document qui
-dise ce qui a le droit d'être codé — et le mensonge serait invisible, puisque rien ne relit un
-tableau de dérivation contre le système de fichiers.
-
-**Ce que le codage de `R5` a trouvé, et qui n'était pas une décision d'écran :**
-`ServiceClient::preferences` existait, testé au service, et **n'était monté par aucune route** —
-mot pour mot le défaut du cycle 003, *« une unité écrite n'est ni testée ni branchée par défaut »*.
-Les préférences voyagent désormais avec la fiche (`GET /clients/{id}`), et un test posé sur la
-**réponse HTTP** — jamais sur le service — l'éprouve.

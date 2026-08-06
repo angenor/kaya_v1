@@ -2,15 +2,13 @@
 
 *Complément d'exécution du Document de cadrage v1 — Pilote : Résidence Hôtel Deloria, Abengourou — Développement : solo + Claude Code + Spec Kit*
 
-*Version 1.1 — 2026-08-06 : l'ordre d'exécution change (§0.1 et §0.5), le contenu des stories ne change pas, sauf le module MOB qui devient PWA.*
-
 ---
 
 ## 0. Mode d'emploi
 
-### 0.1 Avec Claude Code + Spec Kit *(réécrit le 2026-08-06)*
+### 0.1 Avec Claude Code + Spec Kit
 
-**Ce document dit CE QUI est à construire. `docs/Kaya_Prompts_SpecKit.md` §3 dit DANS QUEL ORDRE, et l'ordre a changé** : le modèle de données d'abord, l'application entière ensuite avec des données simulées, le backend en dernier (cadrage §13.0).
+**Ce document dit CE QUI est à construire. `docs/Kaya_Prompts_SpecKit.md` §3 dit DANS QUEL ORDRE** : le modèle de données d'abord, l'application entière ensuite avec des données simulées, le backend en dernier (cadrage §13.0).
 
 | Phase | Ce qu'on lit dans ce document | Ce qu'on en fait |
 |---|---|---|
@@ -41,7 +39,7 @@
 - **M. Diarra (comptable externe)** — vient une fois par mois, veut un export exploitable, ne veut pas apprendre le logiciel.
 - **Admin éditeur (toi)** — console web, provisionne les tenants, diagnostique à distance depuis Abidjan.
 
-### 0.4 Definition of Done (commune) *(révisée le 2026-08-06 — par phase)*
+### 0.4 Definition of Done (commune)
 
 **Les points 1, 7, 9 et 11 valent aux trois phases.** Les autres portent la phase où ils s'appliquent ; hors de cette phase, ils se déclarent **« sans objet »**, jamais cochés en silence.
 
@@ -59,7 +57,7 @@
 12. *(phase 2)* **Le jeu de données simulées a la forme du modèle** : mêmes noms de champs, mêmes types, mêmes valeurs d'énumération.
 13. *(phase 3)* **Les données simulées des endpoints livrés sont supprimées.** Une simulation qui survit à son endpoint fait échouer le build.
 
-### 0.5 Ordre d'implémentation *(réécrit le 2026-08-06 — trois phases, cadrage §13.0)*
+### 0.5 Ordre d'implémentation — trois phases (cadrage §13.0)
 
 **PHASE 1 — Le modèle de données** *(cycles D1, D2 — aucun écran, aucun endpoint)*
 
@@ -93,7 +91,7 @@ Le contenu des tranches ne change pas ; ce qui change est qu'elles s'appuient su
 | **T1 — Colonne vertébrale** | TRX-01→05a (TRX-05b en fin de tranche), ETB-01→05 **+ ETB-02b/02c**, CPT-01→04, HEB-01→05, SEJ-01/02/04, SYN-01/02 | Yao enregistre un client en chambre B3 pour 2 nuits, puis un passage de 4 h en A1 — la disponibilité empêche tout chevauchement, tout est tracé. |
 | **T2 — Services et note** | PDV-01→06, SEJ-03/05, CAI-01→04, IMP-01/02 | Aminata prend une commande au bar hors réseau, elle s'ajoute à la note de la chambre B3 ; Adjoua encaisse, imprime un ticket, boucle son shift. |
 | **T3 — Fiscalité et clôture** | FIS-01→07, CAI-05/06, IMP-03, DIR-01, SYN-03/04 | Une facture Deloria est certifiée FNE avec la taxe de nuitée en ligne distincte ; la clôture journalière tombe au franc près ; l'état de reversement communal est généré. |
-| **T4 — Mobilité et clients** | CPT-05/06, PWA-01→05, QRC-01→04, SEJ-06, RSV-01→05, **HEB-09** | Aminata prend les commandes sur son Android avec l'application installée et enrôlée ; un client scanne le QR de sa table, Aminata valide d'un tap ; une réservation est posée sur le planning ; un petit-déjeuner inclus se décompte sans être facturé. |
+| **T4 — Mobilité et clients** | CPT-05/06, PWA-01→07, QRC-01→04, SEJ-06, RSV-01→05, **HEB-09** | Aminata prend les commandes sur son Android avec l'application installée et enrôlée ; un client scanne le QR de sa table, Aminata valide d'un tap ; une réservation est posée sur le planning ; un petit-déjeuner inclus se décompte sans être facturé. |
 | **T5 — Pilotage** | STK-01→04, DIR-02→05, ADM-01→06, MET-01→03 | M. Koffi voit ses deux établissements en temps réel depuis son téléphone ; le stock du bar se décrémente sur vente ; un tenant est provisionné et facturé depuis la console. |
 
 **Incrément 3** : contrats et cautions des résidences meublées, nœud de site LAN, paquet auto-hébergé durci, second adaptateur de juridiction, comptes clients entreprises, et **Capacitor si et seulement si un besoin natif constaté le justifie**.
@@ -116,7 +114,7 @@ Le contenu des tranches ne change pas ; ce qui change est qu'elles s'appuient su
 | Impression & documents | IMP | 3 | 1 | — | T2/T3 |
 | Stocks | STK | 4 | — | — | T5 |
 | **Modèle de données** | **DAT** | — | — | — | **Phase 1 (D1, D2)** |
-| Installation et capacités de plateforme | **PWA** *(ex-MOB)* | 5 | 1 | — | T4, sauf PWA-02 dû en phase 2 |
+| Coquilles et capacités de plateforme | **PWA** | 5 | 2 | — | T4, sauf PWA-02 dû en phase 2 |
 | Direction & pilotage | DIR | 5 | — | — | T3/T5 |
 | Console éditeur & abonnements | ADM | 6 | — | — | T5 |
 | Métriques | MET | 2 | 1 | — | T5 |
@@ -136,7 +134,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 ## Module DAT — Modèle de données *(phase 1)*
 
-> **Nouveau le 2026-08-06.** Ce module n'a pas de story numérotée parce qu'il n'apporte aucune fonctionnalité : il **matérialise en SQL les entités de tous les autres modules**, avant qu'aucune ligne de code n'existe. Son périmètre est donc l'union de tous les autres, et sa source est ce document plus `docs/registre-classes-offline.md`.
+> Ce module n'a pas de story numérotée parce qu'il n'apporte aucune fonctionnalité : il **matérialise en SQL les entités de tous les autres modules**, avant qu'aucune ligne de code n'existe. Son périmètre est donc l'union de tous les autres, et sa source est ce document plus `docs/registre-classes-offline.md`.
 
 **DAT-01 — Modèle de données complet, en SQL de référence (P0, phase 1)**
 - Livrable : `docs/modele-donnees/{schema}.sql`, un fichier par schéma Postgres, **applicable sur une base vierge**, plus un `README.md` d'index.
@@ -204,7 +202,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Consentement recueilli et tracé à l'enregistrement d'un client.
 
 **TRX-07 — Mise à jour et télémétrie du parc (P1)**
-- **Mise à jour de l'application par rechargement** (PWA-01) : aucun serveur de mise à jour à écrire, aucune revue d'éditeur. *(Cette ligne prévoyait un serveur de mise à jour auto-hébergé pour les cibles desktop de Tauri ; le passage en PWA la supprime.)*
+- **Mise à jour de l'application par rechargement en PWA** (PWA-01), **par les magasins d'applications en Capacitor**. Aucun serveur de mise à jour à écrire tant que la coquille desktop n'existe pas.
 - Télémétrie minimale du parc auto-hébergé : version, santé, erreurs. Sans elle, aucun diagnostic à distance.
 - Export d'un **bundle de diagnostic** déclenchable par le client.
 
@@ -308,7 +306,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 - Remplace le verrouillage par adresse MAC, techniquement impossible (cadrage §12.2).
 
 **CPT-06 — Attestation et géorepérage souple (P1, tranche T4)**
-- ⚠️ **L'attestation d'intégrité est ABANDONNÉE : il n'existe aucun équivalent web** de Play Integrity ni d'App Attest (cadrage §12.2, décision du 2026-08-06). Ce qui la remplace vit entièrement côté serveur : signature de requête par clé d'appareil (CPT-05), révocation immédiate, journal d'audit. Le modèle de menace réel est l'employé qui détourne des espèces, pas l'attaquant qui modifie l'application.
+- **Play Integrity (Android) et DeviceCheck + App Attest (iOS) vérifiés côté serveur — en coquille Capacitor** (PWA-06). ⚠️ **Impossible en PWA** : il n'existe aucun équivalent web. Pendant toute la phase 2, ce qui la remplace vit entièrement côté serveur — signature de requête par clé d'appareil (CPT-05), révocation immédiate, journal d'audit. Le modèle de menace réel est l'employé qui détourne des espèces, pas l'attaquant qui modifie l'application.
 - Géorepérage : rayon paramétrable, **300 m par défaut**, position simulée détectée → **alerte au gérant, jamais blocage**.
 - **Jamais bloquant sur une action critique** : un caissier qui ne peut pas encaisser parce que le GPS dérive est un client perdu.
 
@@ -660,43 +658,45 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 ---
 
-## Module PWA — Installation et capacités de plateforme (tranche T4)
+## Module PWA — Coquilles et capacités de plateforme
 
-> 📦 **Ce module s'appelait MOB — Mobile Tauri jusqu'au 2026-08-06.** L'application est une PWA (cadrage §13.3) : il n'y a plus de build natif, plus de plugin Swift ou Kotlin, plus de distribution par magasin. **Les besoins n'ont pas disparu — leur mise en œuvre change, et certaines limites sont désormais des faits à afficher plutôt que des développements à budgéter** (cadrage §13.4).
->
-> Les codes passent de `MOB-xx` à `PWA-xx`. Le budget de 8 à 11 semaines de plugins natifs disparaît ; ce qui le remplace tient en quelques jours, **plus un spike bloquant en phase 0 sur l'impression thermique**.
+> **Un seul code Nuxt, trois coquilles dans le temps** (cadrage §13.3) : **PWA** en phase 2 et pour la démonstration, **Capacitor** en production mobile — décidé, pas optionnel —, **Tauri desktop** en option. Chaque story ci-dessous dit ce qui se fait dans chacune, parce que les deux se construisent, à des moments différents.
 
 **PWA-01 — Installation et mise à jour (P0)**
-- Manifeste (nom, icônes, couleur de thème, `display: standalone`), service worker, stratégie de cache. **L'application s'ouvre et s'affiche hors ligne**, y compris au premier écran.
+- **En PWA** : manifeste (nom, icônes, couleur de thème, `display: standalone`), service worker, stratégie de cache. **L'application s'ouvre et s'affiche hors ligne**, y compris au premier écran. Mise à jour **au rechargement**, sans intermédiaire — un correctif de calcul de taxe part le jour même. Un service worker peut servir une version périmée : une invite explicite propose de recharger.
 - **Le parcours d'installation est une étape guidée du produit, pas un détail** : sur Android et desktop, une invite ; **sur iOS, l'installation passe par le menu de partage et rien ne la déclenche automatiquement** — l'écran doit l'expliquer, sans quoi le personnel ne l'installera jamais et perdra les notifications.
-- **Mise à jour au rechargement, sur toutes les plateformes, sans intermédiaire.** Un service worker peut servir une version périmée : une invite explicite propose de recharger quand une version nouvelle est disponible.
-- ⚠️ **C'est le gain principal du changement** : un correctif de calcul de taxe part le jour même, au lieu d'attendre la revue d'un magasin d'applications.
+- **En Capacitor** : chaîne de build Android et iOS, signature, distribution par les magasins. ⚠️ **La mise à jour redevient contrainte** — délai de revue Apple compris. La mise à jour des assets web dans la coquille est un **correctif d'urgence, jamais le canal normal**.
+- **La coquille PWA reste une couche mince et remplaçable** : rien de métier dans le service worker, aucune logique dans le manifeste.
 
-**PWA-02 — PlatformAdapter (P0)**
+**PWA-02 — PlatformAdapter (P0, dû dès la PHASE 2, cycle F1)**
 - **Aucune capacité de plateforme appelée directement dans un composant.** Impression, scan, caméra et OCR, stockage sécurisé, notifications, géolocalisation, état réseau passent par cette interface.
-- Une seule implémentation au MVP : `web`. Une seconde le jour de Capacitor, si ce jour vient.
-- **Une capacité absente le dit explicitement à l'utilisateur et propose l'alternative.** C'est plus important en PWA qu'en natif : les écarts entre navigateurs sont réels, connus, et ne se corrigeront pas. Le tableau du cadrage §13.4 les recense.
-- ⚠️ **Cette story est due dès la PHASE 2, cycle F1** — pas en T4. L'interface existe avant qu'aucune capacité ne soit réellement branchée, et c'est elle qui permet aux écrans d'annoncer une indisponibilité honnêtement.
+- **Deux implémentations prévues d'emblée** : `web` (phase 2), `capacitor` (production). L'interface s'écrit en pensant aux deux même quand une seule est livrée — **une méthode dont la signature ne peut pas être servie par un plugin natif est une méthode mal dessinée**.
+- **Une capacité absente le dit explicitement à l'utilisateur et propose l'alternative.** En phase 2 ces messages sont fréquents et c'est normal ; Capacitor les fait disparaître.
+- ⚠️ **C'est la story qui rend le passage à Capacitor mécanique.** Elle est due au premier cycle d'écran, avant qu'aucune capacité ne soit réellement branchée.
 
 **PWA-03 — Notifications (P0)**
-- **Web Push (VAPID)** — serveur d'envoi, abonnement par appareil, révocation.
 - Alertes critiques : facture en échec de certification, stickers bas, écart de caisse, terminal déconnecté.
-- ⚠️ **Sur iOS, les notifications web exigent iOS 16.4 ou plus ET que l'application soit installée.** Sans installation, pas de notification : l'écran le dit et propose d'installer (PWA-01). Ce n'est pas contournable.
+- **En PWA** : Web Push (VAPID), abonnement par appareil, révocation. ⚠️ **Sur iOS, exige iOS 16.4 ou plus ET que l'application soit installée** — sans installation, pas de notification ; l'écran le dit et propose d'installer (PWA-01).
+- **En Capacitor** : **APNs et FCM**, sans condition d'installation manuelle, canal haute importance. Budget 2 à 3 semaines.
 
 **PWA-04 — Impression thermique (P0)**
-- **WebUSB** ou **Web Bluetooth** pour parler ESC/POS directement à l'imprimante 80 mm, ouverture du tiroir-caisse comprise. Disponible sur Chromium : Windows, Android, Linux, macOS.
-- ⚠️ **Absent de Safari, donc de tout iPhone et iPad.** Repli obligatoire : impression système vers une imprimante partagée, ou **envoi du ticket à un poste qui imprime**. L'écran dit *« cet appareil ne peut pas imprimer directement — le ticket part sur l'imprimante de la réception »*.
+- **En PWA** : **WebUSB** ou **Web Bluetooth** pour parler ESC/POS à l'imprimante 80 mm, ouverture du tiroir comprise. Fonctionne sur Chromium — Windows, Android, Linux, macOS. ⚠️ **Absent de Safari, donc de tout iPhone.** Repli pendant la phase 2 : impression système, ou **envoi du ticket à un poste qui imprime**. L'écran dit *« cet appareil ne peut pas imprimer directement — le ticket part sur l'imprimante de la réception »*.
+- **En Capacitor** : **plugin Bluetooth natif**, sur les deux plateformes. Budget 2 semaines. ⚠️ **C'est le motif n° 1 de Capacitor** : un caissier mobile doit pouvoir imprimer un reçu, et aucun repli web ne le permet sur iOS.
 - **File d'impression avec reprise** : une imprimante hors ligne ne bloque jamais l'encaissement (IMP-01).
-- ⚠️ **SPIKE BLOQUANT EN PHASE 0** : parler à l'imprimante réelle du pilote depuis le navigateur du poste de réception. C'est le seul point où la PWA peut échouer de façon rédhibitoire.
+- ⚠️ **SPIKE EN PHASE 0**, sur l'imprimante réelle du pilote, **et sur les deux chemins**.
 
 **PWA-05 — Stockage sécurisé et purge (P0)**
-- **WebCrypto avec clés non extractibles** rangées en IndexedDB pour la clé d'appareil (CPT-05) : la clé signe sans jamais pouvoir être lue par du JavaScript.
 - **Chiffrement au repos du cache local** et **purge à la déconnexion** — ce sont des données d'identité de clients.
-- ⚠️ **Le stockage d'un navigateur peut être purgé après une longue inactivité.** Conséquence à assumer plutôt qu'à combattre : **le ré-enrôlement d'appareil doit être simple**, il arrivera. Demander la permission de stockage persistant réduit le risque sans le supprimer.
+- **En PWA** : **WebCrypto avec clés non extractibles** en IndexedDB pour la clé d'appareil (CPT-05) — la clé signe sans jamais pouvoir être lue par du JavaScript. ⚠️ **Le navigateur peut purger le stockage après une longue inactivité** : le **ré-enrôlement d'appareil doit être simple**, il arrivera. Demander la permission de stockage persistant réduit le risque sans le supprimer.
+- **En Capacitor** : **Keystore Android / Keychain iOS**, adossés au matériel. Le ré-enrôlement cesse d'être un événement courant. Budget 0,5 semaine.
 
-**PWA-06 — Synchronisation en arrière-plan (P1)**
-- API **Background Sync**, disponible sur Chromium uniquement. **Optimisation, jamais hypothèse** — la file se vide au retour au premier plan par défaut (SYN-02), sur toutes les plateformes.
-- ⚠️ **L'hypothèse retenue n'a pas changé avec la plateforme** : elle était déjà la plus pessimiste.
+**PWA-06 — Attestation d'intégrité (P1, Capacitor seulement)**
+- **Play Integrity (Android) et DeviceCheck + App Attest (iOS)**, vérifiés **côté serveur**. Budget 1 semaine.
+- ⚠️ **Impossible en PWA : il n'existe aucun équivalent web.** Pendant toute la phase 2, la sécurité repose entièrement sur le serveur — signature de requête par clé d'appareil, révocation immédiate, journal d'audit (cadrage §12.2). C'est une limite assumée, pas un défaut à corriger.
+
+**PWA-07 — Synchronisation en arrière-plan (P1)**
+- **En PWA** : Background Sync, Chromium uniquement. **En Capacitor** : `BGTaskScheduler` et `WorkManager`.
+- **Optimisation, jamais hypothèse, dans les deux cas** — la file se vide au retour au premier plan par défaut (SYN-02), sur toutes les plateformes.
 
 ---
 
@@ -828,10 +828,10 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 
 ### Note — quatre valeurs HEB de ce tableau ne sont PAS des clés du catalogue, et c'est délibéré
 
-Le cycle 004 pose **trois** clés au catalogue `etablissements.parametre_catalogue` :
-`heure_arrivee_standard`, `heure_depart_standard` et `seuil_bascule_nuitee_minutes`. Les quatre
-autres lignes HEB ci-dessus sont des **référentiels en table**, pas des scalaires d'établissement,
-et les y verser produirait un paramètre qui ne saurait pas dire de quoi il parle :
+**Trois** valeurs HEB sont des clés du catalogue `etablissements.parametre_catalogue` :
+`heure_arrivee_standard`, `heure_depart_standard` et `seuil_bascule_nuitee_minutes`. Les autres
+lignes HEB ci-dessus sont des **référentiels en table**, pas des scalaires d'établissement, et les
+y verser produirait un paramètre qui ne saurait pas dire de quoi il parle :
 
 | Ligne du tableau | Où elle vit réellement | Pourquoi pas au catalogue |
 |---|---|---|
@@ -866,7 +866,7 @@ rouvre. Trois conséquences en découlent, et elles sont vraies **maintenant** :
 
 ---
 
-## Prochaine étape *(réécrite le 2026-08-06)*
+## Prochaine étape
 
 **Démarrer la phase 1 : le cycle D1, puis D2** — le modèle de données complet en SQL, avant toute autre chose (`docs/Kaya_Prompts_SpecKit.md` §3).
 

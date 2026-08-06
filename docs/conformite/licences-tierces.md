@@ -17,12 +17,12 @@ répond qu'à une question : **qu'est-ce qui part chez le client, et à quelles 
 Kaya est distribué comme **PWA installable, vendue par abonnement**. C'est une redistribution
 commerciale, ce qui referme les deux échappatoires qu'on invoque d'habitude.
 
-> ⚠️ **Le passage de Tauri à la PWA (2026-08-06) ne change rien à l'obligation, et il faut le dire
-> parce qu'on croirait l'inverse.** L'intuition — « c'est un site web, rien n'est distribué » — est
-> fausse à deux titres : le service worker **met les fichiers en cache sur l'appareil du client**,
-> et l'application **s'installe**. Les polices partent chez le client exactement comme avant, et
-> l'avis doit les accompagner. Ce qui change est le chemin — `app/assets/fonts/` servi par HTTP au
-> lieu d'un binaire —, pas le fait.
+> ⚠️ **Servir l'application par le web ne supprime pas l'obligation, et il faut le dire parce qu'on
+> croirait l'inverse.** L'intuition — « c'est un site web, rien n'est distribué » — est fausse à
+> deux titres : le service worker **met les fichiers en cache sur l'appareil du client**, et
+> l'application **s'installe**. Les polices partent chez le client, et l'avis doit les accompagner.
+> **En coquille Capacitor, elles entrent dans le paquet** — l'obligation y est encore plus
+> évidente. Le chemin change, le fait ne change pas.
 
 - ce n'est pas un usage interne — le logiciel est livré à des tiers ;
 - ce n'est pas gratuit — l'OFL autorise la vente **avec** un logiciel, à condition que la police ne

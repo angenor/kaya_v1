@@ -3,56 +3,25 @@
 *Source de vérité des types d'action tracés au journal d'audit (`comptes.journal_audit`).
 Story **CPT-04**.*
 
-**Version 2.0.0** — 2026-08-06. **Douze** familles, **toutes DUES**.
+**Douze familles, toutes DUES.** Chacune passe à « branchée » dans le changement qui l'écrit.
 
-> ### ⚠️ TOUTES LES FAMILLES REPASSENT À « DUE », ET AUCUNE N'EST RETIRÉE
->
-> Le dépôt repart de zéro : il n'existe aucun chemin d'écriture, donc **aucune famille ne peut être
-> déclarée « branchée »** — et le harnais de vérification échouerait si elle l'était, ce qui est
-> exactement son travail.
->
-> **Les douze familles restent, avec leur définition, leur cible et leurs pièges.** Ce sont des
-> décisions de conception prises à froid, pas des constats d'implémentation. Les passages en
-> revue ci-dessous — pourquoi `suppression` garde un nom faux, pourquoi une consultation mérite sa
-> propre famille, pourquoi le contexte de `consultation_piece_identite` ne porte jamais le numéro
-> lu — valent intégralement.
->
-> **Ce qui est périmé** : les colonnes « État » du tableau, les mentions « passée à branché en
-> T0XX », les chemins de fichiers et les numéros de cycle. **Lire les familles, ignorer les
-> états.**
->
-> **En phase 2, le registre des actions a un écran** (`G4`) **et pas encore d'écriture réelle** :
+> **Le registre des actions a un écran (`G4`) dès la phase 2, et pas encore d'écriture réelle** :
 > il se peuple depuis les données simulées. C'est une raison de plus de garder la taxonomie fermée
 > dès maintenant — le filtre de l'écran n'a de valeur que si son vocabulaire est arrêté.
-
-*Historique — version 1.2.0, 2026-08-02 : onze familles, 4 branchées, 7 dues.*
-
-> **La douzième est `consultation_piece_identite`**, ajoutée par le cycle 006 (SEJ-01) : la
-> première qui trace une **lecture** et non une modification. Voir sa section dédiée.
->
-> **La onzième est `derive_horloge_constatee`**, ajoutée par le cycle 005 (SYN-04). Elle ne trace
-> pas un geste d'utilisateur mais un **constat d'exploitation** : l'heure d'un terminal s'écarte de
-> celle du serveur au-delà du seuil paramétré. C'est la première famille de cette nature, et le §
-> « Ce que la taxonomie n'est pas » dit pourquoi elle a quand même sa place ici plutôt qu'au grand
-> livre. Elle a été déclarée **due** le temps d'un commit, puis **branchée** dans celui qui l'écrit
-> — `api/src/derive.rs`, câblé sur le service de note par la couche API. Les deux temps ne sont pas
-> une formalité : c'est `audit_taxonomie.rs` qui les impose, en faisant échouer le build dès qu'un
-> type déclaré « dû » acquiert un chemin d'écriture.
 
 ---
 
 ## À quoi sert ce document
 
-CPT-04 énumère dix familles d'actions à tracer. **Huit d'entre elles n'ont aucun chemin d'écriture
-au cycle 003** : la remise n'existe pas encore, l'avoir non plus, le tiroir-caisse n'est pas
-branché. Les inscrire quand même a une raison précise, et c'est la même qu'au cycle 002 pour les
-étapes dues du parcours d'agnosticité :
+CPT-04 énumère les familles d'actions à tracer. **La plupart n'auront aucun chemin d'écriture
+pendant longtemps** : la remise n'existe pas avant le cycle des ventes, l'avoir avant celui de la
+fiscalité, le tiroir-caisse avant l'impression. Les inscrire quand même a une raison précise :
 
 > Une liste de choses à faire qui vit dans une spécification se perd. Une liste qui vit dans un
 > **harnais de test** ne se perd pas — elle fait échouer le build le jour où quelqu'un branche un
 > type sans le déclarer.
 
-Le harnais est `backend/tests/audit_taxonomie.rs`. Il lit **ce fichier** et le compare au code.
+Le harnais lit **ce fichier** et le compare au code.
 
 **Terme utilisateur : « Registre des actions »** (`docs/design/lexique.md`). « Journal d'audit » est
 le nom technique — table, permission, endpoint — et n'apparaît jamais à l'écran.
@@ -89,74 +58,42 @@ build aussi : sans quoi il suffirait de tout déclarer branché pour rendre le h
 | 11 | `derive_horloge_constatee` | L'heure d'un terminal s'écarte de celle du serveur au-delà du seuil | **dû** | SYN-04 |
 | 12 | `consultation_piece_identite` | ★ La **consultation** d'un numéro de pièce d'identité | **dû** | SEJ-01 |
 
-**Les douze sont dues, et c'est l'état normal d'un dépôt qui n'a pas encore de code.** Chacune
-passe à `branché` **dans le changement qui l'écrit**, jamais avant — c'est ce que le harnais
-impose, et c'est ce qui oblige à revenir ici.
+**Les douze sont dues.** Chacune passe à `branché` **dans le changement qui l'écrit**, jamais
+avant — c'est ce que le harnais impose, et c'est ce qui oblige à revenir ici.
 
-> **Le tableau ci-dessus a déjà été rempli une fois, sur la version antérieure du projet** : huit
-> familles sur douze y étaient branchées. Ce qui suit — les sections par famille — décrit ce
-> remplissage et **garde toute sa valeur d'enseignement** : où chaque famille a réellement été
-> branchée, ce qui a surpris, et deux fois la même leçon sur la fréquence à laquelle on interroge
-> un harnais. **Lire les raisonnements, ignorer les numéros de tâche.**
+### Quatre règles d'écriture, valables pour toutes les familles
 
-**`suppression` est passée à branché en T028**, avec le service d'authentification — et **pas là
-où on l'attendait**. Le document annonçait la désactivation de compte (opération 13, T041) ; c'est
-la **révocation de session** qui a branché le type la première. Les deux sont des mises hors
-service, les deux sont dues au même cycle, et le harnais a signalé l'écart au moment exact où le
-premier chemin d'écriture est apparu. C'est son travail, et c'est ce que valait de l'écrire vert à
-vide.
+**1. L'entrée s'écrit dans la MÊME TRANSACTION que l'état qu'elle trace.** Une annulation tracée
+après coup peut manquer, et le seul moment où l'on sait qu'elle a eu lieu est celui où on l'écrit.
 
-**`changement_role` est passée à branché en T039**, là où le document l'annonçait : le service
-d'attribution et de retrait de `socle/comptes/src/roles/service.rs` écrit une entrée dans la
-**même transaction** que la ligne et que l'événement outbox (FR-024). Deux gestes, deux entrées —
-`contexte.sens` vaut `attribution` ou `retrait`, et jamais autre chose. C'est aussi ce qui
-explique que `compte_role` n'ait pas de privilège `UPDATE` : changer un rôle est un retrait suivi
-d'une attribution, donc deux lignes au registre, pas une modification silencieuse.
+**2. Une famille se branche là où le premier chemin d'écriture apparaît, pas là où on l'attendait.**
+`suppression` sera annoncée pour la désactivation de compte, et c'est probablement la **révocation
+de session** qui la branchera la première — les deux sont des mises hors service. Le harnais
+signale l'écart au moment exact où le chemin apparaît ; c'est son travail, et c'est ce qui vaut de
+l'écrire vert à vide.
 
-**`rebascule_palier_passage` est passée à branché au cycle 004**, avec le moteur de tarification
-du passage. Le dépassement constaté au départ fait changer de palier ; la différence est ajoutée à
-la note, et l'entrée d'audit porte la durée constatée et les **deux paliers** — celui qui avait été
-vendu et celui qui s'applique. Le passage est aujourd'hui massivement encaissé en espèces sans
-trace : c'est précisément cette famille qui donne au propriétaire la visibilité que le cadrage §5.6
-lui promet, et c'est aussi la raison pour laquelle elle rencontrera de la résistance.
+**3. Ne tracer que ce qui change ce que le propriétaire vient chercher.** `modification_tarif`
+s'écrit **uniquement si le prix change** : tracer un changement de nom noierait le signal, et un
+registre illisible n'est plus lu. Le contexte porte les deux montants — avant et après — avec leur
+devise au même niveau.
 
-> **Le harnais a signalé l'écart avec un cycle de retard, et il faut le dire.** Le chemin
-> d'écriture est apparu en T042, mais `backend/tests/audit_taxonomie.rs` n'a été relancé qu'au
-> recollement T049 : le test était **rouge dans l'arbre** entre les deux, sans que rien ne le
-> montre, parce que les tâches intermédiaires lançaient des suites ciblées. La porte a fait son
-> travail ; c'est la fréquence à laquelle on l'interroge qui a manqué. `cargo test --workspace`
-> avant chaque commit de fin de phase est le remède, et non une porte de plus.
-
-**`modification_tarif` est passée à branché au cycle 007**, avec le catalogue de vente — là où
-le document l'annonçait, à PDV-01. `ServiceCatalogue::modifier_article` écrit l'entrée dans la
-**même transaction** que la ligne et que l'événement d'outbox, et **uniquement si le prix change** :
-tracer un changement de nom noierait ce que M. Koffi vient chercher, et un registre illisible n'est
-plus lu. Le contexte porte les deux montants — celui d'avant et celui d'après — avec leur devise au
-même niveau, ce que `valider_contexte` exige.
-
-> **Le harnais a de nouveau signalé l'écart avec un cycle de retard**, et pour la même raison qu'au
-> cycle 004 : le chemin d'écriture est apparu en T019, mais `audit_taxonomie.rs` n'a été relancé
-> qu'au recollement de la phase 4. La note du cycle 004 nommait déjà le remède — `cargo test
-> --workspace` avant chaque commit de fin de phase — et il n'a pas été appliqué. **Ce n'est pas la
-> porte qui manque, c'est la fréquence à laquelle on l'interroge**, et le constater deux fois de
-> suite vaut mieux que de l'écrire une troisième.
-
-**`remise` et `annulation_ligne_envoyee` passent à branché au cycle 007**, avec US6 — là où le
-document les annonçait. Les deux écrivent au registre dans la **même transaction** que l'état et
-que l'événement d'outbox : une annulation tracée après coup pourrait manquer, et le seul moment où
-l'on sait qu'elle a eu lieu est celui où on l'écrit.
+**4. Interroger le harnais souvent, pas seulement en fin de cycle.** Un chemin d'écriture apparaît
+au milieu d'une tâche ; si le test complet n'est relancé qu'au recollement, il reste **rouge dans
+l'arbre** entre les deux sans que rien ne le montre. Lancer la suite complète avant chaque commit
+de fin de phase est le remède — **ce n'est pas une porte de plus qu'il faut, c'est la fréquence à
+laquelle on interroge celle qui existe.**
 
 ⚠️ **Le pourcentage figure au contexte de la remise, et c'est là qu'il sert.** Il ne fait autorité
-nulle part — le montant est figé à l'octroi (R-10) —, mais « 10 % » apprend une politique
-commerciale à M. Koffi quand « 2 000 F » ne lui apprend rien. C'est le même régime
-qu'`horodatage_client` : la valeur existe, elle est écrite, elle n'entre dans aucun calcul.
+nulle part — le montant est figé à l'octroi —, mais « 10 % » apprend une politique commerciale à
+M. Koffi quand « 2 000 F » ne lui apprend rien. C'est le même régime qu'`horodatage_client` : la
+valeur existe, elle est écrite, elle n'entre dans aucun calcul.
 
-*Sur la version antérieure du projet, huit familles sur douze avaient fini par être branchées —
-`suppression`, `changement_role`, `modification_tarif`, `remise`, `annulation_ligne_envoyee`,
-`rebascule_palier_passage`, `derive_horloge_constatee` et `consultation_piece_identite` —, les
-quatre autres restant dues. **C'était exactement ce que le document annonçait, et le harnais l'a
-vérifié à chaque étape** : c'est la meilleure preuve que ce mécanisme fonctionne, et la raison de
-le remettre en place au premier cycle qui écrit une entrée d'audit.*
+**`rebascule_palier_passage` mérite sa mention** : le dépassement constaté au départ fait changer
+de palier, la différence est ajoutée à la note, et l'entrée porte la durée constatée et les **deux
+paliers** — celui qui avait été vendu et celui qui s'applique. Le passage est aujourd'hui
+massivement encaissé en espèces sans trace : c'est précisément cette famille qui donne au
+propriétaire la visibilité que le cadrage §5.6 lui promet, et c'est aussi la raison pour laquelle
+elle rencontrera de la résistance.
 
 ### ★ `consultation_piece_identite` — la première famille qui trace une LECTURE
 
@@ -185,12 +122,10 @@ déclarée l'échouerait aussi. Les deux sens sont vérifiés par `backend/tests
 ### `forcage_disponibilite` — reste « due », et le dire vaut mieux que la laisser ambiguë
 
 La famille n° 10 décrit *« l'attribution d'une unité que le système déclarait indisponible »*.
-**Le cycle 006 ne livre aucun forçage** : un changement d'unité vers une chambre occupée est
-**refusé**, avec le conflit nommé (FR-080), et la prolongation qui bute sur une occupation
-suivante l'est aussi. La ligne reste donc « due ».
-
-C'est écrit ici parce que le cycle 006 est celui où l'on s'attendrait à la voir passer : il touche
-l'attribution d'unités de bout en bout. Ne rien dire laisserait croire à un oubli.
+**Le cycle des séjours ne livrera aucun forçage** : un changement d'unité vers une chambre occupée
+est **refusé**, avec le conflit nommé, et la prolongation qui bute sur une occupation suivante
+l'est aussi. La ligne reste donc « due » alors même que ce cycle touche l'attribution d'unités de
+bout en bout — le dire évite de croire à un oubli.
 
 ### `derive_horloge_constatee` — la première famille qui ne trace aucun geste
 
@@ -217,13 +152,13 @@ se retire, une ligne s'annule par une contre-ligne. Le type garde pourtant le no
 parce que c'est **le geste que l'utilisateur croit faire**, et que le registre est lu par un
 propriétaire qui cherche « qui a supprimé ça ». Le lexique traduit ; la taxonomie nomme l'intention.
 
-Au cycle 003, `suppression` trace **trois gestes**, tous des mises hors service :
+`suppression` trace **trois gestes** dès le cycle des comptes, tous des mises hors service :
 
-| Geste | Où | Cible |
-|---|---|---|
-| Révoquer une session — « Déconnecter cet appareil » | `authentification/service.rs`, T028 | `session` |
-| Révoquer une famille de jetons sur **réutilisation détectée** | idem | `session` |
-| Désactiver un compte (`compte_changer_etat`, opération 13) | T041 | `compte` |
+| Geste | Cible |
+|---|---|
+| Révoquer une session — « Déconnecter cet appareil » | `session` |
+| Révoquer une famille de jetons sur **réutilisation détectée** | `session` |
+| Désactiver un compte | `compte` |
 
 `cible_type` les distingue — `session` ou `compte` —, ce qui permet au filtre de `G4` de les
 séparer sans multiplier les familles. **Une famille par geste ferait une taxonomie de trente
@@ -237,14 +172,14 @@ unité.
 
 ## Ce que la taxonomie n'est pas
 
-**Ce n'est pas la liste des événements outbox.** Les deux registres sont distincts (research R-08) :
+**Ce n'est pas la liste des événements outbox.** Les deux registres sont distincts :
 
 | | Journal d'audit | Grand livre (outbox) |
 |---|---|---|
 | Public | Le **propriétaire**, dans l'interface | Les **projections**, en interne |
 | Contenu | Ce qu'une personne a fait | Une transition d'état |
 | Classe | **A** — l'entrée s'écrit hors ligne avec l'action qu'elle trace | Celle de l'opération tracée |
-| Granularité | Onze familles, stables sur la vie du produit | Un type par transition, **vingt-deux** à ce cycle (13 + 9 ; `compte.modifie` est déclaré sans émetteur et n'en fait pas vingt-trois) |
+| Granularité | **Douze familles**, stables sur la vie du produit | **Un type par transition d'état** — plusieurs dizaines |
 
 Une attribution de rôle produit **les deux** : l'événement `role.attribue` et l'entrée d'audit
 `changement_role`, dans la même transaction. Ce n'est pas une redondance — l'un alimente les
@@ -252,26 +187,24 @@ projections, l'autre est un produit que M. Koffi achète.
 
 **Ce n'est pas non plus la liste des actions journalisées techniquement.** Une connexion, un
 rafraîchissement de session et un échec d'authentification vont aux **journaux applicatifs**, jamais
-ici (research R-15). Le registre est permanent et à rétention illimitée : y écrire les connexions y
+ici. Le registre est permanent et à rétention illimitée : y écrire les connexions y
 écrirait la liste horodatée des présences du personnel.
 
 ---
 
 ## Ajouter une famille
 
-Une **douzième** famille se justifie par une story, pas par une intuition — la onzième l'a été par
-SYN-04, et le tableau la nomme. Le cas normal est l'inverse :
-faire passer une famille de `dû` à `branché`, dans le **même changement** que le code qui l'écrit.
+Une **treizième** famille se justifie par une story, pas par une intuition. Le cas normal est
+l'inverse : faire passer une famille de `dû` à `branché`, dans le **même changement** que le code
+qui l'écrit.
 
-1. Le type est ajouté à l'énumération `TypeActionAudit`
-   (`backend/crates/socle/comptes/src/audit/taxonomie.rs`) — **une énumération fermée**, jamais un
-   `String` : un `String` laisserait un cycle inventer `remise_appliquee` à côté de `remise`, et le
-   filtre de l'écran `G4` cesserait de trouver la moitié des entrées sans que rien n'échoue.
+1. Le type est ajouté à l'**énumération fermée** des types d'action — jamais un `String` : un
+   `String` laisserait un cycle inventer `remise_appliquee` à côté de `remise`, et le filtre de
+   l'écran `G4` cesserait de trouver la moitié des entrées sans que rien n'échoue.
 2. Sa ligne passe à **branché** ici.
-3. `cargo test --test audit_taxonomie` constate l'accord.
+3. Le test de taxonomie constate l'accord.
 
 ## Voir aussi
 
-- `specs/003-comptes-roles-audit/data-model.md` §8 — la table et ses trois index de filtre
 - `docs/registre-classes-offline.md` — `journal_audit` en classe **A**
 - `docs/design/lexique.md` — « Registre des actions », et les mots qui n'atteignent jamais l'écran

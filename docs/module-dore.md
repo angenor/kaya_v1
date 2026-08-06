@@ -1,52 +1,35 @@
 # Kaya — Le module doré
 
-*Patron de référence de tous les cycles. Six couches produites sur `note_etablissement` ; la
-**septième — le patron d'écriture front** — ajoutée sur la bascule d'un service ; la **huitième —
-le cycle de vie de l'application** — après une vérification en navigateur qui a trouvé deux écrans
-inatteignables alors que 24 portes et 652 tests étaient verts.*
+*Patron de référence de tous les cycles : neuf couches, de la table à l'écran.*
 
-**Version 2.0.0 — 2026-08-06**
+> ### CE DOCUMENT EST UN LIVRABLE AVANT D'ÊTRE UNE ENTRÉE
+>
+> Le cadrage §13.1 exige qu'un module soit écrit **à la main, avant toute génération assistée**, et
+> serve de patron. **Le premier cycle de la phase 3 (backend) produit ce module et vérifie ce
+> document contre lui**, tranche par tranche. Ce qui suit est ce qu'on sait devoir y trouver.
 
-> ### ⚠️ CE DOCUMENT DÉCRIT UN CODE QUI N'EXISTE PLUS DANS CE DÉPÔT
+> ### Ce que l'ordre des trois phases fait à ce patron
 >
-> Les huit couches ci-dessous ont été écrites, exercées et débattues sur une **version antérieure
-> du projet**. Ce dépôt ne contient aucun code : ni `backend/`, ni `app/`, ni `.specify/`.
+> Les huit couches décrivent une **tranche verticale complète**, de la migration à l'écran. Ce
+> n'est pas l'ordre de travail (cadrage §13.0) : le modèle de données vient d'abord et pour tout le
+> produit, les écrans ensuite et sur données simulées, le backend en dernier. Le patron s'en trouve
+> **découpé, pas invalidé** :
 >
-> **Ce qui reste vrai, et c'est presque tout** : les décisions par couche, les pièges nommés, les
-> arbitrages datés, les fautes qu'on écrirait par réflexe. C'est du **savoir acquis au prix de
-> temps réel**, et le redécouvrir coûterait des jours.
->
-> **Ce qui est périmé** : les chemins de fichiers, les numéros de cycle, les décomptes de tests et
-> de portes, les mentions « fait » ou « soldé ». **Lire les décisions, ignorer les chemins.**
->
-> **Ce document redevient donc un LIVRABLE**, pas une entrée : le premier cycle de la phase 3
-> (backend) le réécrit en le vérifiant, tranche par tranche, contre le code qu'il produit.
-
-> ### 🔄 Ce que le changement d'ordre du 2026-08-06 fait à ce patron
->
-> Les huit couches décrivent une **tranche verticale complète**, de la migration à l'écran, écrite
-> d'un seul mouvement. **Ce n'est plus l'ordre de travail** (cadrage §13.0) : le modèle de données
-> vient d'abord et pour tout le produit, les écrans ensuite et sur données simulées, le backend en
-> dernier. Le patron s'en trouve **découpé, pas invalidé** :
->
-> | Couches | Quand elles s'appliquent désormais |
+> | Couches | Quand elles s'appliquent |
 > |---|---|
-> | Le modèle de la table — voir « Couche 0 » ci-dessous | **Phase 1**, pour tout le produit d'un coup |
+> | Le modèle de la table — « Couche 0 » ci-dessous | **Phase 1**, pour tout le produit d'un coup |
 > | 7 (écriture front) et 8 (cycle de vie) | **Phase 2**, sur données simulées d'abord |
 > | 1 à 6 (migration, registre, repository, service, handler, tests) | **Phase 3**, module par module |
 >
-> Une seule chose change vraiment dans la couche 7 : en phase 2, l'appel ne passe pas encore par le
-> client généré mais par la **couche de données simulées**, derrière la même interface. Tout le
-> reste du patron — squelette de chargement, erreur traduite du `code`, action absente et non
-> grisée, refus hors ligne annoncé avant l'action — **s'applique identiquement**, et c'est
-> précisément ce qui rend le branchement de la phase 3 mécanique.
+> Une seule chose change dans la couche 7 : en phase 2, l'appel ne passe pas par le client généré
+> mais par la **couche de données simulées**, derrière la même interface. Tout le reste — squelette
+> de chargement, erreur traduite du `code`, action absente et non grisée, refus hors ligne annoncé
+> avant l'action — **s'applique identiquement**, et c'est précisément ce qui rend le branchement de
+> la phase 3 mécanique.
 
 ---
 
 ## À quoi sert ce document
-
-Le cadrage §13.1 exige qu'un module soit écrit **à la main, avant toute génération assistée**, et
-serve de patron. Ce document est ce patron.
 
 Il ne décrit pas « comment on écrit du Rust ». Il décrit **les six ou sept décisions par couche
 qui ne se devinent pas** et que chaque cycle réintroduirait de travers s'il partait d'un exemple
@@ -60,7 +43,7 @@ ne lisant que ce fichier. S'il doit ouvrir le code du module doré, ce document 
 
 ---
 
-## Couche 0 — Le modèle de données *(nouveau, 2026-08-06)*
+## Couche 0 — Le modèle de données
 
 **Elle précède les huit autres, et elle ne se fait pas par tranche.**
 
@@ -113,20 +96,15 @@ l'écran.
 | 5 | Handler | `backend/api/src/routes/notes.rs` |
 | 6 | Tests | `backend/tests/note_etablissement_classe_a.rs` |
 
-La septième — **l'écriture depuis un écran** — n'existait pas au cycle 001, et c'était une décision
-vérifiée : l'écran de notes internes n'héritait d'aucun motif maquetté. Elle a été livrée après le
-cycle 002, sur une entité qui en avait un. Voir « La septième couche — le patron d'écriture front ».
-
-**Elle ne se lit pas comme les six autres.** Les couches 1 à 6 décrivent des décisions de structure
+**La septième — l'écriture depuis un écran — ne se lit pas comme les six autres.** Les couches 1 à 6 décrivent des décisions de structure
 qui se recopient telles quelles ; la septième décrit des décisions d'**interface**, où la faute type
 n'est pas une erreur de compilation mais un grisé posé par réflexe.
 
 **La huitième non plus, et pour une raison de nature différente.** Les sept premières décrivent
 comment on écrit **une tranche** ; la huitième décrit ce que l'**application** doit faire au
-démarrage — thème, session, coquille — et ne se recopie donc pas par tranche : elle s'écrit une fois
-et se vérifie ensuite. Son absence n'a produit aucune erreur de compilation et aucun test rouge :
-elle a rendu deux écrans inatteignables. Voir « La huitième couche — le CYCLE DE VIE de
-l'application ».
+démarrage — thème, session, coquille — et ne se recopie donc pas par tranche : elle s'écrit une
+fois et se vérifie ensuite. ⚠️ **Son absence ne produit ni erreur de compilation, ni test rouge :
+elle rend des écrans inatteignables.** C'est le défaut le plus coûteux à découvrir tard.
 
 ---
 
@@ -188,7 +166,7 @@ Trois éléments, aucun optionnel :
 
 ### Aucune migration n'écrit de données sur une table en `FORCE ROW LEVEL SECURITY`
 
-*Règle générale issue du cycle 002, à appliquer à toute migration désormais.*
+*Règle générale, à appliquer à toute migration.*
 
 **`INSERT` et `UPDATE` de migration ne fonctionnent pas** sur une table protégée par `FORCE ROW
 LEVEL SECURITY` — et le pire est qu'ils **ne se plaignent pas**.
@@ -207,9 +185,9 @@ Trois formes, et laquelle employer :
 | Alimenter un référentiel **après** son activation | Une politique `administration_editeur ... FOR ALL TO kaya_owner`, posée à la création. C'est elle qui rend possible un `INSERT` de migration ultérieure |
 | Écrire des données de client | **La mécanique de seeds**, qui pose le tenant courant — jamais une migration |
 
-Le cycle 002 a rencontré les trois : `0007` remplit sept colonnes par `DEFAULT`, `0008` insère les
-quatre référentiels avant d'activer, et `0011` peuple le catalogue **après** activation grâce à la
-politique posée en `0008`.
+**Les trois formes se rencontrent dès les premières migrations** : remplir des colonnes ajoutées par
+`DEFAULT`, insérer les référentiels avant d'activer la RLS, et peupler un catalogue **après**
+activation grâce à la politique posée à la création.
 
 ### Les privilèges disent la classe hors-ligne
 
@@ -292,8 +270,7 @@ L'UUID v7 étant ordonné dans le temps, il départage dans le bon sens.
 
 ### ⚠️ **`cree_le` FAIT AUTORITÉ. `horodatage_client` ne porte AUCUNE règle.**
 
-*Nommé ici au cycle 005, et gardé par la porte **P-23** depuis la constitution 1.8.0. Aucune
-colonne n'a été renommée : ce n'est pas le nom qui manquait, c'est l'interdiction vérifiée
+*Gardé par une porte de CI dédiée. Ce n'est pas le nom qui manque, c'est l'interdiction vérifiée
 d'employer l'autre.*
 
 | Colonne | Ce qu'elle est | Ce qui peut s'y appuyer |
@@ -437,14 +414,11 @@ déclarerait ses propres routes ne prouverait rien du service servi.
 
 ## La septième couche — le patron d'écriture front
 
-*Ajoutée après le cycle 002 (ETB), sur l'activation et la désactivation d'un service (ETB-02).*
-*Étendue de trois points par le cycle 003 (CPT) — voir « Ce que le cycle 003 ajoute au patron ».*
+*Établie sur une opération unique : l'activation et la désactivation d'un service d'établissement.*
 
-**Une seule opération sur les vingt et une que l'API exposait au cycle 002** — elle en sert **43**
-depuis le cycle 003. C'est la leçon de la section
-suivante : le cycle 001 a manqué sa couche écran, et le cycle 002 a livré un écran qui **affiche
-sans rien écrire** — vingt et une opérations d'écriture testées côté API, aucun bouton qui les
-appelle. *Une opération, complète et documentée, vaut mieux que vingt et une approximatives.*
+**Une seule opération, complète et documentée, vaut mieux que vingt approximatives.** Le piège que
+cette couche existe pour éviter : livrer un écran qui **affiche sans rien écrire** — des dizaines
+d'opérations d'écriture testées côté API, aucun bouton qui les appelle.
 
 ### Pourquoi celle-là
 
@@ -595,10 +569,9 @@ tout seul. `app/tests/theme-sombre.spec.ts` le vérifie mécaniquement — chaqu
 une valeur sous `.dark` — et **couvre désormais `core/design-system/`** en plus des sections, parce
 que le composant 16 est la pièce dont un défaut se propagerait le plus loin.
 
-### Ce que le cycle 003 (CPT) ajoute au patron
+### Trois points de plus, pour toute opération qui touche à l'identité
 
-Trois points, qui ne se déduisaient d'aucun des huit précédents. Ils s'appliquent à toute opération
-qui touche à l'identité, c'est-à-dire à la plupart de celles qui restent.
+Ils ne se déduisent d'aucun des huit précédents, et concernent la plupart des opérations restantes.
 
 **9 · La garde de permission vit côté serveur, et l'action est ABSENTE côté client.**
 
@@ -649,8 +622,8 @@ la garder, un ordre correct par accident se rétablit à la première refonte.
 
 ### La huitième couche — le CYCLE DE VIE de l'application
 
-*Ajoutée après la vérification en navigateur du cycle 003, qui a trouvé deux des quatre écrans du
-produit inatteignables alors que 24 portes et 652 tests étaient verts.*
+*La couche qu'aucun test unitaire ne réclame, et dont l'absence rend des écrans inatteignables
+sans qu'aucune porte ne rougisse.*
 
 **Les sept premières couches décrivent comment on écrit une tranche. Aucune ne dit comment
 l'application démarre** — et c'est ce trou qui a produit le défaut. `app/app.vue` faisait vingt-trois
@@ -759,61 +732,31 @@ Elle ne porte ni barre de contexte unifiée, ni témoin de synchronisation. Ce n
 | **Le témoin de synchronisation permanent** (composant 10) | ETB-06 |
 | **L'état `degrade`** — personne ne le produit | SYN |
 | **Le bandeau d'annulation** (composant 14) — aucune action de ce patron n'est destructrice | Premier cycle qui en a une |
-| **La sélection réelle de plateforme** — `adaptateurCourant()` renvoie le web | ✅ **Sans objet depuis le 2026-08-06** : l'application est une PWA (cadrage §13.3), et `web` est la **seule** implémentation du MVP. Une seconde n'arrivera qu'avec Capacitor, si Capacitor arrive |
-
-Et les deux que le cycle 003 a soldés, gardés ici pour qu'on ne les recherche pas :
-
-| Manque relevé au cycle 002 | Soldé par |
-|---|---|
-| **Le RBAC réel** — permissions en configuration, provisoire nommé | CPT-02 · `core/rbac` lit `sessionCourante()?.permissions` ; `runtimeConfig` n'a plus ni `permissions`, ni `tenantId`, ni `compteId` |
-| **L'authentification** — contexte encore par deux en-têtes | CPT-01 · `ContexteAppel` porte un jeton, `enTetesAuth` rend **un seul** en-tête, et `x-kaya-tenant` / `x-kaya-compte` ne sont plus acceptés |
+| **La sélection réelle de plateforme** — `adaptateurCourant()` renvoie le web | La coquille **Capacitor** (cadrage §13.3). `web` est la seule implémentation jusque-là, et l'interface doit être écrite pour en accueillir une seconde |
 
 ---
 
-## La septième couche au cycle 001, et pourquoi elle manquait alors
+## Ce que la couche écran suppose acquis
 
-**Le cycle 001 ne produit aucun écran. C'est une décision vérifiée, pas une omission.**
+Elle ne se construit pas sur du vide. Cinq fondations doivent exister avant la première écriture
+depuis un écran, et elles sont toutes du ressort du cycle des fondations (phase 2, F1) :
 
-L'écran de notes internes n'hérite d'aucun motif :
-
-- il n'apparaît pas parmi les onze codes maquettés de `docs/design/html/` — `C4`, `F2`, `G2`,
-  `M4`, `P2`, `Q1`, `R1`, `R4`, `R7`, `S2`, `V1` ;
-- la matrice de dérivation `docs/design/derivation.md` n'a aucune ligne pour lui.
-
-La règle d'alors — « un écran qui n'hérite d'aucun motif ne se code pas » — a donc reporté la
-couche au cycle suivant, qui disposait d'écrans maquettés.
-
-> ⚠️ **Cette règle est ASSOUPLIE depuis le 2026-08-06** (`docs/Kaya_Design.md` §2 bis,
-> `docs/design/derivation.md`). Un écran découvert à l'implémentation **se code**, avec les
-> composants et le lexique existants, et **s'inscrit à la matrice dans le même changement**. Le
-> raisonnement ci-dessus reste juste sur son fond — *une entité sans intérêt métier ne méritait pas
-> d'écran* — mais il ne serait plus formulé ainsi : ce qui aurait bloqué l'écran de notes internes
-> n'est pas l'absence de motif, c'est l'absence de besoin.
-
-### Ce que le patron ne démontrait pas alors — et par quoi c'est soldé
-
-| Manque relevé au cycle 001 | Soldé par |
+| Fondation | Ce qu'elle doit être |
 |---|---|
-| **i18n** — clés `fr` et `en`, `fr` par défaut | ETB, écran `G1` |
-| **Mode sombre** — variante `dark:`, jamais une seconde palette | ETB, écran `G1` + `app/tests/theme-sombre.spec.ts` |
-| **Chargement paresseux par module** | ETB, `pages/etablissement.vue` par `defineAsyncComponent` |
-| **RBAC** — module inactif **absent** et non grisé | ETB pour l'affichage ; **la couche d'écriture** pour les *actions* — voir la section précédente, point 5 |
-| **L'écriture depuis un écran** — non relevé alors, et c'est ce qui manquait le plus | La septième couche, ci-dessus |
+| **i18n** | catalogues `fr` et `en` à parité, `fr` par défaut, aucune chaîne en dur |
+| **Mode sombre** | par la variante `dark:`, jamais une seconde palette |
+| **Chargement paresseux par module** | un serveur de salle ne télécharge pas le back-office |
+| **RBAC** | permissions lues depuis la session, **jamais un jeton décodé** — deux sources pour la même information, une seule fait autorité |
+| **`PlatformAdapter`** | l'interface complète, avec son implémentation `web` |
 
-Les fondations existaient déjà au cycle 001 : `app/assets/css/theme.css` (copie exacte), les
-catalogues `app/core/i18n/{fr,en}.json` à parité, `app/core/theme/`, et `PlatformAdapter` avec ses
-quatre implémentations.
-
-**Conséquence sur la Definition of Done** : le point 8 (« écran vérifié en mode clair et en mode
-sombre ») était **sans objet au cycle 001**, au même titre que le point 10 (document imprimé vérifié
-sur imprimante thermique). Consigné explicitement, jamais coché en silence. Le point 8 est exigible
-depuis `G1` ; le point 10 le reste jusqu'à IMP.
+**Le thème vient de `docs/design/theme.css`, copié tel quel** — c'est le seul fichier de
+`docs/design/` qui se copie dans `app/`.
 
 ---
 
-## Pièges de l'outillage, constatés au cycle 001
+## Pièges de l'outillage
 
-Ceux-ci ont réellement coûté du temps. Ils ne se devinent pas.
+Ceux-ci coûtent du temps et ne se devinent pas.
 
 ### `sqlx.toml` se résout depuis le crate, pas depuis le workspace
 
@@ -858,20 +801,21 @@ obligatoire sur chaque porte.
 
 ### Le gel peut être faux, et c'est à l'exécution qu'on l'apprend
 
-Le gel 1.0.3 épinglait `typescript 7.0.2`, dernière stable. `openapi-typescript` 7.13.0 déclare
-`peerDependencies: { typescript: "^5.x" }` et TypeScript 7 a modifié l'API `ts.factory` : la
-génération échoue immédiatement. Gel corrigé en **1.0.4** avec `5.9.3`.
+Épingler `typescript 7.0.2` parce que c'est la dernière stable **ne fonctionne pas** :
+`openapi-typescript` déclare `peerDependencies: { typescript: "^5.x" }`, et TypeScript 7 a modifié
+l'API `ts.factory` — la génération du client échoue immédiatement. La valeur retenue est `5.9.3`,
+dernière `5.x`.
 
-« Dernière version stable » suppose que les versions sont compatibles entre elles. Le §3.1
-vérifiait déjà la compatibilité pour les crates Rust ; le §3.2 ne le faisait pas pour npm.
+« Dernière version stable » suppose que les versions sont compatibles entre elles. **La règle du
+§1 de `docs/versions-reference.md` dit exactement cela** : la dernière stable, *sauf conflit
+constaté* — et un conflit se constate en lisant les `peerDependencies`, pas le numéro.
 
 ---
 
-## Le spike `EXCLUDE USING gist` — retour, avant HEB-02
+## `EXCLUDE USING gist` — ce qui est vérifié, et ce qui surprend
 
-Le cycle 001 est le **premier usage de contrainte d'exclusion du produit**, sur
-`fiscalite.exercice_comptable` (`daterange`). Il vaut spike pour HEB-02, qui en dépendra sur
-`tstzrange` pour la disponibilité des unités.
+La contrainte d'exclusion est le mécanisme sur lequel repose **toute** la disponibilité des unités
+(HEB-02, `tstzrange`). Ce qui suit est acquis.
 
 | Point vérifié | Constat |
 |---|---|
@@ -880,25 +824,20 @@ Le cycle 001 est le **premier usage de contrainte d'exclusion du produit**, sur
 | Mapping de type sqlx 0.9 | Validé sur `daterange` ; `PgRange<T>` est présent en 0.9.0 |
 | Ordre de pose | Une contrainte d'exclusion ajoutée sur une table **déjà peuplée** échoue sur les données existantes. À poser à la création, comme ici |
 
-### ✅ Retour du cycle 004 — la vérification promise est faite
+### L'apport de sqlx `#3918` est PARTIEL, et c'est ce qu'il faut savoir avant d'écrire la ligne
 
-Le cycle 001 laissait un point ouvert : « le type d'erreur dédié à la violation d'exclusion
-apporté par sqlx `#3918` — c'est l'une des deux raisons du choix de la version, et il n'a pas de
-cible à ce cycle ». HEB-02 lui en a donné une, sur `tstzrange` et en concurrence réelle.
-
-| Point | Constat du cycle 004 |
+| Point | Constat |
 |---|---|
 | `ErrorKind::ExclusionViolation` | **Existe** en 0.9.0. C'est bien l'apport de `#3918`, et il sert |
 | `DatabaseError::is_exclusion_violation()` | **N'existe pas.** Le trait porte `is_unique_violation()`, `is_foreign_key_violation()` et `is_check_violation()`, et s'arrête là — vérifié dans `sqlx-core` 0.9.0, `src/error.rs` |
-| `PgRange<OffsetDateTime>` ↔ `TSTZ_RANGE` | **Validé**, et exercé sur du code de production (`occupation/repository.rs`) |
+| `PgRange<OffsetDateTime>` ↔ `TSTZ_RANGE` | **Validé** |
 | Concurrence réelle sur `tstzrange` | **Exercée** — deux transactions distinctes, une seule réussit, et le test asserte la **cause** du refus |
 
-**L'apport est donc partiel, et c'est ce qu'il faut savoir avant d'écrire la ligne.** Écrire
-`e.is_exclusion_violation()` par analogie avec les trois autres accesseurs **ne compile pas**, et
+Écrire `e.is_exclusion_violation()` par analogie avec les trois autres accesseurs **ne compile pas**, et
 l'erreur se cherche une demi-heure parce qu'on y suspecte une faute de frappe. La forme correcte
 est un `matches!` sur `e.kind()` — `ErrorKind` étant `#[non_exhaustive]`, un `match` exhaustif ne
 compilerait pas davantage, et un `match` avec bras `_` cesserait de signaler l'arrivée d'un genre
-nouveau. `crates/verticales/hebergement/src/erreurs.rs` porte la forme retenue et ses cinq tests.
+nouveau.
 
 **Le nom de la contrainte est vérifié en plus du genre.** Une table qui gagnerait une seconde
 contrainte d'exclusion ferait autrement passer ses violations pour des doubles attributions, et
@@ -909,28 +848,24 @@ l'écran afficherait « Cette chambre est déjà prise sur cette période » pou
 la note du §2 mérite sa **limite** : dire que `#3918` apporte « une erreur de violation
 d'exclusion » est exact et incomplet, puisqu'il n'apporte pas l'accesseur.
 
-> *Ce paragraphe renvoyait la correction à « la revue mensuelle du 2026-08-31 », en ajoutant qu'« un
-> gel ne se corrige pas au fil de l'eau ». **Cette revue n'existe plus** : le régime du 2026-08-06
-> veut au contraire que la correction se fasse dans le changement qui la constate. Le fichier est
-> d'ailleurs renommé `versions-reference.md`, précisément parce que « gel » induisait cette
-> attente-là.*
+> **La correction se fait dans le changement qui la constate** — il n'y a pas de revue périodique
+> où la reporter (`docs/versions-reference.md` §1, règle 6).
 
 ---
 
-## Écarts au gel introduits par ce cycle
+## Dépendances Rust du socle, au-delà des briques principales
 
-Six crates Rust nécessaires n'étaient pas inscrites au §3.1. Épinglées exactement, vérifiées sur
-`crates.io` le 2026-07-30. *(Elles ont depuis été inscrites, et le régime du 2026-08-06 veut que
-l'inscription se fasse dans le changement qui ajoute — il n'y a plus de report possible.)*
+Six crates que le premier cycle backend introduira nécessairement, et qui doivent être inscrites à
+`docs/versions-reference.md` **dans le changement qui les ajoute** :
 
-| Crate | Version | Pourquoi |
-|---|---|---|
-| `serde_json` | `1.0.151` | Charge utile `JSONB` de l'outbox |
-| `time` | `0.3.54` | `OffsetDateTime`, nommé par le contrat HTTP |
-| `thiserror` | `2.0.19` | Types d'erreur de domaine |
-| `async-trait` | `0.1.91` | Dyn-compatibilité des traits — `Arc<dyn OutboxWriter>` |
-| `futures` | `0.3.33` | Tests de concurrence |
-| `dotenvy` | `0.15.7` | Configuration de développement |
+| Crate | Pourquoi |
+|---|---|
+| `serde_json` | Charge utile `JSONB` de l'outbox |
+| `time` | `OffsetDateTime`, nommé par le contrat HTTP |
+| `thiserror` | Types d'erreur de domaine |
+| `async-trait` | Dyn-compatibilité des traits — `Arc<dyn OutboxWriter>` |
+| `futures` | Tests de concurrence |
+| `dotenvy` | Configuration de développement |
 
 **`async-trait` mérite une note.** Rust sait écrire `async fn` dans un trait depuis 1.75, mais un
 tel trait n'est pas dyn-compatible. L'injection de dépendances du cadrage §13.2 suppose
@@ -972,5 +907,5 @@ tel trait n'est pas dyn-compatible. L'injection de dépendances du cadrage §13.
   `docs/Kaya_Prompts_SpecKit.md` §1 — il porte un **principe 0 (ordre des trois phases)**, un
   principe 7 réécrit pour la PWA et un principe 12 assoupli sur les écrans
 - `docs/registre-classes-offline.md` — classe de chaque entité
-- `docs/versions-reference.md` — versions employées et journal des versions *(fichier renommé le 2026-08-06)*
+- `docs/versions-reference.md` — versions employées et leur régime
 - `specs/001-socle-technique-monorepo/` — spécification, plan, recherche, modèle de données

@@ -3,31 +3,31 @@
 *Document de réflexion — à creuser après la mise en production du pilote hôtelier*
 *Version 0.2 — Ne modifie pas le périmètre du MVP. Contient une liste d'amendements chirurgicaux à appliquer maintenant.*
 
-> ### 🔄 Ce que le changement d'ordre du 2026-08-06 fait à ce document
+> ### OÙ CES AMENDEMENTS ATTERRISSENT
 >
-> **Il lui donne enfin un endroit où atterrir, et un seul.** Les treize amendements du §8 et du
-> §14.5 sont des **contraintes de modèle de données** — quantités décimales, unité de mesure, coût
-> unitaire nullable, code-barres, module ≠ capacité, profil de stock, `tenant_id` nullable sur
-> `partenaire`, `unite_facturable` abstraite. Jusqu'ici ils étaient « intégrés dans les documents »
-> et attendaient qu'un cycle backend les honore, module par module, sur quinze cycles.
+> Les treize amendements du §8 et du §14.5 sont des **contraintes de modèle de données** — quantités
+> décimales, unité de mesure, coût unitaire nullable, code-barres, module ≠ capacité, profil de
+> stock, `tenant_id` nullable sur `partenaire`, `unite_facturable` abstraite. **Ils sont produits
+> d'un coup en PHASE 1** (cadrage §13.0), par les cycles D1 et D2 de
+> `docs/Kaya_Prompts_SpecKit.md` §3, dont le prompt les cite nommément. C'est le meilleur sort
+> possible pour eux : un amendement de modèle appliqué avant qu'aucune ligne n'existe ne peut plus
+> être oublié par un cycle pressé.
 >
-> **Ils sont désormais tous produits d'un coup, en PHASE 1** (cadrage §13.0), par les cycles D1 et
-> D2 de `docs/Kaya_Prompts_SpecKit.md` §3 — dont le prompt les cite nommément. C'est le meilleur
-> sort possible pour eux : un amendement de modèle appliqué avant qu'aucune ligne n'existe ne peut
-> plus être oublié par un cycle pressé.
+> ⚠️ **A8 est le seul qui n'a rien à voir avec le modèle de données** : il porte sur la structure
+> des crates, donc il attend la **phase 3**. Le noter, sans quoi la phase 1 croirait l'avoir couvert.
 >
-> **Deux règles en découlent, et elles renforcent le §9 (« ce qu'il ne faut surtout pas faire ») :**
+> **Deux règles en découlent, et elles renforcent le §9 :**
 >
-> - **Une provision vit dans `docs/modele-donnees/`, et NULLE PART AILLEURS.** Elle n'apparaît ni
->   dans un écran de phase 2, ni dans un endpoint de phase 3. Une provision qui atteint l'interface
->   n'est plus une provision : c'est du périmètre entré par la porte de service.
-> - **Le test d'agnosticité du socle (A9) devient un test de phase 2 AUSSI.** Un établissement à
->   module fictif, sans aucune capacité, doit rendre une application cohérente **sur données
->   simulées** — c'est le moment le moins cher pour découvrir que l'accueil suppose une chambre.
+> - **Une provision vit dans `docs/modele-donnees/`, et NULLE PART AILLEURS.** Ni dans un écran de
+>   phase 2, ni dans un endpoint de phase 3. Une provision qui atteint l'interface n'est plus une
+>   provision : c'est du périmètre entré par la porte de service.
+> - **Le test d'agnosticité du socle (A9) est un test de PHASE 2 aussi.** Un établissement à module
+>   fictif, sans aucune capacité, doit rendre une application cohérente **sur données simulées** —
+>   c'est le moment le moins cher pour découvrir que l'accueil suppose une chambre.
 >
-> **Ce qui ne change pas** : ce document reste **fermé jusqu'au jalon J1** (§13). Le passage en PWA
-> (cadrage §13.3) ne le touche pas — aucune des verticales analysées ici ne dépend d'une coquille
-> native, et le billet QR du §14.1 bis est même **plus simple** en web qu'en application installée.
+> **Ce document reste fermé jusqu'au jalon J1** (§13). Aucune des verticales analysées ici ne dépend
+> de la coquille applicative ; le billet QR du §14.1 bis est même **plus simple** en web qu'en
+> application installée.
 
 ---
 
@@ -204,9 +204,9 @@ C'est un produit qui n'existe pas, et le besoin est authentique : ce propriétai
 >
 > **Ces onze amendements sont intégrés dans `cadrage-v1.md`, `user-stories-v1.md` et `Kaya_Prompts_SpecKit.md`.** La section ci-dessous est conservée comme trace de la décision et de sa justification.
 >
-> ⚠️ **Ils étaient marqués « APPLIQUÉS le 28 juillet 2026 » ; ils ne le sont plus dans ce dépôt**, qui repart sans code. Ils sont **intégrés aux documents** — ce qui est déjà l'essentiel — et **matérialisés par les cycles D1 et D2 de la phase 1**, dont le prompt les cite un par un (`docs/Kaya_Prompts_SpecKit.md` §3). C'est le bon moment : dix d'entre eux sont des colonnes ou des tables, et une colonne posée avant la première migration coûte zéro.
+> **Ils sont intégrés aux documents et matérialisés par les cycles D1 et D2 de la phase 1**, dont le prompt les cite un par un (`docs/Kaya_Prompts_SpecKit.md` §3). C'est le bon moment : dix d'entre eux sont des colonnes ou des tables, et une colonne posée avant la première migration coûte zéro.
 >
-> Les deux plus critiques, à ne jamais laisser régresser : **A2** (quantités décimales — sinon migration de toutes les lignes de vente et de stock) et **A8** (règle de CI « aucun crate du socle ne dépend d'une verticale » — sans elle, tout ce document devient théorique en trois cycles). ⚠️ **A8 est le seul des onze qui n'a rien à voir avec le modèle de données** : il porte sur la structure des crates, donc il attend la **phase 3** et le cycle B1. Le noter, sans quoi la phase 1 croirait l'avoir couvert.
+> Les deux plus critiques, à ne jamais laisser régresser : **A2** (quantités décimales — sinon migration de toutes les lignes de vente et de stock) et **A8** (règle de CI « aucun crate du socle ne dépend d'une verticale » — sans elle, tout ce document devient théorique en trois cycles, et c'est le seul qui attend la phase 3).
 
 ### A1 — Vocabulaire du socle
 

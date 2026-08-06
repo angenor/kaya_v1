@@ -1,38 +1,43 @@
 # Kaya — Design (référence)
 
-> ### 🔄 Trois changements du 2026-08-06
->
-> **1. La doctrine d'écran est assouplie — voir §2 bis.** La règle « un écran qui n'hérite d'aucun
-> motif ne se code pas » est remplacée par **quatre cas**, dont le quatrième autorise l'écran
-> découvert à l'implémentation, à condition qu'il s'inscrive à la matrice dans le même changement.
-> Un cycle ne s'arrête plus sur un écran manquant ; il ne s'arrête plus que sur un **composant**
-> manquant.
->
-> **2. L'interface se construit AVANT le backend, sur des données simulées** (cadrage §13.0). Ce
-> document ne change pas de statut pour autant : il reste ce qui est opposable à l'implémentation,
-> et c'est même maintenant qu'il sert le plus.
->
-> **3. La cible est une PWA, plus une coquille Tauri** (cadrage §13.3). Les contraintes de la
-> partie III sont **inchangées** — le matériel visé, le contraste, les cibles tactiles et le budget
-> d'animation ne dépendent pas de la technologie de la coquille.
->
-> ✅ **Ce qui ne change pas du tout : les maquettes produites.** `docs/design/` est complet et fait
-> foi. Rien n'est à refaire.
-
-> 📦 **Allégé le 2026-08-06 : les prompts de maquettage ont été retirés.**
-> La maquette est produite et déposée dans `docs/design/` — les prompts qui ont servi à
-> l'obtenir n'avaient plus de lecteur. Ce fichier ne garde que ce qui reste **opposable au
-> développement** : principes, spécification de simplicité, contraintes de fondation, zones,
-> motifs posés, validation et garde-fous. Les valeurs exactes sont dans les fichiers produits,
-> qui font foi (`tokens.md`, `mouvement.md`, `composants.md`, `lexique.md`, `derivation.md`).
-
-> ⚠️ **Décompte de composants : ce fichier disait « 14 », et c'était vrai au maquettage.**
-> Il y en a **seize** au 2026-08-02 — le n° 15 (barre de proportion) et le n° 16 (champ de
-> saisie, composé depuis les tokens faute de maquette). `docs/design/composants.md` **fait foi**
-> sur le nombre ; les mentions « 14 » subsistantes sont des constats d'époque.
-
 *Compagnon du Cadrage v1 et des User Stories v1.*
-*Version 2.1 — Remplace `Kaya_Prompts_Design.md`, `Kaya_Design_Personnalite_Mouvement.md` et `Kaya_Design_Plan_Resserre.md`, qui peuvent être archivés.*
+
+Ce fichier porte ce qui est **opposable au développement de l'interface** : principes, spécification
+de simplicité, contraintes de fondation, zones, motifs posés, validation et garde-fous. Les valeurs
+exactes vivent dans les fichiers de `docs/design/` : `tokens.md`, `mouvement.md`, `composants.md`,
+`lexique.md`, `derivation.md`.
+
+> ### ⚖️ CE QUI FAIT FOI EST LA GRAMMAIRE, PAS LE DESSIN
+>
+> **Les maquettes de `docs/design/html/` sont des propositions, pas des plans figés.** Elles ont été
+> dessinées avant le modèle de données et avant l'implémentation ; elles ne peuvent pas avoir tout
+> prévu. **Quand le modèle de données ou une fonctionnalité exige un élément qu'un écran n'a pas —
+> une colonne, un état, une action —, cet élément s'ajoute**, et la maquette est mise à jour dans le
+> même changement pour qu'elle reste une référence utile.
+>
+> **Ce qui, en revanche, ne se négocie pas :**
+>
+> | Fait foi, toujours | Est une proposition |
+> |---|---|
+> | `tokens.md` — couleurs, espacements, rayons, typographie | la **disposition** d'un écran |
+> | `composants.md` + `styleguide.html` — les seize composants et leurs états | le **choix** des composants sur un écran donné |
+> | `lexique.md` — le vocabulaire vu par l'utilisateur | les **libellés** d'un bouton précis, tant qu'ils passent par le lexique |
+> | Les neuf règles de simplicité (§5) et le contrat d'écran (§13) | le nombre exact de champs |
+> | Les deux zones (§1) — un écran de vitesse ne se traite pas comme un écran de charme | — |
+>
+> **La différence tient en une phrase** : un écran qui s'écarte de sa maquette reste juste tant
+> qu'il parle la même langue ; un écran qui invente une couleur, un composant ou un mot ne l'est
+> plus. **La dérive vient du vocabulaire, pas de la mise en page.**
+>
+> ⚠️ **Un ajout se fait, il ne se subit pas.** Ajouter un élément parce que le modèle l'exige est
+> normal ; ajouter trois actions parce qu'on n'a pas tranché lesquelles comptent viole la règle 1
+> du §5 — *une action principale par écran*. La souplesse porte sur ce qui manquait, pas sur ce
+> qu'on n'a pas su choisir.
+
+> **Décompte de composants** : **seize**, dont le n° 15 (barre de proportion) et le n° 16 (champ de
+> saisie, composé depuis les tokens faute de maquette). `docs/design/composants.md` **fait foi** sur
+> le nombre ; les mentions « 14 » subsistantes dans ce fichier sont des restes à corriger au
+> passage.
 
 ---
 
@@ -68,16 +73,13 @@ On ne maquette pas un écran parce qu'il est important. **On maquette un écran 
 
 Le risque de coder sans maquette n'est pas la laideur, c'est la **dérive** : trente écrans inventés un par un finissent par ne plus se ressembler. La matrice de dérivation est ce qui l'évite.
 
-### 2 bis. Les quatre cas où un écran se code *(assoupli le 2026-08-06)*
+### 2 bis. Les quatre cas où un écran se code
 
-> ⚠️ **Ce paragraphe remplace une règle qui disait « un écran qui n'hérite d'aucun motif ne se
-> code pas ». Elle était fausse, et coûteuse.**
->
-> Elle supposait que les documents avaient tout prévu. Ils n'ont pas tout prévu, et ils ne le
-> peuvent pas : c'est en construisant un parcours qu'on découvre qu'il manque un écran pour le
-> terminer — la table fermée d'un QR scanné, la confirmation d'une action irréversible, la reprise
-> après une erreur. **Arrêter le cycle à cet endroit-là, c'est arrêter le travail pour produire un
-> document, alors que l'écran manquant est souvent évident.**
+> **Les documents n'ont pas tout prévu, et ils ne le peuvent pas.** C'est en construisant un
+> parcours qu'on découvre l'écran qui lui manque pour se terminer — la table fermée d'un QR scanné,
+> la confirmation d'une action irréversible, la reprise après une erreur. **Arrêter le cycle à cet
+> endroit-là, c'est arrêter le travail pour produire un document, alors que l'écran manquant est
+> souvent évident.**
 
 | Cas | Ce que c'est | Référence citée |
 |---|---|---|
@@ -128,7 +130,7 @@ Export par écran : `html/{code}-{nom-lisible}.html` (référence), plus les cap
 
 **Le préfixe de code est obligatoire** — c'est lui que référencent les prompts Spec Kit, la matrice de dérivation et les tâches. Le nom lisible suit, pour l'humain. Correspondance complète avec les maquettes produites : §30 bis.
 
-**Format d'export — le HTML est la référence normative.**
+**Format d'export — le HTML est la référence de travail.**
 
 L'export HTML est ce que lit l'agent d'implémentation : il y trouve les **valeurs exactes** (couleurs, espacements, tailles, rayons, durées d'animation) et la **hiérarchie DOM**, au lieu de les estimer depuis une image. Sur les prototypes animés, les courbes et durées se lisent directement dans le CSS.
 
@@ -136,8 +138,10 @@ Le PNG reste produit, pour l'humain : revue rapide, impression A3 de l'atelier t
 
 | Fichier | Pour qui | Statut |
 |---|---|---|
-| `html/{code}.html` | **L'agent d'implémentation** | **Référence normative** |
+| `html/{code}.html` | **L'agent d'implémentation** | **Référence de travail — une proposition tenue à jour**, pas un plan figé (voir l'encadré de tête) |
 | `png/` (captures d'écran des HTML) | L'humain — impression A3 de l'atelier | Confort de revue, produit à la demande |
+
+**Une maquette qui a été dépassée par l'implémentation se met à jour.** Le HTML est plus facile à corriger qu'à contourner, et une maquette qui ment est pire qu'une maquette absente : la suivante s'appuiera dessus.
 
 > ### ⚠️ Trois règles, sans lesquelles le HTML se retourne contre toi
 >
@@ -183,7 +187,7 @@ docs/design/                        ← ÉTAT RÉEL DU DÉPÔT
 ├── README.md          # ce qui se copie, ce qui se lit, valeurs arbitraires en attente
 ├── lexique.md         # ✅ vocabulaire utilisateur — NORMATIF
 ├── derivation.md      # ✅ quel écran hérite de quel motif — NORMATIF
-├── html/              # 29 fichiers — RÉFÉRENCE NORMATIVE, un par écran ET par état
+├── html/              # 29 fichiers — RÉFÉRENCE DE TRAVAIL, un par écran ET par état
 │                      #   Nommage : {code}-{nom-lisible}[-{etat}].html
 │                      #   Lu par l'agent, JAMAIS copié dans app/
 ├── fondation/         # fondation-directions, -mouvement, -plaisir, -difficiles,
@@ -472,7 +476,8 @@ Tout retour va dans `docs/design/notes-terrain.md`. **Un retour qui contredit le
 
 ## 30. Règles de conduite
 
-- **Tout écran cite sa référence, dans l'un des quatre cas du §2 bis** — maquetté, dérivé, composé, ou découvert à l'implémentation et **inscrit à `docs/design/derivation.md` dans le même changement**. *(Cette règle disait « un écran sans maquette ni motif d'héritage déclaré n'est pas codé » jusqu'au 2026-08-06 ; elle arrêtait le cycle sur un écran que les documents n'avaient pas prévu, ce qui coûtait une demi-journée pour un écran souvent évident. Ce qui est refusé désormais est l'écran inventé **sans trace**, pas l'écran inventé.)*
+- **Tout écran cite sa référence, dans l'un des quatre cas du §2 bis** — maquetté, dérivé, composé, ou découvert à l'implémentation et **inscrit à `docs/design/derivation.md` dans le même changement**. Ce qui est refusé est l'écran inventé **sans trace**, pas l'écran inventé.
+- **Un écran qui dépasse sa maquette met la maquette à jour**, dans le même changement. Le dessin est une proposition ; la grammaire — tokens, composants, lexique — ne l'est pas.
 - **Un composant qui manque, en revanche, arrête le cycle.** Un écran s'assemble, un composant se dessine.
 - **Le HTML de `docs/design/html/` ne migre jamais vers `app/`.** Aucun `git mv`, aucun copier-coller de bloc. On lit les valeurs, on réimplémente en composants Nuxt avec i18n, mode sombre, RBAC et chargement paresseux — toutes choses que l'export ne contient pas.
 - **Une seule extraction de tokens.** `tokens.md` est produit au moment de la fondation, à partir de `styleguide.html`. Ensuite il prime : un export qui diverge est corrigé, pas suivi.
@@ -536,7 +541,7 @@ L'archive de design est décompressée dans `docs/design/`. Trois questions, don
 |---|---|---|
 | 1 | `docs/design/derivation.md` — les 30 écrans et le motif dont chacun hérite | ✅ **fait** — la partie V y a été **déplacée**, pas recopiée : une seule source |
 | 2 | `docs/design/lexique.md` — la traduction des concepts techniques | ✅ **fait** — le §6 y a été **déplacé**, pas recopié |
-| 3 | `docs/Kaya_Design.md` déposé au dépôt | ✅ **fait** — allégé des prompts de maquettage le 2026-08-06, doctrine d'écran assouplie le même jour (§2 bis) |
+| 3 | `docs/Kaya_Design.md` déposé au dépôt | ✅ **fait** |
 
 > Les deux tableaux ont été **déplacés et non dupliqués** : le document annonçait « recopier »,
 > mais deux copies divergeraient, ce que le principe I de la constitution interdit. Ce fichier

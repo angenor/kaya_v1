@@ -1,6 +1,6 @@
 # Conformité — registre des traitements ARTCI
 
-**EMPLACEMENT SEUL pour le registre ARTCI. Rien n'en est construit au cycle 001.**
+**EMPLACEMENT SEUL pour le registre ARTCI. Rien n'en est construit tant que TRX-06 n'est pas livré.**
 
 > **Ce répertoire porte désormais un document livré** : `licences-tierces.md`, l'inventaire de ce
 > que Kaya **redistribue** dans son binaire — trois polices, deux licences, une modification

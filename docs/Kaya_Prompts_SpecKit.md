@@ -2,27 +2,17 @@
 
 *Compagnon d'exécution du Cadrage v1 et des User Stories v1 — Développement solo avec Claude Code + GitHub Spec Kit*
 
-**Version 2.0.0 — 2026-08-06. Réécrit pour la stratégie en trois phases.**
-
 ---
 
-## 0. Ce qui a changé le 2026-08-06, et pourquoi
+## 0. L'ordre de construction
 
-> **Le constat, écrit tel quel** : dans l'ordre backend d'abord, le produit était trop compliqué à
-> développer. Pas trop compliqué à *concevoir* — les documents de cadrage tiennent — trop
-> compliqué à *faire avancer* : chaque cycle produisait des tables, des traits et des tests que
-> rien ne montrait, et vérifier qu'ils étaient justes demandait de relire des spécifications
-> entières. Un développeur seul n'a pas ce temps-là.
+**Trois phases, dans cet ordre, et c'est la décision qui gouverne tout ce fichier.**
 
-**Le remède est un changement d'ordre, pas de périmètre.** Rien n'est retiré du produit ; ce qui
-change est ce qu'on construit en premier, et ce à quoi on regarde pour savoir si c'est juste.
-
-| | Ordre d'avant | Ordre retenu |
+| Phase | Livrable | Ce qu'on regarde pour valider |
 |---|---|---|
-| 1 | Socle backend, puis module par module | **Le modèle de données complet, en SQL** |
-| 2 | Écrans branchés au fur et à mesure | **Toute l'application, avec des données simulées** |
-| 3 | — | **Le backend, qui remplace les simulations une par une** |
-| Ce qu'on regarde pour valider | une spécification, des tests verts | **l'écran, tout de suite** |
+| **1 — Le modèle de données** | `docs/modele-donnees/{schema}.sql` — tout le MVP en SQL applicable | le SQL s'applique, chaque table a sa classe et sa politique RLS |
+| **2 — L'application entière** | Tous les écrans, tous les parcours, sur **données simulées** | **l'écran, tout de suite** |
+| **3 — Le backend** | Les endpoints, qui **remplacent les simulations une par une** | les tests, le contrat, la clôture au franc près |
 
 **Les trois raisons de cet ordre :**
 
@@ -35,11 +25,9 @@ change est ce qu'on construit en premier, et ce à quoi on regarde pour savoir s
 3. **Le backend enfin**, contre des écrans qui existent et un modèle arrêté — donc sans avoir à
    deviner ni la forme des données, ni ce dont l'interface a besoin.
 
-**Ce qui NE change pas** : le périmètre du MVP, les personas, la conformité fiscale, les classes
-hors-ligne, le design system et les maquettes déjà produites, la stack backend (Rust, Actix, sqlx,
-PostgreSQL). **Deux choses changent en plus de l'ordre** : l'application est une **PWA Nuxt** et
-non plus une coquille Tauri (cadrage §13.3), et la doctrine des écrans est **assouplie** — un écran
-qui manque se code, il ne bloque plus le cycle (§5, et `docs/Kaya_Design.md` §2).
+**La coquille suit le même principe** : PWA pour la phase 2 et la démonstration, **Capacitor pour
+la production mobile** — décidé, pas optionnel —, Tauri desktop en option. Un seul code Nuxt dans
+les trois cas ; seule la coquille change (cadrage §13.3).
 
 ### 0.1 Préparation (une seule fois)
 
@@ -51,7 +39,7 @@ cd kaya
 Le paquet installé utilise le **tiret** comme séparateur (`/speckit-specify`), conformément à
 `.specify/integration.json` → `invoke_separator: "-"`. Tous les prompts de ce fichier l'emploient.
 
-**État réel du dépôt au 2026-08-06 — il ne contient QUE de la documentation :**
+**État du dépôt — il ne contient QUE de la documentation :**
 
 ```
 docs/
@@ -80,14 +68,13 @@ docs/
 ```
 
 > ⚠️ **AUCUN CODE N'EXISTE.** Pas de `backend/`, pas de `app/`, pas de `.specify/`, pas de
-> `specs/`. Une version antérieure du projet avait produit du code ; **elle n'est pas dans ce
-> dépôt et ne s'y importe pas**. Les documents qui parlent de « cycle 003 », de « porte P-19 » ou
-> d'un fichier `app/core/rbac` décrivent cette version antérieure : **leurs raisonnements valent,
-> leurs chemins ne valent plus.**
+> `specs/`. Le premier cycle crée ce dont il a besoin, et rien de plus.
 >
-> ✅ **SAUF `docs/design/`, qui est bien là, complet et opposable.** Les maquettes, le styleguide,
-> les tokens, le lexique et la matrice de dérivation **ne se refont pas** : ils sont l'entrée de la
-> phase 2, pas son livrable.
+> ✅ **`docs/design/` est complet.** Les maquettes, le styleguide, les tokens, le lexique et la
+> matrice de dérivation **ne se refont pas** : ils sont l'entrée de la phase 2, pas son livrable.
+> **Ce sont en revanche des propositions tenues à jour, pas des plans figés** — quand le modèle de
+> données ou une fonctionnalité exige un élément qu'un écran n'a pas, l'élément s'ajoute et la
+> maquette est mise à jour dans le même changement (`docs/Kaya_Design.md`, encadré de tête).
 
 ### 0.2 Monorepo — arborescence cible
 
@@ -110,8 +97,8 @@ kaya/
 │   │   ├── hebergement.sql
 │   │   ├── ventes.sql
 │   │   └── pressing.sql
-│   └── design/                   # la maquette — lue, jamais copiée (sauf theme.css)
-├── app/                          # ⭐ PHASE 2 — PWA Nuxt 4, APPLICATION UNIQUE
+│   └── design/                   # la maquette — lue et tenue à jour, jamais copiée (sauf theme.css)
+├── app/                          # ⭐ PHASE 2 — Nuxt 4, APPLICATION UNIQUE (PWA d'abord)
 │   ├── modules/                  #   reception/ pdv/ caisse/ fiscalite/ direction/ config/
 │   ├── core/                     #   auth, rbac, i18n, thème, sync, données, PlatformAdapter
 │   │   └── donnees/              #   ⭐ la couche de données : simulée en phase 2, réelle en 3
@@ -269,33 +256,43 @@ Principes non négociables :
    chemin de code exécutable hors ligne FAIT ÉCHOUER LE BUILD. Toute écriture
    porte un UUID v7 client ; le serveur déduplique ; le rejeu est idempotent ; le
    serveur fait foi en conflit. La file se vide AU RETOUR AU PREMIER PLAN par
-   défaut (une PWA n'a de synchronisation en arrière-plan sur aucune plateforme de
-   façon garantie ; Background Sync est une optimisation Chromium, jamais une
-   hypothèse). Aucune donnée B, C ou D en cache d'écriture sur un terminal.
+   défaut. Aucune plateforme ne garantit la synchronisation en arrière-plan :
+   Background Sync est une API Chromium, BGTaskScheduler et WorkManager supposent
+   la coquille native. Les trois sont des optimisations, jamais des hypothèses. Aucune donnée B, C ou D en cache d'écriture sur un terminal.
    L'interface annonce immédiatement toute action indisponible faute de réseau —
    jamais de grisé silencieux, jamais d'échec après coup, jamais de mise en file
    « au cas où ». CES RÈGLES S'APPLIQUENT DÈS LA PHASE 2, SUR LES DONNÉES
    SIMULÉES : une opération de classe C doit être refusée hors ligne même quand
    rien n'est branché, sinon l'écran ment et le mensonge se découvre en phase 3.
 
-7. APPLICATION UNIQUE — UNE PWA. Une seule application Nuxt 4, installable,
-   fonctionnant hors ligne, pour tous les rôles métier et toutes les plateformes
-   (Windows, macOS, Linux, Android, iOS). PAS DE COQUILLE NATIVE AU MVP : ni
-   Tauri, ni Electron. Capacitor n'entrera que si un besoin natif se manifeste et
-   ne peut pas être servi par une API web — décision à prendre sur un cas réel,
-   jamais par anticipation. Les rôles sont CUMULABLES : un utilisateur porte N
-   rôles, ses permissions sont l'union — c'est la norme, pas l'exception.
-   L'accueil est un tableau de bord de tuiles filtrées par permission, jamais un
-   menu figé. Chargement paresseux par module. L'interface ne montre JAMAIS un
-   module d'activité inactif : pas de grisé, absent. La même règle vaut pour une
-   action qu'une permission interdit : absente, jamais grisée.
+7. APPLICATION UNIQUE — UN CODE, TROIS COQUILLES DANS LE TEMPS. Une seule
+   application Nuxt 4 en SPA pour tous les rôles métier. La coquille qui
+   l'embarque change au fil du temps, le code non :
+     · PWA — service worker, manifeste, installation : PHASE 2 ET DÉMONSTRATION.
+       Ce n'est PAS la cible de production.
+     · CAPACITOR — Android et iOS : LA PRODUCTION MOBILE, décidé et non
+       optionnel. Les limites du web sur le Bluetooth (impression thermique
+       absente de Safari), les notifications et le stockage sécurisé ne se
+       contournent pas.
+     · TAURI DESKTOP — option ouverte pour le poste de réception, à trancher.
+   Capacitor embarque le build web tel quel : le passage n'est pas une
+   réécriture, c'est une coquille ajoutée plus des plugins natifs.
+   Les rôles sont CUMULABLES : un utilisateur porte N rôles, ses permissions sont
+   l'union — c'est la norme, pas l'exception. L'accueil est un tableau de bord de
+   tuiles filtrées par permission, jamais un menu figé. Chargement paresseux par
+   module. L'interface ne montre JAMAIS un module d'activité inactif : pas de
+   grisé, absent. La même règle vaut pour une action qu'une permission interdit :
+   absente, jamais grisée.
    TOUTE CAPACITÉ DE PLATEFORME PASSE PAR PlatformAdapter — impression, scan,
    caméra et OCR, stockage sécurisé, notifications, géolocalisation, état réseau.
-   Une seule implémentation au MVP (web), une seconde le jour de Capacitor.
-   UNE CAPACITÉ ABSENTE SUR UNE PLATEFORME LE DIT EXPLICITEMENT À L'UTILISATEUR
-   ET PROPOSE L'ALTERNATIVE : c'est plus important en PWA qu'en natif, car les
-   écarts entre navigateurs sont réels et connus (WebUSB et Web Bluetooth
-   absents de Safari, notifications web conditionnées à l'installation sur iOS).
+   DEUX IMPLÉMENTATIONS SONT PRÉVUES D'EMBLÉE : web (phase 2) et capacitor
+   (production). Aucun composant n'appelle jamais une API de plateforme
+   directement — c'est cette règle, et elle seule, qui rend le changement de
+   coquille mécanique.
+   UNE CAPACITÉ ABSENTE LE DIT EXPLICITEMENT À L'UTILISATEUR ET PROPOSE
+   L'ALTERNATIVE. En phase 2 ce message est fréquent et c'est normal (WebUSB et
+   Web Bluetooth absents de Safari, notifications conditionnées à l'installation
+   sur iOS) ; en production Capacitor il devient rare.
 
 8. QUALITÉ ET INTERFACE. Transitions d'état couvertes par des tests d'intégration ;
    requêtes sqlx vérifiées à la compilation (cargo sqlx prepare). AUCUNE chaîne
@@ -344,13 +341,29 @@ Principes non négociables :
     deux dépendances de la même famille fonctionnelle ne cohabitent pas (§3.4 du
     document).
 
-12. RÉFÉRENCE VISUELLE. docs/design/html/{code}-{nom}[-{etat}].html est la
-    RÉFÉRENCE NORMATIVE des onze écrans maquettés : valeurs exactes et hiérarchie
-    DOM, un fichier par état. Les fondations sont dans docs/design/fondation/, les
-    prototypes animés dans docs/design/proto/, les documents imprimés dans
-    docs/design/documents/. docs/design/tokens.md contient les valeurs curées et
-    PRIME sur tout export en cas de divergence. docs/design/mouvement.md contient
-    les durées et courbes.
+12. RÉFÉRENCE VISUELLE — LA GRAMMAIRE FAIT FOI, PAS LE DESSIN.
+    docs/design/html/{code}-{nom}[-{etat}].html est la référence de travail des
+    onze écrans maquettés : valeurs exactes et hiérarchie DOM, un fichier par
+    état. Les fondations sont dans docs/design/fondation/, les prototypes animés
+    dans docs/design/proto/, les documents imprimés dans docs/design/documents/.
+    CE QUI FAIT FOI TOUJOURS : docs/design/tokens.md (couleurs, espacements,
+    rayons, typographie — il PRIME sur tout export en cas de divergence),
+    docs/design/composants.md et le styleguide (les seize composants et leurs
+    états), docs/design/lexique.md (le vocabulaire vu par l'utilisateur),
+    docs/design/mouvement.md (durées et courbes), les neuf règles de simplicité
+    et les deux zones de docs/Kaya_Design.md.
+    CE QUI EST UNE PROPOSITION : la disposition d'un écran, le choix des
+    composants sur cet écran, le nombre de champs. LES MAQUETTES ONT ÉTÉ
+    DESSINÉES AVANT LE MODÈLE DE DONNÉES : elles n'ont pas pu tout prévoir. Quand
+    le modèle ou une fonctionnalité exige un élément qu'un écran n'a pas — une
+    colonne, un état, une action —, TU L'AJOUTES, et tu METS LA MAQUETTE À JOUR
+    DANS LE MÊME CHANGEMENT. Une maquette qui ment est pire qu'une maquette
+    absente : la suivante s'appuiera dessus.
+    Un écran qui s'écarte de sa maquette reste juste tant qu'il parle la même
+    langue ; un écran qui invente une couleur, un composant ou un mot ne l'est
+    plus. LA DÉRIVE VIENT DU VOCABULAIRE, PAS DE LA MISE EN PAGE. Et un ajout se
+    fait, il ne se subit pas : ajouter trois actions faute d'avoir tranché
+    laquelle compte viole la règle « une action principale par écran ».
     UN ÉCRAN SE CODE DANS QUATRE CAS : (a) maquetté — un fichier d'état ; (b)
     dérivé — une ligne de docs/design/derivation.md qui dit de quel motif il
     hérite ; (c) composé — assemblé à partir des seize composants canoniques ;
@@ -443,8 +456,8 @@ bibliothèque. Quatre obligations, aucune n'étant une autorisation à obtenir :
   2. version vérifiée sur le registre officiel, URL et date en commentaire
      au-dessus de la ligne du manifeste, avec le rôle. Jamais de mémoire ;
   3. le commentaire dit POURQUOI ce qui est déjà là ne suffit pas ;
-  4. après une MONTÉE, la suite de tests passe — c'est la seule condition, et elle
-     remplace la revue mensuelle qui n'existe plus.
+  4. après une MONTÉE, la suite de tests passe — c'est la seule condition. Il n'y a
+     aucune revue périodique où reporter quoi que ce soit.
 Puis inscris la ligne au §3.1 ou §3.2 du document DANS LE MÊME CHANGEMENT. Vérifie
 le §3.4 avant : deux membres d'une même famille ne cohabitent pas, et une famille
 absente de ce tableau est une famille non encore rencontrée — si tu l'ouvres, tu
@@ -454,11 +467,14 @@ Stack imposée (cadrage v1 §13 + docs/versions-reference.md — non négociable
 - Modèle de données : PostgreSQL, un schéma par module, RLS ENABLE **et** FORCE,
   migrations sqlx versionnées. docs/modele-donnees/{schema}.sql est le miroir du
   schéma réel et se met à jour DANS LE MÊME CHANGEMENT que toute migration.
-- Application : Nuxt 4 en SSR désactivé + Tailwind 4, en PWA INSTALLABLE (service
-  worker, manifeste, fonctionnement hors ligne) — UNE SEULE application pour tous
-  les rôles métier, chargement paresseux par module, PlatformAdapter obligatoire,
-  mode sombre et i18n fr/en dès le premier écran. AUCUNE COQUILLE NATIVE : ni
-  Tauri ni Electron. Capacitor est une option future, pas une dépendance.
+- Application : Nuxt 4 en SSR désactivé + Tailwind 4 — UNE SEULE application pour
+  tous les rôles métier, chargement paresseux par module, PlatformAdapter
+  obligatoire, mode sombre et i18n fr/en dès le premier écran.
+  COQUILLE : PWA installable (service worker, manifeste, hors ligne) en phase 2 et
+  pour la démonstration ; CAPACITOR en production mobile, décidé et non optionnel ;
+  Tauri desktop en option. Le build web est le même dans les trois cas — écris
+  toute capacité de plateforme derrière PlatformAdapter, avec l'implémentation web
+  aujourd'hui et l'implémentation capacitor prévue.
 - Surfaces web séparées : page publique de commande par QR (Nuxt SSR), console
   éditeur (ssr:false).
 - Backend (phase 3) : Rust, Actix Web, sqlx + PostgreSQL, utoipa +
@@ -859,8 +875,9 @@ les deux.
 
 ## PHASE 2 — L'APPLICATION ENTIÈRE, EN DONNÉES SIMULÉES
 
-**Sept cycles, aucun backend.** Le livrable est une PWA Nuxt installable où **tous les parcours du
-MVP se déroulent de bout en bout** sur des données simulées conformes au modèle de la phase 1.
+**Sept cycles, aucun backend.** Le livrable est une application Nuxt — servie en PWA installable —
+où **tous les parcours du MVP se déroulent de bout en bout** sur des données simulées conformes au
+modèle de la phase 1.
 
 **Ce que cette phase achète** : la possibilité de voir l'écart en quelques secondes, sur l'écran,
 plutôt que de le chercher dans une spécification. C'est la seule boucle de retour praticable pour
@@ -904,6 +921,10 @@ suivants réinventeraient chacun leur version. Livrables :
    c'est la propriété la plus difficile à rétrofitter. Vérifie l'installation sur
    Chromium ET sur WebKit — iOS impose ses propres règles (installation depuis le
    menu de partage, pas de bannière automatique) et c'est la moitié du parc.
+   ⚠️ LA PWA EST LA COQUILLE DE LA PHASE 2 ET DE LA DÉMONSTRATION, PAS DE LA
+   PRODUCTION : Capacitor prendra le relais sur mobile (cadrage §13.3). Écris donc
+   la coquille comme une couche mince et remplaçable — rien de métier dans le
+   service worker, aucune logique dans le manifeste.
 
 3. LES SEIZE COMPOSANTS CANONIQUES de docs/design/composants.md, dans tous leurs
    états, en clair et en sombre, plus UN STYLEGUIDE INTERNE à l'application qui les
@@ -938,13 +959,22 @@ suivants réinventeraient chacun leur version. Livrables :
      chacun de ces états DEPUIS L'INTERFACE, sans recompiler — sinon les états
      dégradés ne seront jamais regardés.
 
-8. PlatformAdapter avec sa seule implémentation web, et le principe qui compte :
-   UNE CAPACITÉ ABSENTE LE DIT EXPLICITEMENT ET PROPOSE L'ALTERNATIVE. Recense dès
-   maintenant, dans le code et dans une note, ce que le web ne sait pas faire par
-   moteur : WebUSB et Web Bluetooth absents de Safari (donc pas d'impression
-   thermique directe sur iPhone), notifications web conditionnées à l'installation
-   sur iOS, pas d'accès au système de fichiers sur iOS. Ce sont des faits à
-   afficher à l'utilisateur, pas des bogues à corriger.
+8. PlatformAdapter — L'INTERFACE COMPLÈTE, avec son implémentation web. C'est le
+   SEUL point d'articulation entre le code et la coquille, et c'est lui qui rendra
+   le passage à Capacitor mécanique : impression, scan, caméra et OCR, stockage
+   sécurisé, notifications, géolocalisation, état réseau. AUCUN composant n'appelle
+   jamais une API de plateforme directement.
+   Écris l'interface en pensant aux DEUX implémentations — web aujourd'hui,
+   capacitor en production — même si tu n'en livres qu'une. Une méthode dont la
+   signature ne peut pas être servie par un plugin natif est une méthode mal
+   dessinée.
+   UNE CAPACITÉ ABSENTE LE DIT EXPLICITEMENT ET PROPOSE L'ALTERNATIVE. Recense dans
+   le code et dans une note ce que le web ne sait pas faire par moteur : WebUSB et
+   Web Bluetooth absents de Safari (donc pas d'impression thermique directe sur
+   iPhone), notifications conditionnées à l'installation sur iOS, pas d'accès au
+   système de fichiers sur iOS. En phase 2 ces messages sont fréquents et c'est
+   normal ; Capacitor les fera disparaître. Ce sont des faits à afficher, pas des
+   bogues à corriger.
 
 9. RBAC côté client : les permissions viennent de la session, et UNE ACTION
    INTERDITE EST ABSENTE DU HTML RENDU, jamais grisée. Le test le vérifie sur le
@@ -1301,17 +1331,26 @@ Points d'attention : {…}.
 | **2 — Écrans** | F1 → F7 | **Tous les parcours du MVP se déroulent de bout en bout**, en clair et en sombre, installables hors ligne, sur données simulées. Je peux montrer le produit à Deloria avant d'avoir écrit un endpoint. |
 | **3 — Backend** | B1 → B15 | Chaque endpoint livré remplace sa simulation. À la fin, `app/core/donnees/` ne contient plus que le client réel. |
 | **J1** | — | **Deloria abandonne le cahier papier.** Double exploitation de 3 semaines avant bascule. |
+| **Coquille de production** | après le MVP | **Capacitor** pour Android et iOS : chaîne de build, signature, distribution, plugins natifs (impression Bluetooth, push, attestation, stockage sécurisé, OCR). 6 à 9 semaines. Le code Nuxt ne change pas — seule la coquille s'ajoute. |
 
-> **Le jalon nouveau, et c'est celui qui compte** : à la fin de la phase 2, le produit **se montre**.
-> Une démonstration à Abengourou sur données simulées vaut plus qu'une spécification relue, et elle
-> arrive des mois plus tôt qu'avec l'ordre d'avant. **Ce qu'elle ne prouve pas** : la conformité
-> fiscale, la résistance aux coupures réelles, les performances. Ces trois-là restent de la phase 3,
-> et il faut le dire au pilote plutôt que de laisser croire que le produit est prêt.
+> **Le jalon qui compte** : à la fin de la phase 2, le produit **se montre**. Une démonstration à
+> Abengourou sur données simulées vaut plus qu'une spécification relue, et elle arrive des mois plus
+> tôt qu'en construisant le backend d'abord. **Ce qu'elle ne prouve pas** : la conformité fiscale,
+> la résistance aux coupures réelles, les performances — et **elle n'est pas la version que le
+> personnel installera**, qui viendra avec Capacitor. Le dire au pilote plutôt que de laisser
+> croire que le produit est prêt.
 
 ---
 
 ## 5. Règles de conduite du dépôt
 
+- **Les maquettes de `docs/design/` sont des propositions tenues à jour, pas des plans figés.**
+  Quand le modèle de données ou une fonctionnalité exige un élément qu'un écran n'a pas, l'élément
+  s'ajoute **et la maquette est mise à jour dans le même changement**. Ce qui fait foi toujours est
+  la **grammaire** — tokens, composants, lexique, les neuf règles de simplicité, les deux zones ;
+  ce qui est proposé est la **mise en page**. Un écran qui s'écarte de sa maquette reste juste tant
+  qu'il parle la même langue ; un écran qui invente une couleur, un composant ou un mot ne l'est
+  plus.
 - **Un écran se code dans QUATRE cas.** (a) **Maquetté** — un fichier d'état de
   `docs/design/html/`. (b) **Dérivé** — une ligne de `docs/design/derivation.md`. (c) **Composé** —
   assemblé à partir des seize composants canoniques, en zone de charme. (d) **Découvert à
@@ -1353,7 +1392,8 @@ Points d'attention : {…}.
 | **B-05 / O-02** — classe hors-ligne du stock (A ou B) | Le cycle **D2** pour les privilèges, **B15** pour la logique. Jusqu'à l'arbitrage, **B s'applique** — la plus stricte | avec le pilote |
 | **O-03** — crate d'accueil de la surface QR | Cycle **B14**. Le modèle la range dans `ventes.sql` au cycle D2 ; le crate se décidera après | avant B14 |
 | **Mécanique de données simulées** — bibliothèque ou code du dépôt ? | Cycle **F1**, et **pour toute la phase 2** : une seule mécanique, pas une par module | au cycle F1 |
-| **Capacitor** — entre-t-il, et quand ? | Rien. **Ne se décide que sur un besoin natif constaté** qu'aucune API web ne sert : impression thermique sur iPhone, notifications sans installation, OCR hors ligne performant | jamais par anticipation |
+| **Capacitor** — quand la coquille de production entre-t-elle ? | Rien pendant les phases 1 et 2. **La décision est prise** (cadrage §13.3) : ce qui reste à arbitrer est la date, et elle dépend du pilote. 6 à 9 semaines de plugins natifs | après la démonstration |
+| **Tauri desktop** — pour le poste de réception ? | Rien. À trancher sur l'impression et l'intégration système, une fois Capacitor en place | après Capacitor |
 | **B-06** — nom définitif et marque | Renommage global, trivial tant qu'il est fait tôt | avant le pilote |
 | **B-04** — montant des frais d'installation | Cycle B15 (ADM) | avant B15 |
 

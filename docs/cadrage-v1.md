@@ -5,19 +5,6 @@
 
 > **Nom de code provisoire.** `Kaya` est un placeholder jusqu'à la décision B-06 (annexe B). Il est utilisé partout dans les documents et le dépôt ; un renommage global est trivial tant qu'il n'y a pas de marque déposée.
 
-> ### 🔄 Deux décisions du 2026-08-06, qui touchent l'exécution et non le périmètre
->
-> **1. L'ordre de construction change** — le modèle de données d'abord, l'application entière
-> ensuite avec des données simulées, le backend en dernier. Voir **§13.0**, qui explique le
-> constat qui l'a provoqué. Le périmètre du MVP, lui, ne bouge pas d'une ligne.
->
-> **2. L'application est une PWA, plus une coquille Tauri** — installable, fonctionnant hors
-> ligne, servie par un navigateur. Voir **§13.3** et **§13.4**, qui disent ce qu'on y gagne, ce
-> qu'on y perd, et à quelles conditions Capacitor entrerait plus tard.
->
-> Les sections concernées portent la mention du changement. Tout ce qui n'est pas marqué est
-> inchangé depuis la version 1.0.
-
 ---
 
 ## 1. Résumé exécutif
@@ -30,7 +17,7 @@ Piliers du modèle :
 
 - **Conformité fiscale native** — FNE (Côte d'Ivoire), taxe communale de nuitée avec état de reversement par commune, TVA, taxe pour le développement touristique. Le moteur est un système d'adaptateurs par juridiction dès le premier jour : ajouter un pays est un adaptateur, pas une réécriture.
 - **Toutes les formules de location du marché africain** — nuitée, **passage horaire**, **demi-journée**, séjour long au mois. Le passage et la demi-journée sont majoritaires en volume dans une grande partie du parc et absents des PMS existants ; c'est un différenciateur immédiat et une source de traçabilité que les propriétaires n'ont pas aujourd'hui.
-- **Application unique, interface selon les rôles cumulés** — un gérant qui est aussi caissier et réceptionniste installe une seule application. **Une PWA**, donc la même sur un poste de réception Windows, sur l'Android d'entrée de gamme d'une serveuse et sur l'iPhone du propriétaire, sans magasin d'applications et sans revue d'éditeur (§13.3).
+- **Application unique, interface selon les rôles cumulés** — un gérant qui est aussi caissier et réceptionniste installe une seule application. **Un seul code Nuxt**, la même sur un poste de réception Windows, sur l'Android d'entrée de gamme d'une serveuse et sur l'iPhone du propriétaire ; en PWA pour la démonstration, en application installée par Capacitor en production (§13.3).
 - **Résilience réseau** — le service continue pendant les coupures, sans perte ni double comptage, sans jamais produire de document fiscal invalide.
 - **Souveraineté des données** — SaaS mutualisé par défaut, auto-hébergement (LAN ou cloud du client) en option commerciale.
 - **Monolithe modulaire, microservices-ready** — un crate par domaine, interfaces par traits, schéma Postgres par module, journal d'événements en sortie. Aucun service n'est extrait au MVP ; aucun ne sera bloqué de l'être.
@@ -93,7 +80,7 @@ Le facteur limitant du projet est l'acquisition client, pas la difficulté techn
 | **Console éditeur** | Provisionnement de tenants, abonnements, télémétrie, diagnostic |
 | **Impression** | Tickets thermiques ESC/POS 80 mm, factures A4 PDF, tiroir-caisse |
 | **Déploiement** | SaaS mutualisé (défaut) + paquet auto-hébergé |
-| **Applications** | **Une PWA Nuxt 4 installable** — Windows, macOS, Linux, Android, iOS ; surfaces web publiques séparées (QR, console éditeur) |
+| **Applications** | **Une base Nuxt 4 unique** — PWA pour la démonstration, **Capacitor** pour la production Android et iOS, Tauri desktop en option (§13.3) ; surfaces web publiques séparées (QR, console éditeur) |
 
 ### 3.2 Hors MVP (infrastructure prête le cas échéant, §14)
 
@@ -477,7 +464,7 @@ En cas de doute, **classer plus strictement**. Une entité indûment classée A 
 
 **Le passage aggrave la sensibilité à l'horloge.** Un passage facturé à l'heure repose sur des timestamps. Le début d'occupation est posé par le serveur au check-in ; si le check-in est fait hors ligne en mode C, c'est le nœud de site qui fait autorité, jamais le terminal.
 
-**Aucune plateforme ne garantit la synchronisation en arrière-plan.** La file est conçue pour être vidée **au retour au premier plan par défaut**, partout. *(Précisé le 2026-08-06 : cette règle disait « iOS n'a pas de synchronisation en arrière-plan » et visait `BGTaskScheduler` et `WorkManager`. En PWA, c'est l'API Background Sync qui est en cause — disponible sur Chromium, absente de Safari et de Firefox. **La conclusion est identique, et c'est ce qui compte** : l'hypothèse retenue était déjà la plus pessimiste, le changement de plateforme ne la touche pas.)*
+**Aucune plateforme ne garantit la synchronisation en arrière-plan.** La file est conçue pour être vidée **au retour au premier plan par défaut**, partout. Background Sync est une API Chromium, absente de Safari et de Firefox ; `BGTaskScheduler` et `WorkManager` supposent la coquille native. Les trois sont des **optimisations, jamais des hypothèses**.
 
 ### 11.5 Règles d'implémentation
 
@@ -497,10 +484,10 @@ En cas de doute, **classer plus strictement**. Une entité indûment classée A 
 - **Row Level Security forcée** (`FORCE ROW LEVEL SECURITY`) sur toutes les tables, avec un rôle applicatif distinct du propriétaire des tables. Test d'intégration qui échoue si une table n'a pas de politique.
 - `SET LOCAL app.current_tenant` posé **dans chaque transaction**, jamais à l'ouverture de connexion — avec un pool, c'est la différence entre l'isolation et la fuite.
 - Coffre chiffré **par tenant** pour les clés FNE et les secrets d'agrégateur.
-- **Aucun secret dans le bundle applicatif.** Le code d'une PWA est lisible par construction — ce n'est pas une aggravation par rapport à un binaire Tauri, qui était décompilable ; c'est la même règle, sans l'illusion d'opacité.
+- **Aucun secret dans le bundle applicatif.** Le code servi au navigateur est lisible ; un binaire natif est décompilable. La règle est la même dans les deux cas, et aucune coquille ne la relâche.
 - Sauvegardes quotidiennes + PITR, avec **restauration réellement testée chaque trimestre**.
 
-### 12.2 Terminaux du personnel *(révisé le 2026-08-06 : conséquences du passage en PWA)*
+### 12.2 Terminaux du personnel
 
 Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et Android 10 randomisent la MAC par réseau, et aucune application ne peut lire la MAC matérielle. Mécanismes retenus à la place :
 
@@ -512,7 +499,7 @@ Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et And
 | **Géorepérage souple** — rayon paramétrable, **300 m par défaut** | Signal d'audit et alerte au gérant |
 
 > ⚠️ **La perte d'attestation est réelle, et elle se compense au serveur — pas en la niant.**
-> Une PWA ne peut pas prouver qu'elle n'a pas été modifiée, ni que l'appareil n'est pas émulé.
+> Le web ne peut pas prouver qu'une application n'a pas été modifiée, ni qu'un appareil n'est pas émulé. **Capacitor rétablit cette garantie** (Play Integrity, App Attest — §13.4) ; en attendant, et pour toute la phase 2, elle n'existe pas.
 > Ce qui reste, et qui suffit au modèle de menace réel de Deloria — un employé qui détourne des
 > espèces, pas un attaquant qui reverse-engineere une application : la **signature de requête par
 > clé d'appareil**, la **révocation immédiate**, le **journal d'audit immuable**, et le fait que
@@ -531,7 +518,7 @@ Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et And
 
 **Règle générale : la dernière version stable de chaque brique, sauf conflit constaté.** Vérifiée sur le registre officiel avec l'URL citée, épinglée exactement, figée par lockfile commité. `docs/versions-reference.md` fait foi et porte le régime complet — **il n'y a plus de revue périodique** : ajouter comme monter est libre, à la condition que les tests passent après.
 
-### 13.0 Ordre de construction — trois phases *(nouveau, 2026-08-06)*
+### 13.0 Ordre de construction — trois phases
 
 > **Le constat qui l'a provoqué, écrit tel quel** : dans l'ordre backend d'abord, le produit était trop compliqué à faire avancer. Chaque cycle produisait des tables, des traits et des tests que rien ne montrait, et vérifier qu'ils étaient justes demandait de relire des spécifications entières. Un développeur seul n'a pas ce temps-là.
 
@@ -540,7 +527,7 @@ Le verrouillage par adresse MAC est **techniquement impossible** : iOS 14 et And
 | Phase | Livrable | Ce qu'on regarde pour valider |
 |---|---|---|
 | **1 — Le modèle de données** | `docs/modele-donnees/{schema}.sql` — tout le MVP en SQL applicable, provisions comprises | le SQL s'applique sur une base vierge ; chaque table a sa classe hors-ligne et sa politique RLS |
-| **2 — L'application entière** | Une PWA où **tous les parcours se déroulent de bout en bout**, sur des données simulées | **l'écran** — un écart se voit en quelques secondes |
+| **2 — L'application entière** | Une application où **tous les parcours se déroulent de bout en bout**, sur des données simulées, servie en PWA | **l'écran** — un écart se voit en quelques secondes |
 | **3 — Le backend** | Les endpoints, qui **remplacent les simulations une par une** | les tests, le contrat, la clôture au franc près |
 
 **Les trois raisons de cet ordre :**
@@ -575,7 +562,7 @@ Le détail des cycles est dans `docs/Kaya_Prompts_SpecKit.md` §3.
 - **`sqlx`** : requêtes vérifiées à la compilation (`cargo sqlx prepare`), migrations versionnées, une migration appliquée n'est jamais modifiée. **Toute migration met à jour `docs/modele-donnees/{schema}.sql` dans le même changement** (§13.0).
 - **Le modèle de données précède le code** : les tables sont définies en SQL de référence avant qu'aucune migration n'existe. La migration matérialise le modèle, elle ne l'invente pas.
 
-**Crate `domain` partagé** : moteur fiscal, calculs de formules et de barèmes, validation, types métier. Consommé par l'API et par le nœud de site. **Une seule implémentation du calcul de la taxe de nuitée**, pas deux. *(Précisé le 2026-08-06 : la coquille Tauri en était le troisième consommateur. En PWA, le client ne calcule aucune taxe — il affiche ce que le serveur a calculé. C'est un durcissement, pas une perte : une règle fiscale qui ne vit qu'à un seul endroit ne peut pas diverger.)*
+**Crate `domain` partagé** : moteur fiscal, calculs de formules et de barèmes, validation, types métier. Consommé par l'API et par le nœud de site. **Une seule implémentation du calcul de la taxe de nuitée**, pas deux. **Le client ne calcule aucune taxe** — il affiche ce que le serveur a calculé, quelle que soit la coquille. Une règle fiscale qui ne vit qu'à un seul endroit ne peut pas diverger.
 
 **Mesures de vélocité** (obligatoires, cycle 1) : un **module doré** écrit à la main — entité, repository, service, handler, tests — servant de patron avant toute génération assistée ; linker `mold`, `sccache`, `cargo-watch` ; `debug = "line-tables-only"` en profil dev ; découpage en crates pour limiter la recompilation. Pas de généricité prématurée : du code concret se refactore, une abstraction prématurée se subit.
 
@@ -590,40 +577,51 @@ Le détail des cycles est dans `docs/Kaya_Prompts_SpecKit.md` §3.
 
 Aucun service n'est extrait au MVP. Aucune file de messages n'est introduite au MVP — l'outbox est consommé par un worker in-process.
 
-### 13.3 Application — une PWA Nuxt 4 *(changé le 2026-08-06 : Tauri est retiré)*
+### 13.3 Application — une base Nuxt 4, trois coquilles dans le temps
 
-- **Une seule application** pour tous les rôles métier, en mode SPA (SSR désactivé), **installable et fonctionnant hors ligne** — service worker, manifeste, cache applicatif. Cibles : Windows, macOS, Linux, Android, iOS, sans magasin d'applications.
+**Le code applicatif est écrit une seule fois** : une application Nuxt 4 en SPA (SSR désactivé), pour tous les rôles métier. Ce qui change au fil du temps est la **coquille** qui l'embarque, et rien d'autre.
+
+| Coquille | Quand | Ce qu'elle sert |
+|---|---|---|
+| **PWA** — service worker, manifeste, installation | **Phase 2, et la démonstration au pilote** | Montrer le produit, valider les parcours, travailler vite. **Ce n'est pas la cible de production.** |
+| **Capacitor** — Android et iOS | **Décidé, dès la fin du MVP** | La production mobile. Les limites du web sur Bluetooth, notifications et stockage sécurisé ne se contournent pas : elles imposent le natif |
+| **Tauri desktop** — Windows, macOS, Linux | **Option ouverte**, à trancher | Le poste de réception, si l'impression ou l'intégration système le justifient |
+
+> **La PWA n'est pas un renoncement au natif, c'est l'ordre dans lequel on y va.** Elle permet de construire toute l'interface et tous les parcours sans payer d'abord la chaîne de build mobile, la signature et les magasins d'applications. **Capacitor n'est pas une hypothèse** : c'est la cible de production mobile, et le tableau du §13.4 dit pourquoi elle est obligée.
+
+**Ce qui rend cette trajectoire peu coûteuse — et ce n'est pas un vœu :**
+
+- **Capacitor embarque le build web tel quel.** Le passage n'est pas une réécriture : c'est une coquille ajoutée autour du même `dist/`. Ce qui reste à faire est la chaîne de build, la signature, la distribution, et les **plugins natifs** du §13.4.
+- **`PlatformAdapter` est le seul point d'articulation, et il est posé dès le premier cycle d'écran.** Impression, scan, caméra et OCR, stockage sécurisé, notifications, géolocalisation, état réseau passent par cette interface. Deux implémentations sont prévues d'emblée : `web` (phase 2) et `capacitor` (production). **Aucun composant n'appelle jamais une API de plateforme directement** — c'est cette règle, et elle seule, qui rend le changement de coquille mécanique.
+- **Une capacité absente le dit explicitement à l'utilisateur et propose l'alternative.** En phase 2, ce message est fréquent et c'est normal ; en production Capacitor, il devient rare.
+
+**Le reste de l'application, inchangé quelle que soit la coquille :**
+
 - **Chargement paresseux par module** : un serveur de salle ne télécharge pas le code du back-office.
 - **RBAC cumulatif** : un utilisateur porte N rôles, ses permissions sont l'union. Un **sélecteur de contexte** permanent (quel établissement, quel poste) évite d'afficher tout simultanément.
-- **`PlatformAdapter` est conservé, et sert davantage qu'avant.** Impression, scan, caméra et OCR, stockage sécurisé, notifications, géolocalisation, état réseau passent par cette interface. Une seule implémentation au MVP (`web`), une seconde le jour de Capacitor. **Une capacité absente le dit explicitement à l'utilisateur et propose l'alternative** — c'est plus important en PWA qu'en natif, parce que les écarts entre navigateurs sont réels, connus, et ne se corrigeront pas.
 - **Tailwind 4** + design system (tokens, seize composants canoniques), **mode sombre dès le premier écran**, **i18n fr/en** avec fr par défaut et aucune chaîne en dur.
 
-**Surfaces web séparées** : page publique de commande par QR (Nuxt SSR), console éditeur.
+**Surfaces web séparées** : page publique de commande par QR (Nuxt SSR), console éditeur. Elles restent web en production — un client qui scanne un QR n'installe rien.
 
-**Pourquoi ce changement, en trois points :**
+### 13.4 Ce que le web ne sait pas faire — et pourquoi Capacitor est obligé
 
-1. **Le coût d'entrée du natif était payé avant toute valeur.** Le tableau du §13.4 chiffrait 8 à 11 semaines de plugins natifs Swift et Kotlin — à écrire, à déboguer sur deux plateformes, à maintenir — avant que Deloria n'ait vu un écran. Pour un développeur solo, c'est le tiers d'un incrément dépensé en plomberie.
-2. **La distribution était le vrai point dur.** Sur iOS, aucune installation hors App Store et toute mise à jour du binaire passe par la revue Apple : un correctif de calcul de taxe attendait un délai qu'on ne maîtrise pas. Une PWA se met à jour au rechargement, sur toutes les plateformes, sans intermédiaire.
-3. **Ce qu'on perd est identifié et supportable** — §13.4.
+**Le tableau ci-dessous est le motif de la décision.** Trois lignes suffisent à la justifier : impression, notifications, stockage de clés. Les autres sont des inconforts ; celles-là sont des empêchements.
 
-**La bascule vers Capacitor reste ouverte, et se décide sur un fait, jamais par anticipation** : un besoin natif constaté qu'aucune API web ne sert. La discipline du `PlatformAdapter` est exactement ce qui rend cette bascule peu coûteuse — c'est une implémentation de plus derrière une interface qui existe déjà.
-
-### 13.4 Ce que le web sait faire, et ce qu'il ne sait pas *(remplace « plugins natifs à écrire »)*
-
-**À vérifier sur le matériel réel du pilote avant l'incrément 1** : les tableaux ci-dessous décrivent l'état des API web tel qu'il est connu, pas tel qu'il sera constaté à Abengourou.
-
-| Besoin | Ce que la PWA sait faire | Limite, et ce qu'on affiche à l'utilisateur |
+| Besoin | En PWA (phase 2, démonstration) | En Capacitor (production) |
 |---|---|---|
-| **Impression thermique 80 mm** | **WebUSB** ou **Web Bluetooth** sur Chromium (Windows, Android, Linux, macOS) — ESC/POS direct, ouverture du tiroir incluse | **Absents de Safari, donc de tout iPhone et iPad.** Repli : impression système (`window.print`) vers une imprimante partagée, ou envoi du ticket à un poste qui imprime. L'écran dit *« cet appareil ne peut pas imprimer directement — le ticket part sur l'imprimante de la réception »* |
-| **Notifications** | **Web Push** (VAPID) sur Chromium et Firefox ; sur iOS **à partir de 16.4 et seulement si l'application est installée** depuis le menu de partage | Le parcours d'installation devient une étape guidée du produit sur iOS, pas un détail. Sans installation, pas de notification : l'écran le dit et propose d'installer |
-| **Fonctionnement hors ligne** | **Complet** — service worker, IndexedDB, file d'actions locale. C'est le point où la PWA est au niveau du natif | La synchronisation en **arrière-plan** n'est garantie nulle part (Background Sync est une API Chromium). La file se vide **au retour au premier plan**, ce qui était déjà l'hypothèse retenue au §11.4 |
-| **Stockage de clés** | **WebCrypto** avec clés **non extractibles** en IndexedDB : la clé signe sans jamais pouvoir être lue par du JavaScript | Moins fort qu'un Keystore matériel : pas d'adossement au matériel, et le stockage peut être purgé par le navigateur après une longue inactivité. Conséquence à assumer : un ré-enrôlement d'appareil doit être simple, il arrivera |
-| **Caméra et OCR de pièce** | `getUserMedia` pour la capture ; OCR par **WebAssembly** sur l'appareil (donc sans envoi au cloud, comme prévu) | Plus lent que Vision ou ML Kit sur un Android d'entrée de gamme. L'OCR est de toute façon **entièrement dégradable** (SEJ-06) : accélérateur, jamais passage obligé |
-| **Géolocalisation** | API standard, avec permission | Identique au natif, y compris l'imprécision. Le géorepérage reste **souple et jamais bloquant** (§12.2) |
-| **Attestation d'intégrité** | **Rien d'équivalent.** Play Integrity et App Attest n'ont pas de contrepartie web | ⚠️ **C'est la perte réelle.** La sécurité repose entièrement sur le serveur : enrôlement d'appareil, signature de requête, révocation, journal d'audit. Voir §12.2 |
-| **Mise à jour** | **Au rechargement, sur toutes les plateformes, sans intermédiaire** — c'est le gain principal | Un service worker peut servir une version périmée : prévoir une invite de rechargement explicite quand une version nouvelle est disponible |
+| **Impression thermique 80 mm** | ⚠️ **WebUSB et Web Bluetooth n'existent PAS dans Safari**, donc sur aucun iPhone ni iPad. Sur Chromium (Windows, Android) l'ESC/POS direct fonctionne, ouverture du tiroir comprise | **Plugin Bluetooth natif**, sur les deux plateformes. C'est **le motif n° 1** : un caissier mobile doit pouvoir imprimer un reçu, et aucun repli web ne le permet sur iOS |
+| **Notifications** | Web Push sur Chromium et Firefox ; sur iOS **seulement à partir de 16.4 et seulement si l'application est installée** depuis le menu de partage — donc jamais chez qui n'a pas fait ce geste | **APNs et FCM**, sans condition d'installation manuelle. Alertes critiques : facture en échec, stickers bas, écart de caisse, terminal déconnecté |
+| **Stockage de clés d'appareil** | WebCrypto, clés non extractibles en IndexedDB — la clé signe sans pouvoir être lue. Mais **pas d'adossement matériel, et le navigateur peut purger le stockage** après une longue inactivité | **Keystore Android / Keychain iOS**, adossés au matériel. Le ré-enrôlement cesse d'être un événement courant |
+| **Attestation d'intégrité** | ⚠️ **Rien d'équivalent.** Play Integrity et App Attest n'ont pas de contrepartie web | **Play Integrity et App Attest**, vérifiés côté serveur (CPT-06) |
+| **Caméra et OCR de pièce** | `getUserMedia` pour la capture, OCR par WebAssembly sur l'appareil. Fonctionne, mais lent sur un Android d'entrée de gamme | **Vision (iOS) et ML Kit (Android)**, sur l'appareil. L'OCR reste **entièrement dégradable** (SEJ-06) dans les deux cas |
+| **Fonctionnement hors ligne** | **Complet** — service worker, IndexedDB, file d'actions locale. C'est le point où le web est au niveau du natif | Identique, le même code |
+| **Synchronisation en arrière-plan** | Background Sync est une API Chromium, absente ailleurs | `BGTaskScheduler` et `WorkManager`. **Optimisation dans les deux cas** : la file se vide au retour au premier plan (§11.4) |
+| **Géolocalisation** | API standard, avec permission | Identique, y compris l'imprécision. Géorepérage **souple et jamais bloquant** (§12.2) |
+| **Mise à jour** | **Au rechargement, sans intermédiaire** — c'est ce qui rend la phase 2 rapide | Par les magasins d'applications, avec leurs délais. **La mise à jour des assets web dans la coquille est un correctif d'urgence, jamais le canal normal** |
 
-> **La perte à connaître avant de s'engager** : l'attestation d'intégrité disparaît, et l'impression thermique directe est impossible sur iPhone. La première se compense par le serveur ; la seconde par le matériel — un poste de réception Windows imprime, un iPhone ne fera jamais mieux qu'envoyer le ticket. **Ce sont des contraintes d'installation à écrire au cahier des charges du pilote**, pas des bogues à corriger.
+**Budget des plugins natifs, à provisionner après le MVP** : impression Bluetooth 2 semaines · notifications push 2 à 3 semaines · attestation d'intégrité 1 semaine · stockage sécurisé 0,5 semaine · OCR 1 à 2 semaines. **L'écosystème Capacitor couvre déjà une partie de ces besoins**, ce qui n'était pas le cas avec Tauri v2 sur mobile — c'est un des motifs du choix.
+
+> **Ce qu'il faut dire au pilote pendant la phase 2** : l'application qu'il voit est la bonne, mais la version installée sur les téléphones du personnel viendra après, et c'est elle qui imprimera en Bluetooth et recevra les alertes. **Ne pas laisser croire que la démonstration est le produit fini.**
 
 ### 13.5 Données et infrastructure
 
@@ -647,7 +645,7 @@ Dossier marchand : RCCM, CNI du gérant, RIB ivoirien, justificatif de domicile 
 
 « Prêt » = choix de modèle de données et d'interfaces quasi gratuits aujourd'hui, évitant une migration douloureuse demain. **Rien de tout cela n'est développé au MVP.**
 
-> **Où ces provisions vivent, depuis le 2026-08-06** : dans `docs/modele-donnees/`, produit en **phase 1** (§13.0), et nulle part ailleurs. C'est le seul endroit où elles coûtent zéro. Une provision qui apparaîtrait dans un écran de phase 2 ou dans un endpoint de phase 3 n'est plus une provision : c'est du périmètre entré par la porte de service.
+> **Où ces provisions vivent** : dans `docs/modele-donnees/`, produit en **phase 1** (§13.0), et nulle part ailleurs. C'est le seul endroit où elles coûtent zéro. Une provision qui apparaîtrait dans un écran de phase 2 ou dans un endpoint de phase 3 n'est plus une provision : c'est du périmètre entré par la porte de service.
 
 1. **Adaptateurs de juridiction** — trait `JurisdictionAdapter { compute_taxes, required_document_fields, emission_channel, certify, remittance_reports }`. Un seul adaptateur au MVP (`CoteDIvoire`). Aucune règle fiscale ne vit ailleurs.
 2. **Devises dynamiques** — montants en **entiers d'unité mineure + code ISO 4217** porté par l'établissement (XOF, 0 décimale). Prêt pour une expansion hors zone CFA.
@@ -734,7 +732,7 @@ Seuil : environ **60 unités facturées × 15 clients**, soit ~950 000 FCFA de r
 
 ---
 
-## 16. Roadmap *(réordonnée le 2026-08-06 — voir §13.0)*
+## 16. Roadmap
 
 Estimation du périmètre complet : **≈ 70 semaines-homme** en solo, majoration Rust incluse. La livraison reste découpée en incréments mis en production, chacun apportant une valeur autonome ; **ce qui change est l'ordre de construction à l'intérieur**, pas le contenu des incréments.
 
@@ -745,10 +743,10 @@ Aucun code produit. Livrables :
 - Courrier DGI (agrément éditeur + questions annexe A) · consultation fiscaliste (moteur de taxes, arbitrage taxe de nuitée sur passage et demi-journée) · démarche ARTCI · dossier CinetPay · convention écrite avec le partenaire FNE
 - **Contrat pilote Deloria signé**, avec engagement post-gratuité
 - **Une journée complète d'observation** à la réception et au bar de Deloria — dont un relevé réel des formules passage et demi-journée pratiquées, avec leurs barèmes
-- Spikes chronométrés, 2 jours chacun, résultat écrit : certification FNE de test · **impression thermique ESC/POS depuis un navigateur, par WebUSB et par Web Bluetooth, sur le matériel réel du pilote** · **installation de la PWA sur Android d'entrée de gamme et sur iPhone**, y compris notification et fonctionnement hors ligne · **module doré** Actix + sqlx + utoipa + RLS · contrainte d'exclusion GiST sur intervalles horodatés
+- Spikes chronométrés, 2 jours chacun, résultat écrit : certification FNE de test · **impression thermique ESC/POS sur le matériel réel du pilote**, par WebUSB depuis un navigateur pour la phase 2 **et** par le plugin Bluetooth de Capacitor pour la production · **installation sur Android d'entrée de gamme et sur iPhone**, hors ligne et notifications comprises · **module doré** Actix + sqlx + utoipa + RLS · contrainte d'exclusion GiST sur intervalles horodatés
 - `constitution.md` Spec Kit
 
-> ⚠️ **Le spike d'impression a changé de nature et pas d'importance.** Il ne s'agit plus de savoir si un plugin Tauri fonctionne, mais si **le navigateur du poste de réception parle à l'imprimante thermique du pilote**. C'est le seul point où la PWA peut échouer de façon rédhibitoire, et il se teste en deux jours avec l'imprimante réelle sur la table.
+> ⚠️ **Le spike d'impression se fait sur l'imprimante réelle, et il porte sur les deux chemins.** En phase 2, le navigateur du poste de réception doit parler à l'imprimante ; en production, c'est le plugin Bluetooth de Capacitor. Le second est le chemin définitif — si le premier échoue, la démonstration imprime depuis un poste Chromium et rien de structurel n'est perdu.
 
 **Critère de sortie** : réponses écrites sur l'agrément, et les spikes verts — **celui de l'impression étant bloquant** : s'il échoue, on cherche un poste d'impression Chromium à la réception avant de reconsidérer la coquille native.
 
@@ -769,9 +767,13 @@ Un cycle par module, chacun remplaçant les données simulées de son périmètr
 **Jalon J1** : Deloria abandonne le cahier papier. Double exploitation de 3 semaines avant bascule.
 **Jalon J2** : le produit est vendable à un second client. Dossier de levée constitué.
 
+### Après le MVP — la coquille native
+
+**Capacitor pour Android et iOS** : chaîne de build, signature, distribution, et les plugins natifs du §13.4 — impression Bluetooth, notifications push, attestation d'intégrité, stockage sécurisé, OCR. **6 à 9 semaines**, à provisionner dès que la démonstration a servi. **Tauri desktop** reste une option ouverte pour le poste de réception, à trancher sur l'impression et l'intégration système.
+
 ### Incrément 3 — « Échelle »
 
-Contrats, cautions et charges pour les résidences meublées · **Nœud de site LAN** · Paquet auto-hébergé durci · Second adaptateur de juridiction · Comptes clients entreprises · **Capacitor, si et seulement si un besoin natif constaté le justifie** (§13.3).
+Contrats, cautions et charges pour les résidences meublées · **Nœud de site LAN** · Paquet auto-hébergé durci · Second adaptateur de juridiction · Comptes clients entreprises.
 
 ### Règle de dérive
 
@@ -791,9 +793,9 @@ Aucune marge n'est prévue — c'est volontaire, le plan est un test. Si la livr
 | Dépendance au partenaire FNE (disponibilité, priorités, tarif) | Moyenne | Élevé | Convention écrite avec SLA ; agrément propre en parallèle ; bascule par configuration |
 | Double certification FNE (pas d'idempotence côté DGI) | Élevée | Élevé | État `INDETERMINEE` jamais rejoué ; écran de rapprochement manuel |
 | Fiscalité des formules infra-journalières non tranchée | Élevée | Élevé | Drapeau et règle de conversion par formule ; aucune valeur en dur ; arbitrage fiscaliste en S2 |
-| ~~Plugins natifs mobiles (8–11 sem. cumulées)~~ | — | — | ✅ **Risque supprimé le 2026-08-06** par le passage en PWA : il n'y a plus de plugin natif à écrire (§13.3) |
-| **L'impression thermique ne fonctionne pas depuis le navigateur du pilote** | Moyenne | **Élevé** | C'est le risque qui remplace le précédent, et il est plus petit : **spike bloquant en phase 0**, sur l'imprimante réelle. Replis connus — poste d'impression Chromium à la réception, impression système, envoi du ticket à un autre poste |
-| **Aucune attestation d'intégrité sur le web** | Certaine | Moyen | Assumé (§12.2) : signature de requête par clé d'appareil, révocation immédiate côté serveur, journal d'audit. Le modèle de menace réel est l'employé qui détourne des espèces, pas l'attaquant qui modifie l'application |
+| Plugins natifs mobiles (6–9 sem. cumulées, après le MVP) | Élevée | Élevé | **Reportés après la démonstration, pas supprimés** (§13.4) : la phase 2 tourne en PWA, Capacitor vient ensuite avec son écosystème de plugins existants. Dégradation gracieuse partout |
+| **L'impression thermique ne fonctionne pas depuis le navigateur pendant la phase 2** | Moyenne | Moyen | **Spike en phase 0** sur l'imprimante réelle. Replis pendant la démonstration — poste Chromium à la réception, impression système. **Résolu définitivement par le plugin Bluetooth de Capacitor** |
+| **La démonstration en PWA est prise pour le produit fini** | Moyenne | Moyen | Le dire au pilote explicitement (§13.4) : la version installée vient après, et c'est elle qui imprime en Bluetooth et reçoit les alertes |
 | Résistance du personnel au traçage des passages | Élevée | Élevé | Saisie d'un passage en moins de 30 s ; conduite du changement avec le gérant ; journal d'audit présenté comme outil du propriétaire |
 | Erreur de calcul fiscal répliquée chez plusieurs clients | Faible | Fatal | Validation fiscaliste ; tests dorés sur jeux de cas figés ; double vérification manuelle les 3 premiers mois |
 | Support à distance sur Abengourou | Élevée | Moyen | Télémétrie, journaux remontés, mise à jour à distance dès l'incrément 1 |
@@ -875,4 +877,4 @@ Instrumentation dès le premier cycle : tous les indicateurs sont calculés depu
 
 **Verticale** — un métier, servi en profondeur : hôtellerie, restauration, bar, pressing. C'est une *colonne*. Chaque verticale a ses écrans, ses règles et son vocabulaire propres, et vit dans `crates/verticales/` · **Horizontale** (ou *transverse*, ou *capacité*) — une fonction utile à plusieurs métiers : stock, livraison, partenaires. C'est une *ligne* qui traverse les colonnes. Elle est écrite une seule fois et vit dans `crates/capacites/` · **Socle** — ce dont tout établissement a besoin quel que soit son métier : comptes, fiscalité, caisse, documents, audit, hors-ligne. Il ne connaît aucune verticale. **Règle de conception** : face à un besoin nouveau, se demander si deux métiers en auraient besoin. Si oui, c'est une horizontale, jamais une verticale.
 
-**PWA** *(Progressive Web App)* application web installable, fonctionnant hors ligne par service worker, mise à jour au rechargement et sans magasin d'applications · **Service worker** programme intercalé entre l'application et le réseau, qui sert le cache quand la connexion manque · **Établissement** unité d'exploitation physique appartenant à un tenant · **Module d'activité** capacité métier activable sur un établissement (hébergement, restauration, bar, pressing, salle de réunion) · **Unité louable** chambre, appartement ou salle · **Formule** mode de location et son barème (nuitée, passage, demi-journée, mensuel) · **Passage** location horaire à paliers dégressifs · **FNE** Facture Normalisée Électronique · **RNE** Reçu Normalisé Électronique · **TERNE** terminal d'émission du RNE · **NCC** Numéro de Compte Contribuable · **Sticker** unité de certification consommée à chaque émission FNE · **Clearance model** modèle où l'administration valide la facture avant remise au client · **Nœud de site** serveur local dans un établissement, autoritaire sur ses données opérationnelles · **RLS** Row Level Security · **Outbox** journal d'événements métier écrit dans la transaction applicative
+**PWA** *(Progressive Web App)* application web installable, fonctionnant hors ligne par service worker, mise à jour au rechargement et sans magasin d'applications — **coquille de la phase 2 et de la démonstration** · **Capacitor** coquille native qui embarque le même build web dans une application Android et iOS, avec accès au Bluetooth, aux notifications et au stockage sécurisé — **coquille de production** · **Service worker** programme intercalé entre l'application et le réseau, qui sert le cache quand la connexion manque · **Établissement** unité d'exploitation physique appartenant à un tenant · **Module d'activité** capacité métier activable sur un établissement (hébergement, restauration, bar, pressing, salle de réunion) · **Unité louable** chambre, appartement ou salle · **Formule** mode de location et son barème (nuitée, passage, demi-journée, mensuel) · **Passage** location horaire à paliers dégressifs · **FNE** Facture Normalisée Électronique · **RNE** Reçu Normalisé Électronique · **TERNE** terminal d'émission du RNE · **NCC** Numéro de Compte Contribuable · **Sticker** unité de certification consommée à chaque émission FNE · **Clearance model** modèle où l'administration valide la facture avant remise au client · **Nœud de site** serveur local dans un établissement, autoritaire sur ses données opérationnelles · **RLS** Row Level Security · **Outbox** journal d'événements métier écrit dans la transaction applicative
