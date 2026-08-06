@@ -242,8 +242,8 @@ saisie et B à l'annulation après envoi. Le registre classe **l'opération**, e
 | `plan`, `palier`, seuils et montants d'abonnement | **C** | C2 — relation éditeur–client | ADM-03 |
 | `abonnement` — souscription, gratuité, remise commerciale | **C** | C2 — relation éditeur–client | ADM-03 |
 | `unite_facturable` — comptage par la verticale | **C** | C2 — dérivé du référentiel | ADM-03 |
-| Encaissement d'abonnement | **D** | D1 — explicitement D au cadrage §11.3 | ADM-04 |
-| Webhook de paiement — validation HMAC, idempotence | **D** | D1 — agrégateur | ADM-04 |
+| `encaissement_abonnement` — encaissement d'abonnement | **D** | D1 — explicitement D au cadrage §11.3 | ADM-04 |
+| `evenement_webhook_paiement` — webhook de paiement, validation HMAC, idempotence | **D** | D1 — agrégateur ; l'idempotence est portée par une **contrainte d'unicité**, jamais par du code | ADM-04 |
 | Suspension pour impayé | **C** | C2 — relation éditeur–client | ADM-04 |
 | `telemetrie_parc` — version, santé, erreurs | **A** | A4 — append-only | TRX-07, ADM-02 |
 | `bundle_diagnostic` — export | **A** | A4 — dérivé | TRX-07, ADM-05 |
