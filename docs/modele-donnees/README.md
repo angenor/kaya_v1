@@ -170,9 +170,86 @@ telemetrie_parc    ····> tenant observé
 bundle_diagnostic
 evenement_webhook_paiement
 
+ventes  (socle/)                            stocks  (capacites/)
+──────                                      ──────
+categorie_article  ····> point_de_vente     point_de_stock ····> etablissement
+destination_preparation ····> ETABLISSEMENT article_stock  ····> etablissement
+  └─ article ····> point_de_vente             └─ article_stock_catalogue
+       ├─ article  (parent, provision)             ····> ventes.article
+       └─ ligne_commande                   mouvement_stock ─┬─ article_stock
+jeton_table ····> table_pdv                                 └─ point_de_stock
+  └─ commande ····> point_de_vente         inventaire ─ point_de_stock
+       │      ····> (cible OPAQUE)           │        ····> compte
+       ├─ lot_envoi ─ destination_prep.      └─ ligne_inventaire ─ article_stock
+       │    └─ ligne_commande               alerte_seuil ─┬─ article_stock
+       ├─ remise ─ ligne_commande                         └─ point_de_stock
+       └─ part_addition ····> (OPAQUE)      conversion_unite_mesure
+numerotation_reference ····> etablissement        (provision, AUCUN GRANT)
+
+hebergement  (verticales/)                  pressing  (verticales/)
+───────────                                 ────────
+categorie ····> etablissement               numerotation_retrait ····> etab.
+  ├─ unite                                  bon_depot ····> point_de_vente
+  │    ├─ occupation  ⟵ EXCLUDE gist          │       ····> etablissement
+  │    │    └─ intervention                   │       ····> comptes.personne
+  │    ├─ sejour      ····> etablissement     │       ┄┄┄> hebergement.sejour
+  │    ├─ reservation ····> etablissement     └─ piece_deposee
+  │    └─ incident_maintenance ····> compte
+  └─ formule                                ⚠️ pressing ne dépend JAMAIS
+       ├─ temps_remise_en_etat ─ categorie     d'hebergement : bon_depot pointe
+       ├─ bareme_palier                        sur comptes.personne, DU SOCLE.
+       ├─ plage_demi_journee                   Un pressing seul est un
+       ├─ calendrier_tarifaire                 établissement valide.
+       └─ prestation_incluse   (provision)
+
+client ····> comptes.personne
+  ├─ sejour ─┬─ accompagnant
+  │          ├─ fiche_police ····> etablissement
+  │          ├─ note_sejour
+  │          │    └─ ligne_sejour ┄┄┄> ventes.ligne_commande
+  │          │                    ┄┄┄> pressing.bon_depot
+  │          │                    ──── sejour  (transfert de charges)
+  │          └─ taxe_sejour_constat
+  ├─ reservation ─ arrhes ····> caisse.encaissement
+  └─ contrat_location ─┬─ caution
+                       ├─ charge_locative      (provisions)
+                       └─ etat_des_lieux
+preference_personne       ····> comptes.personne
+numerotation_fiche_police ····> etablissement
+
 ──── clé étrangère, à l'intérieur d'un schéma
 ····> rattachement NU, sans REFERENCES : inter-modules
+┄┄┄> SAGA à compensation explicite — le CAS ORPHELIN est le chemin NOMINAL
+⟵    contrainte d'exclusion GiST — le chevauchement est refusé par la BASE
 ```
+
+> **Aucune flèche pleine ne traverse un schéma, et ce n'est plus une promesse : c'est une porte.**
+> La règle est vérifiée mécaniquement par **P-05** depuis le cycle D2, sur les **98 clés étrangères
+> internes** du modèle. Avant elle, le seul rempart était le commentaire de colonne — *et un
+> commentaire ne refuse rien*.
+
+> **Les deux flèches `┄┄┄>` sont les deux SAGAS, et leur cas orphelin est le chemin NOMINAL.**
+> Une consommation prise hors ligne arrive régulièrement sur une note **déjà arrêtée** ; un bon de
+> pressing survit régulièrement au départ de son client. Dans les deux cas l'écriture est
+> **acceptée, constatée, et part en réconciliation** — `synchronisation.reconciliation_orpheline`,
+> créée au cycle D1, **la seule file du modèle**. Une clé étrangère ferait échouer en base
+> l'écriture que le produit doit accepter.
+
+### ⚠️ Le piège du préfixe à trois chiffres — pour le cycle qui voudra un seizième fichier
+
+**En tri lexicographique, `100-` vient AVANT `20-`** — donc avant tout le socle. Un fichier
+`100-nouveau.sql` s'appliquerait **en premier**, avant `00-conventions.sql` lui-même, et échouerait
+sur des rôles et des domaines qui n'existent pas encore. **L'erreur accuserait le fichier ; la faute
+serait dans son nom.**
+
+`scripts/verifier.sh` applique `docs/modele-donnees/*.sql` **trié**, sans liste interne — c'est ce
+qui garantit qu'aucune liste ne peut diverger du répertoire, et c'est aussi ce qui rend ce piège
+possible.
+
+**Il reste de la place à deux chiffres** : `56-` à `59-`, `61-` à `69-`, `71-` à `79-`, `81-` à
+`89-`, `91-` à `94-`, et `99-`. Le jour où elle manquera vraiment, le passage à trois chiffres
+imposera de **renommer les quinze fichiers d'un coup** — `010-`, `020-`, … — et non d'en ajouter un
+seul. C'est un changement à faire en connaissance de cause, dans un commit qui ne fait que cela.
 
 ---
 
