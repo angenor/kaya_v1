@@ -205,6 +205,19 @@ Le produit manipule des concepts fiscaux et techniques réels. L'utilisateur ne 
 | `statut_non_atteignable` (422) | « **Ce dépôt n'en est pas là.** » / *This drop-off isn't at that stage.* — suivie de l'étape où il en est. Jamais « transition invalide », qui est le mot de l'automate |
 | `reseau_perdu_en_vol` (503) | « **Ça n'est pas parti. Recommencez quand le réseau revient.** » / *It didn't go through. Try again when the connection is back.* — le cas rare où le réseau tombe **entre** la décision et l'envoi d'une opération qui l'exige. Distinct du refus annoncé avant la saisie, qui est la règle |
 
+| Thème d'affichage | « **Thème** » / *Theme* — le réglage clair/sombre. C'est un réglage de **l'appareil**, pas de l'établissement : le poste de réception passe en sombre au coucher du soleil, le téléphone du propriétaire garde le clair. Jamais « mode », qui suppose un mode de fonctionnement du produit, ni « apparence », qui promet plus qu'un choix binaire |
+| Valeurs du thème | « **Clair** » / *Light* · « **Sombre** » / *Dark* · « **Comme l'appareil** » / *Match device*. ⛔ Jamais « automatique », qui ne dit pas d'après quoi, ni « système », qui est le mot de l'ingénieur — l'exploitant a un **appareil**, pas un système |
+| Langue de l'interface | « **Langue** » / *Language*, et les deux valeurs s'écrivent **dans leur propre langue** : « Français » et « English ». Un anglophone qui ne lit pas le français doit pouvoir trouver son entrée sans la comprendre. ⛔ Jamais « localisation » ni « i18n » |
+| Installation de l'application | « **Installer l'application** » / *Install the app* — l'ajouter à l'écran d'accueil pour qu'elle s'ouvre seule, hors ligne, sans barre d'adresse. ⚠️ **Le cas WebKit se dit, il ne se tait pas** : sur iPhone et iPad, **aucune bannière ne se déclenche** — l'écran explique alors le geste, « **Ouvrez le menu de partage, puis « Sur l'écran d'accueil »** » / *Open the share menu, then "Add to Home Screen"*, et il ajoute ce que l'installation apporte : « **Sans installation, cet appareil ne recevra pas les alertes.** » / *Without installing, this device will not receive alerts.* ⛔ Jamais « PWA », « service worker » ni « ajouter aux favoris », qui décrit autre chose |
+| Version nouvelle disponible | « **Une version nouvelle est prête.** » / *A new version is ready.* suivie de l'action « **Recharger** » / *Reload*. ⚠️ **L'interface PROPOSE, elle ne recharge pas d'office et elle ne se tait pas** : recharger sans demander ferait disparaître une saisie en cours au comptoir, se taire ferait tourner un correctif de facturation sur un appareil qui ne l'a jamais pris. ⛔ Jamais « mise à jour disponible », qui évoque un téléchargement à faire, ni « nouvelle build » |
+
+> **Les noms des trois instruments de développement — guide de style, index des écrans,
+> panneau de scénarios — N'ENTRENT PAS DANS CE LEXIQUE, et c'est une décision.** *Le lexique
+> protège l'utilisateur du jargon ; il n'est pas le registre des noms d'outils.* Ces trois
+> écrans ne sont jamais montrés à un exploitant : leurs routes portent un trait bas
+> (`/_guide-de-style`, `/_ecrans`, `/_scenarios`) précisément pour que personne ne les
+> confonde avec le produit.
+
 **Deux termes fiscaux conservés tels quels — règle 2 ci-dessous.** `classement` (« non classé »,
 « résidence meublée », le nombre d'étoiles) et **« numéro de compte contribuable (NCC) »** gardent
 leur nom officiel à l'écran comme sur les documents. Ce ne sont pas des noms techniques traduits en

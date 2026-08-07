@@ -54,6 +54,44 @@ const memo = localStorage.getItem('x')
   })
 })
 
+describe('aucune chaîne visible en dur', () => {
+  // ⚠️ SANS CETTE RÈGLE, UNE CHAÎNE EN DUR NE SE DÉCOUVRE QU'AU JOUR OÙ
+  // QUELQU'UN BASCULE LA LANGUE — c'est-à-dire jamais, en développement.
+  it('échoue sur une phrase écrite dans un gabarit', async () => {
+    const code = `<template>
+  <p>Chambre libre depuis ce matin</p>
+</template>
+`
+    expect(await reglesDeclenchees(code, 'app/pages/fautif-chaine.vue')).toContain(
+      '@intlify/vue-i18n/no-raw-text',
+    )
+  })
+
+  it('échoue sur un aria-label écrit en dur — aussi invisible qu’une chaîne', async () => {
+    const code = `<template>
+  <button aria-label="Fermer le panneau" />
+</template>
+`
+    expect(await reglesDeclenchees(code, 'app/pages/fautif-aria.vue')).toContain(
+      '@intlify/vue-i18n/no-raw-text',
+    )
+  })
+
+  it('ne dit rien sur un appel de traduction, ni sur un nombre, ni sur le nom du produit', async () => {
+    const code = `<template>
+  <div>
+    <span>{{ $t('temoin.enregistre') }}</span>
+    <span>204</span>
+    <span>Kaya</span>
+  </div>
+</template>
+`
+    expect(await reglesDeclenchees(code, 'app/pages/conforme-chaine.vue')).not.toContain(
+      '@intlify/vue-i18n/no-raw-text',
+    )
+  })
+})
+
 describe("(b) aucun composant n'importe une simulation ni un jeu de données", () => {
   const FAUTIF = `<script setup lang="ts">
 import { simulationHebergement } from '~/core/donnees/hebergement/simulation'

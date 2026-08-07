@@ -179,11 +179,40 @@ export default tseslint.config(
     },
   },
 
-  // Aucune chaîne visible en dur — activée à T025, avec les catalogues.
+  // AUCUNE CHAÎNE VISIBLE EN DUR.
+  //
+  // ⚠️ `eslint-plugin-vue` n'a AUCUNE règle de texte brut : c'est le greffon
+  // @intlify qui la porte, et elle échoue EN NOMMANT le fichier et la ligne.
+  // Sans elle, une chaîne écrite en dur ne se découvre qu'au jour où quelqu'un
+  // bascule la langue — c'est-à-dire jamais, en développement.
   {
     files: ['app/**/*.vue'],
     plugins: { '@intlify/vue-i18n': intlify },
-    rules: {},
+    // ⚠️ AUCUN `settings['vue-i18n']` ICI, ET C'EST UN CONSTAT. Déclarer
+    // `localeDir` faisait lever le greffon — « Cannot convert undefined or null
+    // to object » — dès qu'ESLint analysait un texte plutôt qu'un fichier du
+    // disque, c'est-à-dire dans les tests qui ÉPROUVENT les règles. La règle
+    // `no-raw-text` n'a pas besoin de connaître les catalogues : elle cherche du
+    // texte hors d'un appel de traduction, pas une clé manquante. C'est le test
+    // de parité qui tient l'autre propriété.
+    rules: {
+      '@intlify/vue-i18n/no-raw-text': [
+        'error',
+        {
+          // Ce que la règle laisse passer, et pourquoi chaque exception est là.
+          ignorePattern: '^[\\d\\s·—–\\-+%:/.,()]+$', // chiffres, séparateurs, ponctuation
+          ignoreText: [
+            'K', // l'initiale de repli du sélecteur d'établissement — un glyphe, pas une phrase
+            'Kaya', // le nom du produit ne se traduit pas
+          ],
+          // Les attributs qui portent du texte visible sont inspectés aussi :
+          // un `aria-label` en dur est aussi invisible qu'une chaîne en dur.
+          attributes: {
+            '/.+/': ['title', 'aria-label', 'aria-placeholder', 'aria-valuetext', 'alt'],
+          },
+        },
+      ],
+    },
   },
 
   // L'outillage tourne sous node : il n'est ni une page ni un composant.
