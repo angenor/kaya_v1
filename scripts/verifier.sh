@@ -66,12 +66,14 @@ USAGE
                                              arrêt au premier échec
     scripts/verifier.sh --porte p01          une porte seule
     scripts/verifier.sh --porte p02
+    scripts/verifier.sh --porte p03
     scripts/verifier.sh --porte p05
     scripts/verifier.sh --test-negatif p01   casse P-01 volontairement et EXIGE
                                              qu'elle échoue
     scripts/verifier.sh --test-negatif p02   idem pour P-02
+    scripts/verifier.sh --test-negatif p03   idem pour P-03
     scripts/verifier.sh --test-negatif p05   idem pour P-05
-    scripts/verifier.sh --test-negatif       les trois
+    scripts/verifier.sh --test-negatif       les quatre
     scripts/verifier.sh --aide               ce message
 
     --test-negatif n'est pas un mode de débogage, c'est une PREUVE : une porte
@@ -88,6 +90,11 @@ LES PORTES
            docs/registre-classes-offline.md. Sens : table → registre. Une
            entité déclarée sans table est normale ; une table non déclarée
            est l'erreur.
+    P-03   AUCUNE DÉPENDANCE EN INTERVALLE, lockfile commité et couvrant,
+           tags d'image exacts, environnement cohérent en trois écritures,
+           et docs/versions-reference.md d'accord avec les manifestes DANS
+           LES DEUX SENS. Plus : aucun .github/workflows/ — le serveur
+           d'intégration vient en phase 3. Ni conteneur ni réseau.
     P-05   AUCUNE CLÉ ÉTRANGÈRE ENTRE DEUX SCHÉMAS. Les rattachements
            inter-modules sont des colonnes d'identifiant NUES ; une
            REFERENCES ajoutée de bonne foi ferait échouer en base
@@ -691,6 +698,454 @@ porte_p05() {
 }
 
 # =============================================================================
+# P-03 · les dépendances — aucun intervalle, lockfile à jour, versions inscrites
+# =============================================================================
+#
+# Porte NOMMÉE PAR LE NOYAU (constitution, principe 13, « dès qu'un manifeste
+# existe »). Le cycle F1 crée le premier manifeste du dépôt, donc c'est lui qui
+# crée la porte — et l'écart consigné au rapport du cycle D1 se referme ici :
+# « un latest glissé dans compose.yml ne serait vu par aucune porte d'ici au
+# cycle qui créera le premier manifeste. »
+#
+# ⚠️ ELLE NE DEMANDE NI CONTENEUR NI RÉSEAU. Le §4.3 de versions-reference.md le
+# motive : « comparer les valeurs aux registres officiels ferait de la
+# vérification une dépendance réseau ». La justesse d'une version est établie AU
+# MOMENT DE L'AJOUT, par l'URL et la date inscrites ; la porte vérifie la
+# COHÉRENCE, pas la fraîcheur.
+#
+# PÉRIMÈTRE INSPECTÉ (point 1 du contrat de porte)
+#   package.json            dependencies · devDependencies · engines.node · packageManager
+#   pnpm-lock.yaml          présence, et couverture de CHAQUE dépendance déclarée
+#   .nvmrc                  égalité avec engines.node et avec le §3.3 du document
+#   compose.yml             tags d'image — la fin de l'écart du cycle D1
+#   docs/versions-reference.md   §2 · §3.1 · §3.2 · §3.3 · §4.2, DANS LES DEUX SENS
+#
+# HORS PÉRIMÈTRE, ET DÉCLARÉ COMME TEL : Cargo.toml, Cargo.lock,
+# rust-toolchain.toml. Ils n'existent pas. Le périmètre de la porte est « les
+# manifestes PRÉSENTS », pas une liste : la phase 3 les créera et la porte les
+# prendra SANS ÊTRE MODIFIÉE.
+
+# Les cinq fichiers du périmètre sont résolus DEPUIS L'ARGUMENT de la porte, et
+# non depuis $RACINE : c'est ce qui permet au test négatif de la faire tourner
+# sur une COPIE DE TRAVAIL sans toucher au dépôt.
+
+# Une version EXACTE, et rien d'autre. C'est la seule règle du document des
+# versions qui ne connaisse aucune exception (§1, règle 3).
+readonly MOTIF_VERSION_EXACTE='^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'
+
+# node est employé pour lire le JSON et le YAML du lockfile. Ce n'est pas une
+# dépendance nouvelle du script : depuis ce cycle, le dépôt ne se construit pas
+# sans lui. Un analyseur JSON écrit en awk serait une seconde source de bogues.
+p03_exiger_node() {
+    if ! command -v node >/dev/null 2>&1; then
+        printf '   ✗ node est introuvable — P-03 lit package.json et pnpm-lock.yaml.\n'
+        return 1
+    fi
+}
+
+# Rend « nom<TAB>version<TAB>champ » pour chaque dépendance déclarée.
+p03_deps_declarees() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      for (const champ of ["dependencies", "devDependencies"]) {
+        for (const [n, v] of Object.entries(p[champ] || {})) {
+          process.stdout.write(n + "\t" + v + "\t" + champ + "\n");
+        }
+      }
+    ' "$1"
+}
+
+# Rend la valeur d'un chemin scalaire du manifeste, ou la chaîne vide.
+p03_lire_manifeste() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      let v = p;
+      for (const cle of process.argv[2].split(".")) v = (v == null ? undefined : v[cle]);
+      process.stdout.write(v == null ? "" : String(v));
+    ' "$1" "$2"
+}
+
+# Rend « nom<TAB>specifier » pour chaque entrée de la section `importers:` du
+# lockfile. Analyse par indentation : la forme est régulière et stable depuis
+# lockfileVersion 9.0. \x27 est l'apostrophe — écrite ainsi pour ne pas rouvrir
+# la citation shell au milieu du programme.
+p03_lock_specifiers() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const lignes = fs.readFileSync(process.argv[1], "utf8").split("\n");
+      let dans = false, nom = null;
+      for (const l of lignes) {
+        if (/^importers:/.test(l)) { dans = true; continue; }
+        if (/^\S/.test(l)) { dans = false; }
+        if (!dans) continue;
+        let m = l.match(/^      (\x27?)(.+?)\1:\s*$/);
+        if (m) { nom = m[2]; continue; }
+        m = l.match(/^        specifier:\s*(.+?)\s*$/);
+        if (m && nom !== null) { process.stdout.write(nom + "\t" + m[1] + "\n"); nom = null; }
+      }
+    ' "$1"
+}
+
+# Rend « nom<TAB>version<TAB>section<TAB>exigible » pour chaque ligne de version
+# des tableaux §2, §3.1, §3.2 et §4.2 de docs/versions-reference.md.
+#
+# ⚠️ LES NOMS DU §2 SONT DES NOMS DE BRIQUE, PAS DES NOMS DE PAQUET — « Tailwind
+# CSS » et non « tailwindcss ». La normalisation est donc explicite : minuscules,
+# espaces retirés. Elle est écrite ici plutôt que devinée ailleurs.
+#
+# « exigible » vaut 0 quand la ligne ne peut pas correspondre à un manifeste :
+#   — le nom est barré (`~~paquet~~`) : la ligne documente un ÉCARTEMENT ;
+#   — la cellule de version n'est pas une version exacte (« ÉCARTÉ — … ») ;
+#   — la ligne porte la marque « ⏳ phase 3 » : le paquet est inscrit et pas
+#     encore installé, et on n'épingle pas dans un manifeste ce qu'on n'installe
+#     pas (principe 10, « prêt ≠ construit »).
+p03_doc_entrees() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const lignes = fs.readFileSync(process.argv[1], "utf8").split("\n");
+      const EXACTE = /^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$/;
+      const ENTETES = ["paquet", "crate", "brique", "service", ""];
+      let section = "";
+      for (const l of lignes) {
+        const t = l.match(/^#{2,3}\s+(\d+(?:\.\d+)*)\.?\s+/);
+        if (t) { section = "§" + t[1]; continue; }
+        if (!/^\|/.test(l)) continue;
+        if (!["§2", "§3.1", "§3.2"].includes(section)) continue;
+        const cellules = l.split("|").slice(1, -1).map((c) => c.trim());
+        if (cellules.length < 3) continue;
+        const brut = section === "§2" ? cellules[1] : cellules[0];
+        const cellVersion = section === "§2" ? cellules[2] : cellules[1];
+        if (brut === undefined || /^-+$/.test(brut)) continue;
+        const barre = /~~/.test(brut);
+        let nom = brut.replace(/~~/g, "").replace(/\*\*/g, "").trim();
+        const enCode = nom.match(/^`(.+)`$/);
+        if (enCode) nom = enCode[1];
+        else if (section === "§2") nom = nom.replace(/\(.*\)/g, "").toLowerCase().replace(/\s+/g, "");
+        else continue;
+        if (ENTETES.includes(nom.toLowerCase())) continue;
+        let version = cellVersion.replace(/\*\*/g, "").replace(/[⚠️⏳]/gu, "").trim();
+        const premier = version.split(/\s+/)[0] || "";
+        const differee = /phase 3/.test(cellVersion);
+        const exigible = !barre && EXACTE.test(premier) && !differee ? 1 : 0;
+        process.stdout.write(nom + "\t" + premier + "\t" + section + "\t" + exigible + "\n");
+      }
+    ' "$1"
+}
+
+# Rend « image:tag » pour chaque service de compose.yml.
+p03_images_compose() {
+    grep -E '^[[:space:]]*image:[[:space:]]*' "$1" | sed -E 's/^[[:space:]]*image:[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+# Rend « nom<TAB>version » pour les briques du §2 qui relèvent d'un manifeste
+# ABSENT — celles de l'écosystème Rust. La porte les SAUTE ET LES NOMME plutôt
+# que de rougir sur un Cargo.toml que la phase 3 n'a pas encore écrit.
+readonly P03_BRIQUES_RUST="rust actixweb sqlx utoipa"
+# Les briques du §2 servies par des images : compose.yml ne déclare qu'une base
+# de VÉRIFICATION jetable, jamais le déploiement. Le sens document → manifeste y
+# est HORS PÉRIMÈTRE, et c'est C3 qui tient le sens manifeste → document.
+readonly P03_BRIQUES_IMAGE="postgresql redis garage"
+
+porte_p03() {
+    local racine="${1:-$RACINE}"
+    local manifeste="$racine/package.json"
+    local lockfile="$racine/pnpm-lock.yaml"
+    local nvmrc="$racine/.nvmrc"
+    local compose="$racine/compose.yml"
+    local doc="$racine/docs/versions-reference.md"
+    local workflows="$racine/.github/workflows"
+
+    local echecs=0 nb_deps=0
+    local deps lock doc_entrees fautifs nom version champ
+
+    printf '\n── P-03 · aucune dépendance en intervalle, lockfile à jour, versions inscrites\n'
+
+    p03_exiger_node || { printf '   ROUGE — P-03\n'; return "$CODE_ROUGE"; }
+
+    # --- Point 2 du contrat : complétude du périmètre -----------------------
+    local presents="" absents=""
+    [ -f "$manifeste" ] && presents="$presents package.json" || absents="$absents package.json"
+    [ -f "$lockfile" ]  && presents="$presents pnpm-lock.yaml" || absents="$absents pnpm-lock.yaml"
+    [ -f "$nvmrc" ]     && presents="$presents .nvmrc" || absents="$absents .nvmrc"
+    [ -f "$compose" ]   && presents="$presents compose.yml" || absents="$absents compose.yml"
+    [ -f "$racine/Cargo.toml" ] && presents="$presents Cargo.toml" || absents="$absents Cargo.toml(phase 3)"
+
+    printf '   Périmètre :%s\n' "$presents"
+    printf '               manifeste(s) absent(s), non inspecté(s) :%s\n' "$absents"
+
+    if [ ! -f "$manifeste" ]; then
+        printf '   ✗ aucun manifeste JavaScript : la porte n'\''a rien à inspecter\n'
+        printf '   ROUGE — P-03\n'
+        return "$CODE_ROUGE"
+    fi
+
+    deps="$(p03_deps_declarees "$manifeste")" || { printf '   ✗ package.json illisible\n   ROUGE — P-03\n'; return "$CODE_ROUGE"; }
+    nb_deps="$(printf '%s\n' "$deps" | grep -c . || true)"
+
+    # --- Point 4 du contrat : non-vacuité, PLANCHER DÉRIVÉ ------------------
+    #
+    # Le plancher n'est pas une constante : c'est le nombre de dépendances que
+    # les manifestes présents déclarent. Un package.json vidé par accident
+    # ferait passer une porte à plancher constant bas ; il ne passe pas
+    # celle-ci, parce que son plancher tombe à zéro EN MÊME TEMPS que sa cible.
+    if [ "$nb_deps" -eq 0 ]; then
+        printf '   Plancher  : 0 dépendance(s) inspectée(s) — VIDE\n'
+        printf '   ✗ la cible de la porte est vide : un vert ne prouverait rien\n'
+        printf '   ROUGE — P-03\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Plancher  : %d dépendance(s) inspectée(s) — non vide (dérivé des manifestes)\n' "$nb_deps"
+
+    # === C1 · aucune version en intervalle ==================================
+    fautifs=""
+    while IFS=$'\t' read -r nom version champ; do
+        [ -z "$nom" ] && continue
+        if ! printf '%s' "$version" | grep -qE "$MOTIF_VERSION_EXACTE"; then
+            fautifs="${fautifs}${nom} : « ${version} » dans ${champ}"$'\n'
+        fi
+    done <<< "$deps"
+
+    local node_manifeste pm_manifeste pm_version
+    node_manifeste="$(p03_lire_manifeste "$manifeste" engines.node)"
+    pm_manifeste="$(p03_lire_manifeste "$manifeste" packageManager)"
+    pm_version="${pm_manifeste#*@}"
+    if ! printf '%s' "$node_manifeste" | grep -qE "$MOTIF_VERSION_EXACTE"; then
+        fautifs="${fautifs}engines.node : « ${node_manifeste} »"$'\n'
+    fi
+    if ! printf '%s' "$pm_version" | grep -qE "$MOTIF_VERSION_EXACTE"; then
+        fautifs="${fautifs}packageManager : « ${pm_manifeste} »"$'\n'
+    fi
+    fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+    rendre_verdict_p03 "aucune version en intervalle" "$((nb_deps + 2))" "$fautifs" || echecs=1
+
+    # === C2 · le lockfile est présent et couvre tout ce qui est déclaré =====
+    #
+    # LIMITE ASSUMÉE : c'est une comparaison de texte entre deux fichiers du
+    # dépôt. Elle ne résout rien et NE TOUCHE PAS LE RÉSEAU. Elle attrape le
+    # lockfile absent, celui qui ignore une dépendance ajoutée, et celui dont la
+    # version diverge du manifeste — les trois défaillances réelles. Elle
+    # n'attrape pas une résolution transitive périmée alors que le sommet
+    # coïncide : `--frozen-lockfile` est ce que le serveur d'intégration
+    # ajoutera PAR-DESSUS, en phase 3, sans modifier ce script.
+    if [ ! -f "$lockfile" ]; then
+        printf '   ✗ %-32s pnpm-lock.yaml ABSENT — le lockfile doit être commité\n' "lockfile couvre"
+        echecs=1
+    else
+        lock="$(p03_lock_specifiers "$lockfile")"
+        fautifs=""
+        while IFS=$'\t' read -r nom version champ; do
+            [ -z "$nom" ] && continue
+            local specifier
+            specifier="$(printf '%s\n' "$lock" | awk -F'\t' -v n="$nom" '$1 == n { print $2; exit }')"
+            if [ -z "$specifier" ]; then
+                fautifs="${fautifs}${nom} : absente du lockfile"$'\n'
+            elif [ "$specifier" != "$version" ]; then
+                fautifs="${fautifs}${nom} : manifeste « ${version} », lockfile « ${specifier} »"$'\n'
+            fi
+        done <<< "$deps"
+        fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+        rendre_verdict_p03 "lockfile couvre" "$nb_deps" "$fautifs" || echecs=1
+    fi
+
+    # === C3 · aucun tag d'image flottant ====================================
+    #
+    # Motif — la raison pour laquelle cette porte existait déjà à moitié dans le
+    # dépôt : postgres:18.4 est épinglé À LA MAIN depuis le cycle D1, et rien ne
+    # le vérifiait.
+    if [ ! -f "$compose" ]; then
+        printf '   · %-32s compose.yml absent — non inspecté\n' "tags d'image exacts"
+    else
+        local images nb_images=0
+        images="$(p03_images_compose "$compose")"
+        nb_images="$(printf '%s\n' "$images" | grep -c . || true)"
+        fautifs=""
+        local image tag depot
+        while IFS= read -r image; do
+            [ -z "$image" ] && continue
+            case "$image" in
+                *:*) tag="${image##*:}"; depot="${image%:*}" ;;
+                *)   tag=""; depot="$image" ;;
+            esac
+            if [ -z "$tag" ]; then
+                fautifs="${fautifs}${image} : aucun tag"$'\n'
+            elif [ "$tag" = "latest" ] || [ "$tag" = "next" ] || [ "$tag" = "edge" ]; then
+                fautifs="${fautifs}${image} : tag flottant « ${tag} »"$'\n'
+            elif ! grep -qF "\`$image\`" "$doc"; then
+                # Sens manifeste → document : une image servie doit être inscrite.
+                fautifs="${fautifs}${image} : absente des tableaux de docs/versions-reference.md"$'\n'
+            fi
+        done <<< "$images"
+        fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+        rendre_verdict_p03 "tags d'image exacts" "$nb_images" "$fautifs" || echecs=1
+    fi
+
+    # === C4 · l'environnement d'exécution coïncide ==========================
+    #
+    # Trois écritures, une seule valeur : .nvmrc, engines.node du manifeste, et
+    # le §3.3 du document. Idem pour pnpm.
+    local node_nvmrc node_doc pnpm_doc
+    node_nvmrc="$( [ -f "$nvmrc" ] && tr -d ' \n\r' < "$nvmrc" || printf '' )"
+    node_doc="$(awk -F'|' '/^\|[[:space:]]*\*\*Node\.js\*\*/ { print $3; exit }' "$doc" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    pnpm_doc="$(awk -F'|' '/^\|[[:space:]]*\*\*pnpm\*\*/ { print $3; exit }' "$doc" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+
+    fautifs=""
+    [ -n "$node_nvmrc" ] || fautifs="${fautifs}.nvmrc absent ou vide"$'\n'
+    [ "$node_nvmrc" = "$node_manifeste" ] || \
+        fautifs="${fautifs}Node : .nvmrc « ${node_nvmrc} » ≠ engines.node « ${node_manifeste} »"$'\n'
+    [ "$node_manifeste" = "$node_doc" ] || \
+        fautifs="${fautifs}Node : engines.node « ${node_manifeste} » ≠ §3.3 « ${node_doc} »"$'\n'
+    [ "$pm_version" = "$pnpm_doc" ] || \
+        fautifs="${fautifs}pnpm : packageManager « ${pm_version} » ≠ §3.3 « ${pnpm_doc} »"$'\n'
+    fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+    rendre_verdict_p03 "environnement cohérent" 4 "$fautifs" "(3 écritures Node, 1 valeur · pnpm)" || echecs=1
+
+    # === C5 · le document et les manifestes disent la même chose, DEUX SENS ==
+    #
+    # LE SECOND SENS EST CELUI QUI MANQUE PARTOUT AILLEURS, et c'est celui qui a
+    # laissé « sept crates absentes du document pendant six semaines » (§4.3).
+    # Une comparaison à un seul sens autorise le document à mentir par omission.
+    doc_entrees="$(p03_doc_entrees "$doc")"
+    local nb_doc
+    nb_doc="$(printf '%s\n' "$doc_entrees" | awk -F'\t' '$4 == 1' | grep -c . || true)"
+
+    # -- Sens 1 : manifeste → document --------------------------------------
+    #
+    # ⚠️ LA RECHERCHE EXCLUT LE §3.1, ET CE N'EST PAS UN DÉTAIL : `uuid` existe
+    # des DEUX CÔTÉS — crate Rust en 1.24.0 au §3.1, paquet npm en 14.0.1 au
+    # §3.2. Une recherche par nom nu sur tout le document rendrait la première
+    # ligne venue et accuserait le manifeste d'une divergence qui n'existe pas.
+    # Un paquet npm se cherche au §3.2 ou parmi les briques du §2, jamais
+    # ailleurs.
+    fautifs=""
+    while IFS=$'\t' read -r nom version champ; do
+        [ -z "$nom" ] && continue
+        local trouvee
+        trouvee="$(printf '%s\n' "$doc_entrees" | awk -F'\t' -v n="$nom" '$1 == n && $3 != "§3.1" { print $2 "|" $3; exit }')"
+        if [ -z "$trouvee" ]; then
+            fautifs="${fautifs}${nom} : déclarée au manifeste, ABSENTE des tableaux §2/§3.x"$'\n'
+        elif [ "${trouvee%%|*}" != "$version" ]; then
+            fautifs="${fautifs}${nom} : manifeste « ${version} », document « ${trouvee%%|*} » (${trouvee##*|})"$'\n'
+        fi
+    done <<< "$deps"
+    fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+    rendre_verdict_p03 "document ← manifeste" "$nb_deps" "$fautifs" "(premier sens)" || echecs=1
+
+    # -- Sens 2 : document → manifeste --------------------------------------
+    #
+    # PORTÉE DÉCLARÉE, jamais devinée. Une entrée du document n'est exigible que
+    # si le manifeste de sa famille EXISTE :
+    #   §3.2 et briques JS du §2  → package.json, PRÉSENT   → exigibles
+    #   §3.1 et briques Rust du §2 → Cargo.toml, ABSENT     → sautées et NOMMÉES
+    #   briques d'image du §2      → compose.yml est une base de VÉRIFICATION,
+    #                                jamais le déploiement : le sens document →
+    #                                manifeste y est hors périmètre, et C3 tient
+    #                                l'autre sens.
+    local sautees=0
+    fautifs=""
+    local dnom dversion dsection dexigible
+    while IFS=$'\t' read -r dnom dversion dsection dexigible; do
+        [ -z "$dnom" ] && continue
+        [ "$dexigible" = "1" ] || continue
+        case " $P03_BRIQUES_RUST " in *" $dnom "*) sautees=$((sautees + 1)); continue ;; esac
+        case " $P03_BRIQUES_IMAGE " in *" $dnom "*) sautees=$((sautees + 1)); continue ;; esac
+        [ "$dsection" = "§3.1" ] && { sautees=$((sautees + 1)); continue; }
+        local declaree
+        declaree="$(printf '%s\n' "$deps" | awk -F'\t' -v n="$dnom" '$1 == n { print $2; exit }')"
+        if [ -z "$declaree" ]; then
+            fautifs="${fautifs}${dnom} (${dsection}) : inscrite au document, ABSENTE des manifestes"$'\n'
+        elif [ "$declaree" != "$dversion" ]; then
+            fautifs="${fautifs}${dnom} (${dsection}) : document « ${dversion} », manifeste « ${declaree} »"$'\n'
+        fi
+    done <<< "$doc_entrees"
+    fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+    rendre_verdict_p03 "document → manifeste" "$((nb_doc - sautees))" "$fautifs" \
+        "(second sens · $sautees ligne(s) sautée(s) : Rust et images, manifeste absent)" || echecs=1
+
+    # === C6 · aucun workflow d'intégration continue =========================
+    #
+    # « Le serveur de CI vient en phase 3, pas avant » (constitution, principe
+    # 13) — et RIEN D'AUTRE DANS LE DÉPÔT NE LE VÉRIFIE. Le contrôle est un test
+    # de répertoire : coût nul, et il refuse le workflow que personne n'a encore
+    # écrit. FR-073, SC-019.
+    if [ -d "$workflows" ]; then
+        printf '   ✗ %-32s %s existe\n' "aucun workflow d'intégration" ".github/workflows/"
+        printf '     Le serveur d'\''intégration vient en PHASE 3, et il lancera ce script\n'
+        printf '     SANS LE MODIFIER. D'\''ici là, un workflow est du périmètre entré par\n'
+        printf '     la porte de service.\n'
+        echecs=1
+    else
+        printf '   ✓ %-32s .github/workflows/ absent\n' "aucun workflow d'intégration"
+    fi
+
+    # === C7 · chaque dépendance porte sa justification, DEUX SENS ===========
+    #
+    # ⚠️ CONTRÔLE AJOUTÉ, ET IL EST LE PENDANT D'UN ÉCART DÉCLARÉ. La règle 4 du
+    # §1 de versions-reference.md exige un commentaire au-dessus de chaque ligne
+    # du manifeste ; LE FORMAT JSON N'ADMET PAS DE COMMENTAIRE. La justification
+    # vit donc dans le bloc « versionsJustification » de package.json — et ce
+    # contrôle est ce qui empêche l'écart de devenir une perte : un commentaire
+    # ne se vérifie pas, ce bloc si, et dans les deux sens.
+    local justifiees manquantes orphelines
+    justifiees="$(node --input-type=commonjs -e '
+      const fs = require("fs");
+      const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      const j = p.versionsJustification || {};
+      for (const [n, e] of Object.entries(j)) {
+        const complet = e && e.role && e.registre && e.verifieLe ? "1" : "0";
+        process.stdout.write(n + "\t" + complet + "\n");
+      }
+    ' "$manifeste")"
+
+    fautifs=""
+    while IFS=$'\t' read -r nom version champ; do
+        [ -z "$nom" ] && continue
+        local etat
+        etat="$(printf '%s\n' "$justifiees" | awk -F'\t' -v n="$nom" '$1 == n { print $2; exit }')"
+        if [ -z "$etat" ]; then
+            fautifs="${fautifs}${nom} : aucune entrée dans versionsJustification"$'\n'
+        elif [ "$etat" != "1" ]; then
+            fautifs="${fautifs}${nom} : justification incomplète (rôle, registre et date sont dus)"$'\n'
+        fi
+    done <<< "$deps"
+    while IFS=$'\t' read -r nom etat; do
+        [ -z "$nom" ] && continue
+        if ! printf '%s\n' "$deps" | awk -F'\t' -v n="$nom" '$1 == n { trouve = 1 } END { exit !trouve }'; then
+            fautifs="${fautifs}${nom} : justifiée sans être déclarée — le bloc est devenu une photo périmée"$'\n'
+        fi
+    done <<< "$justifiees"
+    fautifs="$(printf '%s' "$fautifs" | grep -v '^$' || true)"
+    rendre_verdict_p03 "justification, deux sens" "$nb_deps" "$fautifs" || echecs=1
+
+    if [ "$echecs" -ne 0 ]; then
+        printf '   ROUGE — P-03\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   VERT\n'
+    return "$CODE_OK"
+}
+
+# Verdict d'un contrôle de P-03. Distinct de `rendre_verdict`, qui préfixe les
+# objets fautifs par « MANQUANTE : » — un mot juste pour une politique absente,
+# faux pour un intervalle de version, qui est présent et mauvais.
+rendre_verdict_p03() {
+    local libelle="$1" total="$2" fautifs="$3" precision="${4:-}"
+    local nombre=0
+
+    [ -n "$fautifs" ] && nombre="$(printf '%s\n' "$fautifs" | grep -c . || true)"
+
+    if [ "$nombre" -eq 0 ]; then
+        printf '   ✓ %-32s %d/%d %s\n' "$libelle" "$total" "$total" "$precision"
+        return 0
+    fi
+
+    printf '   ✗ %-32s %d/%d %s\n' "$libelle" "$((total - nombre))" "$total" "$precision"
+    printf '%s\n' "$fautifs" | sed 's/^/     FAUTIF : /'
+    return 1
+}
+
+# =============================================================================
 # Tests négatifs — la preuve qu'une porte SAIT échouer
 # =============================================================================
 #
@@ -1013,7 +1468,7 @@ main() {
                 exit "$CODE_OK"
                 ;;
             --porte)
-                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01, p02 ou p05)"
+                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01, p02, p03 ou p05)"
                 mode="porte"
                 porte="$2"
                 shift 2
@@ -1052,13 +1507,16 @@ main() {
             portes_passees=$((portes_passees + 1))
             porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
+            porte_p03 "$RACINE" || exit "$CODE_ROUGE"
+            portes_passees=$((portes_passees + 1))
             ;;
         porte)
             case "$porte" in
                 p01) porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
                 p02) porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
+                p03) porte_p03 "$RACINE"           || exit "$CODE_ROUGE" ;;
                 p05) porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
-                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02 ou p05)" ;;
+                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02, p03 ou p05)" ;;
             esac
             portes_passees=1
             ;;
