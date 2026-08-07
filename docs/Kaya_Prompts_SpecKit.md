@@ -646,9 +646,7 @@ Termine la liste par une tâche « revue Definition of Done »
 ### 2.4 `/speckit-analyze`
 
 ```
-/speckit-analyze
-
-Vérifie la cohérence spec ↔ plan ↔ tâches ↔ constitution. Signale :
+/speckit-analyze Vérifie la cohérence spec ↔ plan ↔ tâches ↔ constitution. Signale :
 - toute exigence des stories du périmètre de ce cycle non couverte par une tâche ;
 - toute tâche qui déborde du périmètre (P2, PROVISION, hors-périmètre listés dans
   la spec) ;
@@ -763,7 +761,7 @@ inventé, donc un branchement à retraduire.
 ### Cycle D1 — Modèle de données du socle
 
 ```
-/speckit-specify(En cours)
+/speckit-specify
 
 Lis, dans cet ordre : docs/cadrage-v1.md (§4 modèle d'entité, §5 hébergement,
 §8 caisse, §9 fiscalité, §11 classes hors-ligne, §14 provisions),
@@ -900,7 +898,7 @@ c'est toi qui poses le nom, et tu l'inscris au registre.
 ### Cycle D2 — Modèle de données des capacités et des verticales
 
 ```
-/speckit-specify
+/speckit-specify(En cours)
 
 Lis docs/cadrage-v1.md §5 (hébergement, formules, disponibilité) et §6 (points de
 vente), docs/user-stories-v1.md modules HEB, SEJ, RSV, PDV, QRC, STK, et

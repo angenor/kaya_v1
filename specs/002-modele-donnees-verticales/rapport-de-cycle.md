@@ -79,3 +79,64 @@ un verrou.
 **Verdict : SC-003 est prouvé.** Le chevauchement est impossible au niveau de la base, la remise en
 état est **dans** l'intervalle protégé, l'annulation libère, et rien de tout cela ne dépend d'une
 ligne de code applicatif.
+
+---
+
+## T013 · Audit des privilèges — les `GRANT` disent-ils la classe ?
+
+**Date** : 2026-08-07 · **Méthode** : interrogation d'`information_schema.role_table_grants` après
+application du modèle, confrontée à la matrice de
+[conventions-sql.md](../001-modele-donnees-socle/contracts/conventions-sql.md) §3 et aux classes du
+registre. **Périmètre** : les quatre schémas du cycle, **42 tables** au moment de l'audit — les cinq
+provisions d'hébergement arrivent en T019 et sont auditées en T020.
+
+### Les sept contrôles nommés par la tâche
+
+| # | Ce qui est vérifié | Attendu | Constaté |
+|---|---|---|---|
+| 1 | `lot_envoi` et `taxe_sejour_constat` recevant `UPDATE` ou `DELETE` | **0** | **0** ✓ |
+| 2 | `conversion_unite_mesure` recevant un privilège quelconque | **0** | **0** ✓ — *l'absence est ce qui la prouve provision* |
+| 3 | Les onze tables attendues en `SELECT, INSERT` seuls | conformes | **onze conformes**, aucune exception ✓ |
+| 4 | `DELETE` sur le cycle | **0** | **0** ✓ |
+| 4b | `DELETE` sur le **modèle entier**, socle compris | **0** | **0** ✓ |
+| 5 | `GRANT … ON ALL TABLES IN SCHEMA` | **0** | **0** ✓ |
+| 5b | `ALTER DEFAULT PRIVILEGES` *(contrôle ajouté)* | **0** | **0** ✓ — `pg_default_acl` vide |
+| 6 | Privilège hors `SELECT`/`INSERT`/`UPDATE` | **0** | **0** ✓ — ni `TRUNCATE`, ni `REFERENCES`, ni `TRIGGER` |
+| 7 | Index sans commentaire d'usage nommant sa recherche | **0** | **0** — *après correction, voir ci-dessous* |
+
+> **Le contrôle 5b a été ajouté et il n'était pas demandé.** `GRANT … ON ALL TABLES` s'attrape par
+> `grep` sur les fichiers ; `ALTER DEFAULT PRIVILEGES` **ne s'attrape pas ainsi** et produirait le
+> même effet en pire — il accorderait un privilège à des tables **qui n'existent pas encore**, donc
+> à toutes celles de la phase 3. Vérifier le premier sans le second aurait laissé la porte de
+> derrière ouverte.
+
+### Répartition des privilèges — 42 tables du cycle
+
+| Privilèges | Tables | Ce que cela dit |
+|---|---|---|
+| `SELECT, INSERT, UPDATE` | **30** | Classes B, C, D, et les A qui se corrigent avant envoi |
+| `SELECT, INSERT` | **11** | Append-only, **immuables par privilège** |
+| *aucun* | **1** | `conversion_unite_mesure` — la provision que rien ne peut lire |
+| `DELETE` | **0** | **Aucune ligne de ce modèle ne se supprime.** Une correction est une contre-passation |
+
+### Le défaut trouvé par cet audit, et corrigé
+
+**Deux index sur `hebergement.ligne_sejour` portaient leur usage sans employer la forme littérale
+`-- Sert :` du socle** — `uq_ligne_sejour_ligne_commande` et `uq_ligne_sejour_bon_depot`. Leur
+commentaire disait bien à quoi ils servent, mais **dans une autre forme**, ce qui les rendait
+invisibles à un contrôle mécanique.
+
+**C'est exactement la faute que le cycle D1 avait nommée pour les politiques RLS** : *une forme
+unique est la condition pour qu'un contrôle reste strict, et un contrôle qui accepterait deux formes
+en accepterait trois*. Les deux commentaires sont réécrits en `-- Sert :`. **Les 49 index des quatre
+fichiers portent désormais tous leur recherche nommée, dans la même forme.**
+
+| Fichier | Index |
+|---|---|
+| `55-ventes.sql` | 13 |
+| `96-stocks.sql` | 8 |
+| `97-hebergement.sql` | 24 |
+| `98-pressing.sql` | 4 |
+
+**Verdict : conforme.** On peut lire les `GRANT` d'une table du cycle et en déduire son régime
+**sans lire un seul commentaire** — ce qui est précisément ce que le récit demandait.

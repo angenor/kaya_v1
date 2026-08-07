@@ -998,12 +998,15 @@ CREATE INDEX ix_ligne_sejour_note ON hebergement.ligne_sejour (note_sejour_id);
 -- ⚠️ INDEX **UNIQUE** PARTIEL, ET LA NUANCE DÉCIDE D'UNE DOUBLE FACTURATION :
 -- l'idempotence du report est portée par une CONTRAINTE, jamais par une lecture
 -- préalable. Un index ordinaire retrouverait le doublon sans le REFUSER, et un
--- événement rejoué produirait une seconde ligne sur la note (PDV-02, SEJ-03)
+-- événement rejoué produirait une seconde ligne sur la note.
+-- Sert : refuser le second report d'une même ligne de commande sur une note —
+-- le rejeu d'un événement après coupure (PDV-02, SEJ-03)
 CREATE UNIQUE INDEX uq_ligne_sejour_ligne_commande
     ON hebergement.ligne_sejour (tenant_id, ligne_commande_id)
     WHERE ligne_commande_id IS NOT NULL;
 
--- Idem pour le report du pressing — même mécanique, même motif (PDV-06)
+-- Sert : refuser le second report d'un même bon de pressing sur une note —
+-- même mécanique, même motif (PDV-06)
 CREATE UNIQUE INDEX uq_ligne_sejour_bon_depot
     ON hebergement.ligne_sejour (tenant_id, bon_depot_id)
     WHERE bon_depot_id IS NOT NULL;
