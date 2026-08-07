@@ -646,6 +646,15 @@ readonly CIBLE_P01="caisse.coupure_comptee"
 readonly CIBLE_P01_FICHIER="30-caisse.sql"
 readonly TABLE_BIDON="zzz_table_non_declaree"
 
+# La cible de P-05. LE CHOIX N'EST PAS INDIFFÉRENT : c'est PRÉCISÉMENT la colonne
+# qu'un cycle de phase 3 serait tenté de « réparer », de bonne foi, en croyant
+# corriger un oubli. Le test négatif rejoue donc L'ERREUR RÉELLE qu'on cherche à
+# prévenir, pas une erreur de laboratoire.
+readonly CIBLE_P05_FICHIER="97-hebergement.sql"
+readonly CIBLE_P05_CONTRAINTE="fk_ligne_sejour_ligne_commande"
+readonly CIBLE_P05_PORTANTE="hebergement.ligne_sejour"
+readonly CIBLE_P05_REFERENCEE="ventes.ligne_commande"
+
 copies_de_travail=""
 
 nettoyer_copies() {
@@ -811,6 +820,102 @@ test_negatif_p02() {
     return "$CODE_OK"
 }
 
+# Ajoute à la copie de travail une CLÉ ÉTRANGÈRE INTER-SCHÉMAS sur la colonne nue
+# hebergement.ligne_sejour.ligne_commande_id.
+#
+# ⚠️ Par ALTER en fin de fichier, et non en modifiant la déclaration de la table :
+# `ventes.ligne_commande` est appliquée AVANT `97-hebergement.sql`, donc la cible
+# existe — mais poser la contrainte dans le CREATE TABLE demanderait de réécrire
+# le corps de la table, ce qu'un awk ferait mal. L'ALTER produit EXACTEMENT le
+# même objet de catalogue, qui est ce que P-05 inspecte.
+#
+# ⚠️ La table conserve sa RLS complète et sa classe déclarée : elle DOIT passer
+# P-01 et P-02 et n'échouer que sur P-05. Sans cette précaution, on croirait
+# avoir prouvé P-05 alors qu'on aurait prouvé P-01 une troisième fois — c'est
+# pourquoi le test se déroule en DEUX TEMPS, comme celui de P-02.
+ajouter_fk_inter_schemas() {
+    local fichier="$1"
+    cat >> "$fichier" <<FIN_FK_INTER
+
+-- Contrainte ajoutée par --test-negatif p05, dans une COPIE DE TRAVAIL seulement.
+-- Elle rejoue L'ERREUR RÉELLE : un cycle de phase 3 prend l'absence de
+-- REFERENCES pour un oubli et l'ajoute de bonne foi.
+ALTER TABLE $CIBLE_P05_PORTANTE
+    ADD CONSTRAINT $CIBLE_P05_CONTRAINTE FOREIGN KEY (ligne_commande_id)
+        REFERENCES $CIBLE_P05_REFERENCEE (id);
+FIN_FK_INTER
+}
+
+test_negatif_p05() {
+    local copie journal empreinte_avant empreinte_apres
+
+    printf '\n── TEST NÉGATIF P-05 · %s transformée en clé étrangère vers %s (copie de travail)\n' \
+        "$CIBLE_P05_PORTANTE.ligne_commande_id" "$CIBLE_P05_REFERENCEE"
+
+    empreinte_avant="$(empreinte_modele)"
+    copie="$(copier_modele)"
+    journal="$copie/.sortie-porte"
+
+    ajouter_fk_inter_schemas "$copie/$CIBLE_P05_FICHIER"
+
+    modele_applique=0
+
+    # Premier temps : P-01 DOIT rester verte. Si elle rougit, la mutation est mal
+    # formée et le reste ne prouverait rien.
+    if ! porte_p01 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ P-01 a rougi sur la mutation du test : elle est mal formée.\n'
+        printf '     Le test aurait prouvé P-01 une troisième fois, pas P-05.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-01 reste VERTE sur la contrainte ajoutée\n'
+
+    # Second temps, et il compte autant : P-02 doit rester verte elle aussi. La
+    # mutation n'ajoute aucune table, donc aucune classe ne manque.
+    if ! porte_p02 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ P-02 a rougi sur la mutation du test : elle est mal formée.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-02 reste VERTE — l'\''échec qui suit est bien celui de P-05\n'
+
+    # Troisième temps : P-05 doit rougir.
+    if porte_p05 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur une clé étrangère inter-schémas.\n'
+        printf '     P-05 est AVEUGLE : un vert de cette porte ne veut rien dire —\n'
+        printf '     et c'\''est le pire cas, puisqu'\''elle cherche une ABSENCE.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    # Échouer ne suffit pas : il faut avoir nommé LES TROIS OBJETS. Une porte qui
+    # dit « une contrainte inter-schémas existe » envoie chercher ; une porte qui
+    # nomme la contrainte, la table portante et la table référencée envoie à la
+    # ligne.
+    local objet manquants=""
+    for objet in "$CIBLE_P05_CONTRAINTE" "$CIBLE_P05_PORTANTE" "$CIBLE_P05_REFERENCEE"; do
+        grep -q "$objet" "$journal" || manquants="$manquants $objet"
+    done
+    if [ -n "$manquants" ]; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER :%s\n' "$manquants"
+        printf '     Un échec qui ne nomme pas ses objets envoie chercher pendant vingt minutes.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|→' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+
+    empreinte_apres="$(empreinte_modele)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ docs/modele-donnees/ A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '   La porte a échoué comme attendu, EN NOMMANT LES TROIS OBJETS — TEST NÉGATIF VERT\n'
+    printf '   docs/modele-donnees/ inchangé (empreinte identique avant et après)\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -903,13 +1008,18 @@ main() {
                     test_negatif_p02 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
+                p05)
+                    test_negatif_p05 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
                 tous)
                     test_negatif_p01 || exit "$CODE_AVEUGLE"
                     test_negatif_p02 || exit "$CODE_AVEUGLE"
-                    portes_passees=2
+                    test_negatif_p05 || exit "$CODE_AVEUGLE"
+                    portes_passees=3
                     ;;
                 *)
-                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01 ou p02)"
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02 ou p05)"
                     ;;
             esac
             local duree_n=$((SECONDS - debut))
