@@ -48,6 +48,11 @@ export default {
   // préfixe et n'entrent pas au décompte des 46.
   ecrans: {
     titre: 'Écrans',
+    leProduit: "Le produit",
+    lesInstruments: "Les instruments",
+    construit: "Construit",
+    pasCommence: "Pas commencé",
+    decompte: "{construits} écran(s) construit(s) sur {total}. Les instruments de développement ne comptent pas.",
   },
   guideDeStyle: {
     titre: 'Guide de style',

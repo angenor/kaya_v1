@@ -34,6 +34,11 @@ export default {
 
   ecrans: {
     titre: 'Screens',
+    leProduit: "The product",
+    lesInstruments: "The instruments",
+    construit: "Built",
+    pasCommence: "Not started",
+    decompte: "{construits} screen(s) built out of {total}. Development instruments are not counted.",
   },
   guideDeStyle: {
     titre: 'Style guide',
