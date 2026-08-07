@@ -21,7 +21,7 @@
  */
 export type EtatLigne = 'repos' | 'selectionnee' | 'enAttente' | 'annulee' | 'total'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** Le numéro, la référence, le code — toujours en mono. */
     reference?: string
@@ -49,28 +49,37 @@ withDefaults(
 )
 
 defineEmits<{ activer: [] }>()
+
+/**
+ * ⚠️ LES DEUX BRANCHES SONT ÉCRITES, PAS RÉSOLUES DYNAMIQUEMENT. Une première
+ * version employait `<component :is="vers ? 'NuxtLink' : 'div'">` : le
+ * compilateur de gabarit ne voit pas un nom de composant calculé, donc rien
+ * n'était résolu et le navigateur rendait un élément inconnu `<nuxtlink>` —
+ * pas un lien. Le sommaire du guide de style ne menait NULLE PART, sans qu'une
+ * seule erreur ne soit levée. C'est le test de navigateur qui l'a vu, en
+ * comptant zéro `<a>` là où il en attendait seize.
+ */
+const classes = computed(() => [
+  'flex h-14 items-center gap-3 border-b border-line px-4 transition-colors duration-90',
+  props.etat === 'total'
+    ? 'border-t-2 border-t-line-2 font-semibold'
+    : 'cursor-pointer hover:bg-prim-soft',
+  props.etat === 'selectionnee' && 'rounded-r-xl border-l-4 border-l-prim bg-prim-soft',
+  props.etat === 'annulee' && 'line-through opacity-60',
+])
 </script>
 
 <template>
-  <component
-    :is="vers ? 'NuxtLink' : 'div'"
+  <NuxtLink
+    v-if="vers"
     :to="vers"
-    class="flex h-14 items-center gap-3 border-b border-line px-4 transition-colors duration-90"
-    :class="[
-      etat === 'total'
-        ? 'border-t-2 border-t-line-2 font-semibold'
-        : 'cursor-pointer hover:bg-prim-soft',
-      etat === 'selectionnee' && 'rounded-r-xl border-l-4 border-l-prim bg-prim-soft',
-      etat === 'annulee' && 'opacity-60 line-through',
-    ]"
-    :data-etat="etat"
+    :class="classes"
     @click="$emit('activer')"
   >
     <span
       v-if="reference"
       class="w-9 shrink-0 font-mono text-corps text-ink-3"
     >{{ reference }}</span>
-
     <span class="flex min-w-0 flex-1 flex-col">
       <span class="truncate font-titre text-action font-semibold text-ink">
         {{ libelleCle ? $t(libelleCle) : libelle }}
@@ -80,12 +89,35 @@ defineEmits<{ activer: [] }>()
         class="truncate text-mini text-ink-3"
       >{{ sousTitreCle ? $t(sousTitreCle) : sousTitre }}</span>
     </span>
-
     <slot name="fin" />
-
     <span
       v-if="montant"
       class="w-24 shrink-0 text-right font-mono text-corps font-bold whitespace-nowrap text-ink"
     >{{ montant }}</span>
-  </component>
+  </NuxtLink>
+
+  <div
+    v-else
+    :class="classes"
+    @click="$emit('activer')"
+  >
+    <span
+      v-if="reference"
+      class="w-9 shrink-0 font-mono text-corps text-ink-3"
+    >{{ reference }}</span>
+    <span class="flex min-w-0 flex-1 flex-col">
+      <span class="truncate font-titre text-action font-semibold text-ink">
+        {{ libelleCle ? $t(libelleCle) : libelle }}
+      </span>
+      <span
+        v-if="sousTitreCle || sousTitre"
+        class="truncate text-mini text-ink-3"
+      >{{ sousTitreCle ? $t(sousTitreCle) : sousTitre }}</span>
+    </span>
+    <slot name="fin" />
+    <span
+      v-if="montant"
+      class="w-24 shrink-0 text-right font-mono text-corps font-bold whitespace-nowrap text-ink"
+    >{{ montant }}</span>
+  </div>
 </template>

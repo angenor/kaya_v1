@@ -18,6 +18,14 @@
  * ⚠️ EXCEPTION : CE QUI EST FISCALEMENT IRRÉVERSIBLE. Une facture émise demande
  * une confirmation explicite et se contre-passe par un avoir — jamais par cette
  * annulation-ci.
+ *
+ * ⚠️ LE BOUTON FAIT 44 px, LÀ OÙ `composants.md` §14 ÉCRIVAIT `h-9` (36 px).
+ * Divergence CONSTATÉE par le contrôle de zone de touche, et tranchée en faveur
+ * de `tokens.md`, qui prime sur tout export : « plancher tactile, JAMAIS MOINS,
+ * y compris pour une icône seule ». Et c'est la cible où l'écart coûte le plus
+ * cher — on a HUIT SECONDES pour l'atteindre, une fois, et si on la rate le
+ * geste est perdu. 44 px entrent exactement dans la barre de 48 px avec ses
+ * 2 px de marge. `composants.md` est mis à jour dans le même changement.
  */
 const props = withDefaults(
   defineProps<{
@@ -63,7 +71,7 @@ const partRestante = computed(
     <button
       v-if="actionCle"
       type="button"
-      class="inline-flex h-9 cursor-pointer items-center rounded-md border border-bg/30 px-3.5 font-titre text-mini font-semibold text-bg transition-colors duration-90 hover:bg-bg/10"
+      class="inline-flex h-11 cursor-pointer items-center rounded-md border border-bg/30 px-3.5 font-titre text-mini font-semibold text-bg transition-colors duration-90 hover:bg-bg/10"
       @click="$emit('annuler')"
     >
       {{ $t(actionCle) }}

@@ -278,7 +278,7 @@ rétablissement · cas non annulable (confirmation explicite).
 <div class="h-12 pl-4 pr-2 rounded-lg bg-ink inline-flex items-center gap-3 shadow-panneau">
   <span class="flex-1 text-corps font-semibold text-bg">Consommation supprimée</span>
   <span class="font-mono text-mini text-bg/60">8 s</span>
-  <button class="h-9 px-3.5 rounded-md border border-bg/30 text-bg …">Annuler</button>
+  <button class="h-11 px-3.5 rounded-md border border-bg/30 text-bg …">Annuler</button>
 </div>
 ```
 
@@ -286,6 +286,14 @@ rétablissement · cas non annulable (confirmation explicite).
 revenir : pas de fenêtre de confirmation. Le compte à rebours est visible. Une seule action
 dans le bandeau. Exception : ce qui est fiscalement irréversible (facture émise) demande une
 confirmation explicite et se contre-passe par un avoir — voir `documents/D7-facture-fiscale.html`.
+
+> ⚠️ **`h-11` (44 px) et non `h-9` (36 px) — corrigé le 2026-08-07 par le cycle F1.** Le
+> contrôle de zone de touche du guide de style a constaté la divergence, et elle est tranchée
+> en faveur de `tokens.md`, qui prime sur tout export : *« plancher tactile, **jamais moins**,
+> y compris pour une icône seule »*. C'est en plus la cible où l'écart coûte le plus cher —
+> on a **huit secondes** pour l'atteindre, une fois, et un raté perd le geste. Les 44 px
+> entrent exactement dans la barre de 48 px avec ses 2 px de marge, donc la hauteur du
+> bandeau ne bouge pas.
 
 ---
 

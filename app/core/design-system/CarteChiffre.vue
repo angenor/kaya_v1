@@ -56,6 +56,7 @@ withDefaults(
     <span
       v-else
       class="font-mono text-chiffre-l font-bold whitespace-nowrap text-ink"
+      data-valeur
     >{{ valeur }}</span>
 
     <span
