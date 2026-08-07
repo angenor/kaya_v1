@@ -56,6 +56,16 @@ export default {
       'You will always be able to sign in again: nothing you have saved is lost.',
   },
 
+  // ── The context header ─────────────────────────────────────────────────────
+  contexte: {
+    tousLesSites: 'My {n} establishments',
+    vueDEnsemble: 'Overview',
+    passerLaMain: 'Hand over',
+    passerLaMainEffet: 'The next person will have to enter their ID.',
+    passerLaMainRefus:
+      "Some entries haven’t been sent yet. Wait for the network before handing over.",
+  },
+
   // ── R1 · the home screen ───────────────────────────────────────────────────
   accueil: {
     titre: 'Home',

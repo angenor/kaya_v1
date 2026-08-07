@@ -83,22 +83,20 @@ export function useEntree() {
 
     // ⚠️ LES PERMISSIONS SONT RÉSOLUES POUR **CE SITE**, jamais héritées d'un
     // autre : `resoudrePermissions` est la méthode de F1, inchangée — un droit
-    // détenu ailleurs ne suit pas la personne (FR-027).
+    // détenu ailleurs ne suit pas la personne (FR-027). Le poste, lui, est
+    // DÉRIVÉ, et il vaut `null` dès qu'il y en a plus d'un.
     let permissions: readonly string[] = []
+    let posteUnique: string | null = null
     if (premier !== undefined) {
-      const resolues = await fournisseur().comptes.resoudrePermissions(
-        resultat.valeur.compteId,
-        premier.id,
-      )
+      const [resolues, poste] = await Promise.all([
+        fournisseur().comptes.resoudrePermissions(resultat.valeur.compteId, premier.id),
+        fournisseur().comptes.posteUniqueSur(resultat.valeur.compteId, premier.id),
+      ])
       if (resolues.ok) permissions = resolues.valeur
+      if (poste.ok) posteUnique = poste.valeur
     }
 
-    await definir({
-      compteId: resultat.valeur.compteId,
-      portee,
-      permissions,
-      posteUnique: null,
-    })
+    await definir({ compteId: resultat.valeur.compteId, portee, permissions, posteUnique })
     return { entre: true }
   }
 

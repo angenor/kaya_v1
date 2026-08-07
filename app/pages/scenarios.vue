@@ -94,12 +94,19 @@ if (resultatEtablissements.ok) {
  * liste figée.
  */
 async function appliquerContexte(compteId: string, etablissementId: string): Promise<void> {
-  const resolues = await fournisseur().comptes.resoudrePermissions(compteId, etablissementId)
+  // ⚠️ LE POSTE EST DÉRIVÉ ICI AUSSI, ET PAS SEULEMENT À L'ENTRÉE. Le panneau
+  // est ce par quoi on choisit un contexte en phase 2 : s'il posait un poste
+  // nul, l'en-tête n'afficherait jamais sa forme longue depuis l'instrument —
+  // c'est-à-dire jamais pendant une démonstration.
+  const [resolues, poste] = await Promise.all([
+    fournisseur().comptes.resoudrePermissions(compteId, etablissementId),
+    fournisseur().comptes.posteUniqueSur(compteId, etablissementId),
+  ])
   await definir({
     compteId,
     portee: { type: 'etablissement', id: etablissementId },
     permissions: resolues.ok ? resolues.valeur : [],
-    posteUnique: null,
+    posteUnique: poste.ok ? poste.valeur : null,
   })
 }
 

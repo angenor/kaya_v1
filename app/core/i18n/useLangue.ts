@@ -32,3 +32,20 @@ export function languePersistee(): Langue {
 export function persisterLangue(langue: Langue): void {
   ecrirePreference(CLE_LANGUE, langue)
 }
+
+/**
+ * La langue COURANTE, telle que l'interface la rend.
+ *
+ * ⚠️ ELLE VIENT DE `@nuxtjs/i18n`, PAS DE LA PRÉFÉRENCE PERSISTÉE. Les deux
+ * coïncident au démarrage, et divergent dès qu'on bascule la langue sans
+ * recharger : lire la préférence ferait écrire une date en français sur une
+ * interface passée en anglais. `estLangue` protège le cas où le module rendrait
+ * une étiquette que le produit ne sert pas.
+ */
+export function useLangue() {
+  const { locale } = useI18n()
+  const langue = computed<Langue>(() =>
+    estLangue(locale.value) ? locale.value : LANGUE_PAR_DEFAUT,
+  )
+  return { langue }
+}

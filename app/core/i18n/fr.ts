@@ -78,6 +78,18 @@ export default {
       'Vous pourrez toujours entrer à nouveau : rien de ce que vous avez enregistré ne se perd.',
   },
 
+  // ── L'en-tête de contexte ──────────────────────────────────────────────────
+  // ⚠️ « PASSER LA MAIN », JAMAIS « SE DÉCONNECTER » — sur un terminal partagé,
+  // l'appareil ne bouge pas, c'est la personne qui change (lexique 1.3.0).
+  contexte: {
+    tousLesSites: 'Mes {n} établissements',
+    vueDEnsemble: "Vue d'ensemble",
+    passerLaMain: 'Passer la main',
+    passerLaMainEffet: 'La personne suivante devra entrer son identifiant.',
+    passerLaMainRefus:
+      "Des enregistrements ne sont pas encore partis. Attendez le retour du réseau avant de passer la main.",
+  },
+
   // ── R1 · l'accueil ─────────────────────────────────────────────────────────
   // ⚠️ LES TITRES DE RUBRIQUE SONT CEUX DES QUATRE MAQUETTES. Ils ne se
   // choisissent pas par variante : c'est la SURFACE retenue qui décide lequel

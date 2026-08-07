@@ -168,15 +168,15 @@ n'a pas changé.
 **Référence visuelle** : l'en-tête des quatre `R1`. **Composants** : **09** sélecteur
 d'établissement · **10** témoin d'envoi · **03** bouton discret.
 
-- [ ] T044 [US3] Dériver le poste dans `app/core/donnees/comptes/simulation.ts#posteUniqueSur` — `rôles → permissions → modules → points de vente`, et rendre **`null` dès qu'il y en a plus d'un**. Écrire le commentaire qui porte le fait : **le modèle ne contient aucun lien `compte → point_de_vente`** (vérifié dans `20-comptes.sql`) — le poste est un **calcul**, jamais une donnée
-- [ ] T045 [US3] Afficher dans `EnTeteContexte.vue` : le détail du composant 09 porte **la commune, toujours** ; le **poste** est un segment distinct, **affiché seulement s'il est unique**. **Jamais** « plusieurs postes », jamais un poste par défaut, jamais une liste. *Le second segment affirme un fait ; l'affirmer sans le savoir est un mensonge que six cycles hériteraient*
-- [ ] T046 [US3] Écrire `tests/unite/poste-derive.spec.ts` — Yao au maquis → « Abobo · La salle » · Adjoua → « Abengourou » seul · Aminata → seul · M. Koffi → seul. **Les deux formes d'en-tête sont couvertes** (FR-030c, SC-013)
-- [ ] T047 [US3] Brancher le choix du sélecteur 09 sur la session, dans `app/core/coquille/EnTeteContexte.vue` et `app/core/session/useSession.ts` : **deux interactions**, **sans reconnexion**, permissions **recalculées pour ce site** (FR-027) — un droit détenu ailleurs ne suit pas la personne
-- [ ] T048 [US3] Persister l'établissement actif dans `app/core/session/useSession.ts` et le reprendre à l'ouverture suivante (FR-032) — rouvrir ramène au **dernier site choisi**, pas au premier de la liste
-- [ ] T049 [US3] Remonter dans `app/core/coquille/EnTeteContexte.vue` l'alerte d'un **autre** établissement en pastille sur le sélecteur fermé, et **ne jamais changer de contexte tout seul** — *un changement non demandé fait saisir une consommation sur le mauvais site*
-- [ ] T050 [US3] Ajouter le troisième état du sélecteur — **« Mes N établissements »**, la portée `tous` de T012 —, sous lequel **aucune surface qui modifie une caisse** n'existe (FR-019)
-- [ ] T051 [US3] Afficher l'heure et la date au **fuseau de l'établissement** via `format/instant.ts` (T010), et vérifier que le témoin **10** emploie les libellés du lexique — jamais « connecté », « dégradé », « hors ligne », « synchronisation »
-- [ ] T052 [US3] Écrire `tests/navigateur/contexte-deux-taps.spec.ts` — deux gestes, sans reconnexion, avec persistance ; et le sélecteur **non-bouton** pour un compte à un seul site
+- [X] T044 [US3] Dériver le poste dans `app/core/donnees/comptes/simulation.ts#posteUniqueSur` — `rôles → permissions → modules → points de vente`, et rendre **`null` dès qu'il y en a plus d'un**. Écrire le commentaire qui porte le fait : **le modèle ne contient aucun lien `compte → point_de_vente`** (vérifié dans `20-comptes.sql`) — le poste est un **calcul**, jamais une donnée
+- [X] T045 [US3] Afficher dans `EnTeteContexte.vue` : le détail du composant 09 porte **la commune, toujours** ; le **poste** est un segment distinct, **affiché seulement s'il est unique**. **Jamais** « plusieurs postes », jamais un poste par défaut, jamais une liste. *Le second segment affirme un fait ; l'affirmer sans le savoir est un mensonge que six cycles hériteraient*
+- [X] T046 [US3] Écrire `tests/unite/poste-derive.spec.ts` — Yao au maquis → « Abobo · La salle » · Adjoua → « Abengourou » seul · Aminata → seul · M. Koffi → seul. **Les deux formes d'en-tête sont couvertes** (FR-030c, SC-013)
+- [X] T047 [US3] Brancher le choix du sélecteur 09 sur la session, dans `app/core/coquille/EnTeteContexte.vue` et `app/core/session/useSession.ts` : **deux interactions**, **sans reconnexion**, permissions **recalculées pour ce site** (FR-027) — un droit détenu ailleurs ne suit pas la personne
+- [X] T048 [US3] Persister l'établissement actif dans `app/core/session/useSession.ts` et le reprendre à l'ouverture suivante (FR-032) — rouvrir ramène au **dernier site choisi**, pas au premier de la liste
+- [X] T049 [US3] Remonter dans `app/core/coquille/EnTeteContexte.vue` l'alerte d'un **autre** établissement en pastille sur le sélecteur fermé, et **ne jamais changer de contexte tout seul** — *un changement non demandé fait saisir une consommation sur le mauvais site*
+- [X] T050 [US3] Ajouter le troisième état du sélecteur — **« Mes N établissements »**, la portée `tous` de T012 —, sous lequel **aucune surface qui modifie une caisse** n'existe (FR-019)
+- [X] T051 [US3] Afficher l'heure et la date au **fuseau de l'établissement** via `format/instant.ts` (T010), et vérifier que le témoin **10** emploie les libellés du lexique — jamais « connecté », « dégradé », « hors ligne », « synchronisation »
+- [X] T052 [US3] Écrire `tests/navigateur/contexte-deux-taps.spec.ts` — deux gestes, sans reconnexion, avec persistance ; et le sélecteur **non-bouton** pour un compte à un seul site
 
 **Point de contrôle** : `ETB-06` est tenue. Le cœur du cycle est livré.
 
@@ -188,7 +188,7 @@ d'établissement · **10** témoin d'envoi · **03** bouton discret.
 
 **Test indépendant** : l'en-tête est défini **une fois** dans le dépôt, et aucun écran ne le recopie.
 
-- [ ] T053 [US4] Ajouter l'identité dans `app/core/coquille/IdentitePersonne.vue` — nom, ce que la personne fait, et **« Passer la main »**, avec l'effet annoncé : « La personne suivante devra entrer son identifiant. » **Jamais « se déconnecter »**
+- [X] T053 [US4] Ajouter l'identité dans `app/core/coquille/IdentitePersonne.vue` — nom, ce que la personne fait, et **« Passer la main »**, avec l'effet annoncé : « La personne suivante devra entrer son identifiant. » **Jamais « se déconnecter »**
 - [ ] T054 [US4] Corriger `docs/module-dore.md`, huitième couche : la sortie de session y est placée **au pied** au motif que *« `R1` et `G1` portent déjà deux `<header>` différents »* — **ce motif ne tient plus**, le gabarit porte l'en-tête pour tous les écrans depuis F1. Écrire la note qui dit ce que le motif protégeait et ce qui l'a remplacé. Un conflit constaté n'est **jamais** tranché en silence
 - [ ] T055 [US4] Refuser « Passer la main » **immédiatement** tant que la file n'est pas vide, avec la phrase du lexique — jamais un échec constaté après coup. La garde est **synchrone**, `useFile().enAttente` de F1
 - [ ] T056 [US4] Poser le motif de **retour** dans `app/core/coquille/EnTeteContexte.vue` et `app/layouts/defaut.vue` : il ramène à **l'accueil de l'établissement courant**, jamais à l'entrée précédente de l'historique — qui peut appartenir à un **autre site** (FR-036)

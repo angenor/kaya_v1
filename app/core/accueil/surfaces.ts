@@ -95,7 +95,7 @@ export const SURFACES_ACCUEIL: readonly SurfaceAccueil[] = [
   //    de mise en page ────────────────────────────────────────────────────────
   { cle: 'activite.hebergement', permission: 'hebergement.passage.ouvrir', moduleCode: 'HEBERGEMENT', ecranCible: 'R2', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.restauration', permission: 'ventes.commande.prendre', moduleCode: 'RESTAURATION', ecranCible: 'P1', famille: 'activite', titreCle: 'accueil.activites.titre' },
-  { cle: 'activite.bar', permission: 'ventes.commande.prendre', moduleCode: 'BAR', ecranCible: 'P1', famille: 'activite', titreCle: 'accueil.activites.titre' },
+  { cle: 'activite.bar', permission: 'ventes.commande.prendre.bar', moduleCode: 'BAR', ecranCible: 'P1', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.pressing', permission: 'ventes.commande.prendre', moduleCode: 'PRESSING', ecranCible: 'P4', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.salleReunion', permission: 'hebergement.passage.ouvrir', moduleCode: 'SALLE_REUNION', ecranCible: 'V1', famille: 'activite', titreCle: 'accueil.activites.titre' },
 

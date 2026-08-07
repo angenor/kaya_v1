@@ -183,6 +183,21 @@ export const permissions: readonly Permission[] = [
   { id: 'perm-caisse-encaisser', tenantId: TENANT_DELORIA, code: 'caisse.encaisser', moduleActiviteCode: null, libelle: 'Encaisser' },
   { id: 'perm-caisse-cloture', tenantId: TENANT_DELORIA, code: 'caisse.cloture', moduleActiviteCode: null, libelle: 'Clôturer la caisse' },
   { id: 'perm-commande-prendre', tenantId: TENANT_DELORIA, code: 'ventes.commande.prendre', moduleActiviteCode: 'RESTAURATION', libelle: 'Prendre une commande' },
+  /**
+   * ⚠️ AJOUTÉE AU CYCLE F2, ET LE MANQUE ÉTAIT RÉEL. Le catalogue ne portait
+   * **aucune permission de bar** : une serveuse pouvait prendre une commande au
+   * restaurant et pas au comptoir du bar, alors que Deloria en a un et
+   * qu'Aminata y sert. Le défaut ne se voyait pas tant que rien ne dérivait le
+   * poste ; il rendait le calcul FAUX — un seul point de vente atteignable pour
+   * tout le monde, donc **jamais** la forme courte de l'en-tête, donc FR-030c
+   * intenable et invérifiable.
+   *
+   * ⚠️ ET C'EST UNE PERMISSION DISTINCTE, PAS UNE PERMISSION TRANSVERSE. Le bar
+   * est un `module_activite` à part entière, avec ses points de vente ; rendre
+   * « prendre une commande » transverse l'aurait fait valoir sur un module que
+   * l'établissement n'a pas.
+   */
+  { id: 'perm-commande-prendre-bar', tenantId: TENANT_DELORIA, code: 'ventes.commande.prendre.bar', moduleActiviteCode: 'BAR', libelle: 'Prendre une commande au bar' },
   { id: 'perm-commande-remise', tenantId: TENANT_DELORIA, code: 'ventes.commande.remise', moduleActiviteCode: 'RESTAURATION', libelle: 'Appliquer une remise' },
   { id: 'perm-pilotage-lire', tenantId: TENANT_DELORIA, code: 'pilotage.lire', moduleActiviteCode: null, libelle: 'Consulter les chiffres' },
   { id: 'perm-etablissement-gerer', tenantId: TENANT_DELORIA, code: 'etablissement.gerer', moduleActiviteCode: null, libelle: 'Régler l’établissement' },
@@ -198,10 +213,10 @@ export const permissionsParRole: Readonly<Record<string, readonly string[]>> = {
   // c'est-à-dire le droit de corriger une commande sans celui d'en ouvrir une.
   // Le manque ne se voyait pas tant qu'aucun écran ne composait par permission ;
   // il rendait l'accueil du maquis vide pour Yao, qui en est le GÉRANT.
-  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.prendre', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
+  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.prendre', 'ventes.commande.prendre.bar', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
   caissier: ['caisse.encaisser', 'caisse.cloture'],
   receptionniste: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart'],
-  serveur: ['ventes.commande.prendre'],
+  serveur: ['ventes.commande.prendre', 'ventes.commande.prendre.bar'],
   proprietaire: ['pilotage.lire', 'etablissement.gerer'],
   admin_editeur: [],
 }

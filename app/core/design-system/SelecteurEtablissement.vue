@@ -33,8 +33,17 @@ const props = withDefaults(
   defineProps<{
     etablissements?: readonly EtablissementAffichable[]
     actifId?: string | null
+    /**
+     * ⚠️ LE SECOND SEGMENT DE L'ACTIF, IMPOSÉ DE L'EXTÉRIEUR — « Abobo · La
+     * salle » ou « Abobo » tout court. Il porte **la commune, toujours**, et le
+     * poste **seulement s'il est unique** : le composant ne le calcule pas, il
+     * le rend. Le calcul vit dans le domaine, parce qu'il dépend des rôles, des
+     * modules et des points de vente — trois choses qu'un composant ne doit pas
+     * connaître.
+     */
+    detail?: string
   }>(),
-  { etablissements: () => [], actifId: null },
+  { etablissements: () => [], actifId: null, detail: undefined },
 )
 
 defineEmits<{ choisir: [id: string] }>()
@@ -51,11 +60,17 @@ const initiale = computed(() => (actif.value?.nom ?? 'K').trim().charAt(0).toUpp
 </script>
 
 <template>
-  <div class="relative">
+  <!-- ⚠️ `min-w-0` SUR LA RACINE, ET CE N'EST PAS COSMÉTIQUE. Sans lui, un
+       élément flex refuse de descendre sous la largeur de son contenu : le
+       sélecteur débordait sur le témoin d'envoi, qui se lisait « …registré ».
+       **Constaté sur une capture d'écran** — le composant le plus important du
+       produit était recouvert par le repère d'orientation. Le `truncate` interne
+       ne peut agir que si la racine accepte de rétrécir. -->
+  <div class="relative min-w-0">
     <component
       :is="plusieurs ? 'button' : 'div'"
       :type="plusieurs ? 'button' : undefined"
-      class="inline-flex h-11 items-center gap-2.5 rounded-lg border border-line bg-surf px-3 shadow-basse"
+      class="inline-flex h-11 min-w-0 max-w-64 items-center gap-2.5 rounded-lg border border-line bg-surf px-3 shadow-basse"
       :class="plusieurs && 'cursor-pointer hover:border-prim'"
       data-composant-09
       :aria-expanded="plusieurs ? ouvert : undefined"
@@ -71,9 +86,10 @@ const initiale = computed(() => (actif.value?.nom ?? 'K').trim().charAt(0).toUpp
       >
         <span class="truncate font-titre text-corps font-semibold text-ink">{{ actif.nom }}</span>
         <span
-          v-if="actif.detail"
+          v-if="detail ?? actif.detail"
           class="truncate text-mini text-ink-3"
-        >{{ actif.detail }}</span>
+          data-detail
+        >{{ detail ?? actif.detail }}</span>
       </span>
       <span
         v-if="alerteAilleurs"

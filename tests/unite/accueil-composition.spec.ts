@@ -109,7 +109,10 @@ describe('les quatre variantes sortent du CONTEXTE, jamais d’une branche', () 
 
   it('Aminata : une seule permission, et aucune surface de caisse', () => {
     const retenues = surfacesRetenues('compte-aminata', DELORIA)
-    expect(permissionsDe('compte-aminata', DELORIA)).toEqual(['ventes.commande.prendre'])
+    expect(permissionsDe('compte-aminata', DELORIA).sort()).toEqual([
+      'ventes.commande.prendre',
+      'ventes.commande.prendre.bar',
+    ])
     for (const surface of retenues) {
       expect(
         surface.permission.startsWith('caisse.'),

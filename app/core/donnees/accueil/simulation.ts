@@ -206,4 +206,17 @@ export const simulationAccueil: DonneesAccueil = {
   listerChiffres(portee: PorteeLecture): Promise<ResultatDomaine<readonly ChiffreAccueil[]>> {
     return lireSimule(() => jeuDe(portee).chiffres, [])
   },
+
+  sitesAvecAlerte(): Promise<ResultatDomaine<readonly string[]>> {
+    // ⚠️ « DANGER » ET « ALERTE » SEULEMENT, JAMAIS « INFO ». Une pastille qui
+    // s'allume pour un casier de bière à commander s'allume tout le temps — et
+    // une pastille permanente cesse d'être une pastille.
+    return lireSimule(
+      () =>
+        Object.entries(PAR_ETABLISSEMENT)
+          .filter(([, jeu]) => jeu.aRegler.some((c) => c.niveau !== 'info'))
+          .map(([id]) => id),
+      [],
+    )
+  },
 }

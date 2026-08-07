@@ -40,4 +40,17 @@ export interface DonneesAccueil {
   listerARegler(portee: PorteeLecture): Promise<ResultatDomaine<readonly CarteAReglerAccueil[]>>
   listerActivites(portee: PorteeLecture): Promise<ResultatDomaine<readonly ActiviteAccueil[]>>
   listerChiffres(portee: PorteeLecture): Promise<ResultatDomaine<readonly ChiffreAccueil[]>>
+  /**
+   * LES SITES QUI ONT QUELQUE CHOSE À SIGNALER — FR-029.
+   *
+   * ⚠️ ELLE N'EST PAS PARAMÉTRÉE PAR UN ÉTABLISSEMENT, ET C'EST TOUT SON OBJET :
+   * une alerte d'un **autre** site doit être visible sans qu'on aille y voir.
+   * C'est la seule lecture du cycle qui traverse les établissements, et elle ne
+   * rend que des identifiants — jamais le contenu, qui appartient au site.
+   *
+   * ⚠️ ET ELLE NE FAIT **RIEN BASCULER**. Le sélecteur porte une pastille ; le
+   * contexte ne change jamais tout seul. *Un changement de contexte non demandé
+   * fait saisir une consommation sur le mauvais site.*
+   */
+  sitesAvecAlerte(compteId: string): Promise<ResultatDomaine<readonly string[]>>
 }

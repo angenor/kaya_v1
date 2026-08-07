@@ -1,13 +1,19 @@
 import { echec, reussite, type ResultatDomaine } from '~/core/donnees/contrat'
 import type { DonneesComptes, Identification } from '~/core/donnees/comptes/interface'
-import type { Compte } from '~/core/donnees/comptes/types'
+import type { Compte, Personne } from '~/core/donnees/comptes/types'
 import type { Etablissement } from '~/core/donnees/etablissements/types'
 import { normaliserIdentifiant } from '~/core/identifiant/normaliser'
 import * as deloria from '~/core/donnees/jeux/deloria'
 import * as residenceTest from '~/core/donnees/jeux/residence-test'
 import * as tantieAdjo from '~/core/donnees/jeux/tantie-adjo'
+import type { PointDeVente } from '~/core/donnees/etablissements/types'
 import { lireSimule, lireUnSimule } from '~/core/donnees/simulationCommune'
 import { attendreLatence, reglagesCourants } from '~/core/scenarios/reglages'
+
+const TOUS_POINTS_DE_VENTE: readonly PointDeVente[] = [
+  ...deloria.pointsDeVente,
+  ...tantieAdjo.pointsDeVente,
+]
 
 const TOUS_ETABLISSEMENTS: readonly Etablissement[] = [
   ...deloria.etablissements,
@@ -25,6 +31,46 @@ function etablissementsDuCompte(compteId: string): readonly Etablissement[] {
   return TOUS_ETABLISSEMENTS.filter((etablissement) => identifiants.has(etablissement.id))
 }
 
+/**
+ * LE POSTE — **DÉRIVÉ, JAMAIS STOCKÉ.**
+ *
+ * ⚠️ LE MODÈLE NE PORTE AUCUN LIEN `compte → point_de_vente` (vérifié dans
+ * `20-comptes.sql`). Ce qui suit n'est donc pas une lecture : c'est le calcul
+ * que le modèle rend possible, et rien de plus. Il remonte des rôles aux
+ * permissions, des permissions aux modules, et des modules aux points de vente.
+ *
+ * ⚠️ ET IL REND `null` DÈS QU'IL Y EN A PLUS D'UN. Choisir le premier serait
+ * afficher un fait qu'on ne sait pas — sur un en-tête permanent, devant
+ * quelqu'un qui s'en sert pour savoir où il est.
+ */
+function posteUniqueDerive(compteId: string, etablissementId: string): string | null {
+  const codesDeRole = deloria.compteRoles
+    .filter((l) => l.compteId === compteId && l.etablissementId === etablissementId)
+    .map((l) => deloria.roles.find((r) => r.id === l.roleId)?.code)
+    .filter((c): c is string => Boolean(c))
+
+  const permissions = new Set<string>()
+  for (const code of codesDeRole) {
+    for (const p of deloria.permissionsParRole[code] ?? []) permissions.add(p)
+  }
+
+  // Les modules que ces permissions atteignent — une permission transverse
+  // (`moduleActiviteCode` nul) n'en désigne aucun : encaisser n'est pas un poste.
+  const modules = new Set(
+    deloria.permissions
+      .filter((p) => permissions.has(p.code) && p.moduleActiviteCode !== null)
+      .map((p) => p.moduleActiviteCode as string),
+  )
+
+  const candidats = TOUS_POINTS_DE_VENTE.filter((pdv) => {
+    if (pdv.etablissementId !== etablissementId) return false
+    const module = deloria.modulesActivite.find((m) => m.id === pdv.moduleActiviteId)
+    return module !== undefined && modules.has(module.code)
+  })
+
+  return candidats.length === 1 ? (candidats[0]?.nom ?? null) : null
+}
+
 /** ⚠️ Ce fichier disparaît au branchement de la phase 3. */
 export const simulationComptes: DonneesComptes = {
   listerComptes(): Promise<ResultatDomaine<readonly Compte[]>> {
@@ -33,6 +79,10 @@ export const simulationComptes: DonneesComptes = {
 
   lireCompte(id: string): Promise<ResultatDomaine<Compte>> {
     return lireUnSimule(() => deloria.comptes.find((c) => c.id === id))
+  },
+
+  lirePersonne(id: string): Promise<ResultatDomaine<Personne>> {
+    return lireUnSimule(() => deloria.personnes.find((p) => p.id === id))
   },
 
   /**
@@ -101,6 +151,27 @@ export const simulationComptes: DonneesComptes = {
    */
   etablissementsDe(compteId: string): Promise<ResultatDomaine<readonly Etablissement[]>> {
     return lireSimule(() => etablissementsDuCompte(compteId), [])
+  },
+
+  posteUniqueSur(
+    compteId: string,
+    etablissementId: string,
+  ): Promise<ResultatDomaine<string | null>> {
+    return lireSimule(() => posteUniqueDerive(compteId, etablissementId), null)
+  },
+
+  fonctionsSur(
+    compteId: string,
+    etablissementId: string,
+  ): Promise<ResultatDomaine<readonly string[]>> {
+    return lireSimule(
+      () =>
+        deloria.compteRoles
+          .filter((l) => l.compteId === compteId && l.etablissementId === etablissementId)
+          .map((l) => deloria.roles.find((r) => r.id === l.roleId)?.libelle)
+          .filter((libelle): libelle is string => Boolean(libelle)),
+      [],
+    )
   },
 
   resoudrePermissions(
