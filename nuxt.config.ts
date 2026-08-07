@@ -1,5 +1,5 @@
-import { copyFileSync, existsSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -29,6 +29,41 @@ import { VitePWA } from 'vite-plugin-pwa'
  * servir.
  */
 const REVISION_COQUILLE = process.env.KAYA_REVISION ?? 'f1'
+
+/**
+ * L'INVENTAIRE DES ROUTES, ÉCRIT PAR LA CONSTRUCTION — c'est ce que la porte
+ * P-04 lit, et **jamais une liste tenue à la main**.
+ *
+ * ⚠️ UNE LISTE ÉCRITE À LA MAIN PEUT ÊTRE VIDÉE PAR ACCIDENT, et la porte
+ * inspecterait alors zéro route en restant verte. Celle-ci vient du routeur
+ * résolu : elle grandit toute seule avec l'application, et le seul cas qu'elle
+ * ne couvre pas — un routeur vide — est exactement ce que le plancher attrape.
+ *
+ * ⚠️ ET ELLE EST ÉCRITE AU CROCHET `pages:resolved`, JAMAIS À `pages:extend`.
+ * `pages:extend` est appelé une fois par contributeur — nuxt lui-même, puis
+ * chaque module —, donc l'écrire là rendrait un inventaire partiel dont on ne
+ * saurait pas qu'il l'est. `pages:resolved` est appelé UNE FOIS, après tout le
+ * monde.
+ */
+const INVENTAIRE_ROUTES = fileURLToPath(new URL('./.rapports/routes-du-build.json', import.meta.url))
+
+interface PageDuRouteur {
+  path: string
+  children?: PageDuRouteur[]
+}
+
+/** Aplatit l'arbre du routeur en chemins absolus. */
+function cheminsResolus(pages: readonly PageDuRouteur[], prefixe = ''): string[] {
+  const chemins: string[] = []
+  for (const page of pages) {
+    const chemin = page.path.startsWith('/')
+      ? page.path
+      : `${prefixe.replace(/\/$/, '')}/${page.path}`
+    chemins.push(chemin)
+    if (page.children?.length) chemins.push(...cheminsResolus(page.children, chemin))
+  }
+  return chemins
+}
 
 /**
  * LE THÈME, POSÉ AVANT LE PREMIER PIXEL.
@@ -140,6 +175,21 @@ export default defineNuxtConfig({
       )
     },
 
+    /**
+     * L'INVENTAIRE DES ROUTES — écrit une fois, quand plus personne n'ajoute
+     * de page. C'est le PÉRIMÈTRE de la porte P-04 (contrat §1).
+     */
+    'pages:resolved'(pages) {
+      const routes = [...new Set(cheminsResolus(pages as PageDuRouteur[]))].sort()
+      mkdirSync(dirname(INVENTAIRE_ROUTES), { recursive: true })
+      writeFileSync(
+        INVENTAIRE_ROUTES,
+        `${JSON.stringify({ pageTemoin: process.env.KAYA_PAGE_TEMOIN === '1', routes }, null, 2)}\n`,
+        'utf8',
+      )
+      console.info(`[inventaire des routes] ${routes.length} route(s) → ${INVENTAIRE_ROUTES}`)
+    },
+
     'nitro:build:public-assets'(nitro) {
       const source = join(nitro.options.buildDir, 'dist/client')
       const cible = nitro.options.output.publicDir
@@ -217,6 +267,16 @@ export default defineNuxtConfig({
   css: ['~/assets/css/theme.css', '~/assets/css/polices.css', '~/assets/css/mouvement.css'],
 
   vite: {
+    /**
+     * ⚠️ `KAYA_` ENTRE DANS `import.meta.env`, ET C'EST CE QUI EMPÊCHE LES DEUX
+     * CÔTÉS DE P-04 DE DIVERGER. Sans ce préfixe, Vite n'expose que `VITE_*` :
+     * `app/core/ecrans/index.ts` lirait donc TOUJOURS `undefined` et
+     * n'inscrirait jamais les pages témoin, pendant que le routeur, lui, les
+     * servirait. La porte rougirait sur deux routes non déclarées — et elle
+     * aurait raison, ce qui est le pire cas : un vrai défaut, à la mauvaise
+     * adresse.
+     */
+    envPrefix: ['VITE_', 'KAYA_'],
     plugins: [
       tailwindcss(),
       // Nuxt lance DEUX constructions Vite — le client et le serveur nitro. Le

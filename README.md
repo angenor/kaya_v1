@@ -91,15 +91,20 @@ monte déjà l'application et pilote les deux moteurs. *Ce qui compte est dedans
 | **P-01** | Le modèle de [`docs/modele-donnees/`](docs/modele-donnees/) s'applique **dans l'ordre, sans erreur, sur une base vierge** — et chaque table porte `tenant_id` non nul, `ENABLE` **et** `FORCE ROW LEVEL SECURITY`, la politique `isolation_tenant` en `USING` **et** `WITH CHECK`, et la politique `administration_editeur` | oui |
 | **P-02** | Toute table du modèle a une **classe hors-ligne déclarée** dans [`docs/registre-classes-offline.md`](docs/registre-classes-offline.md). Sens : **table → registre** | oui |
 | **P-03** | **Aucune dépendance en intervalle**, lockfile commité et couvrant, tags d'image exacts, environnement cohérent en trois écritures, et `docs/versions-reference.md` d'accord avec les manifestes **dans les deux sens**. Plus : **aucun `.github/workflows/`** — le serveur d'intégration vient en phase 3 | **non** |
+| **P-04** | **L'application démarre**, et chaque écran marqué **construit** à [`app/core/ecrans/index.ts`](app/core/ecrans/index.ts) s'atteint — sur **Chromium et WebKit**, en **clair et en sombre**. **Deux sens** : toute route servie est déclarée à l'index ; toute entrée construite est servie. Une entrée « pas commencé » **n'est pas exigible**. C'est ici que **les quatre suites de navigateur** s'exécutent | **non** |
 | **P-05** | **Aucune clé étrangère entre deux schémas** — les rattachements inter-modules sont des colonnes nues, et le cas orphelin est le **chemin nominal** d'une saga | oui |
 
 Chaque porte déclare son **périmètre inspecté**, vérifie sa **complétude**, ne **modifie pas** ce
 qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déclaré.
 
-> **Le plancher de P-03 est DÉRIVÉ, pas constant** : c'est le nombre de dépendances que les
-> manifestes présents déclarent. Un `package.json` vidé par accident ferait passer une porte à
-> plancher bas ; il ne passe pas celle-ci, dont le plancher tombe à zéro **en même temps** que la
-> cible.
+> **Les planchers de P-03 et P-04 sont DÉRIVÉS, pas constants.** Celui de P-03 est le nombre de
+> dépendances que les manifestes déclarent ; celui de P-04 vient **du routeur** — l'inventaire des
+> routes est écrit par la construction, jamais tenu à la main. Un `package.json` vidé ou un routeur
+> vide fait tomber le plancher **en même temps** que la cible, et la porte rougit.
+>
+> C'est un meilleur plancher que ceux de P-01, P-02 et P-05, qui portent une **constante** qu'un
+> cycle doit penser à relever — le cycle D2 a dû relever les trois. Celui de P-04 **croît tout seul**
+> avec l'application.
 
 ### Une porte seule
 
@@ -107,6 +112,7 @@ qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déc
 scripts/verifier.sh --porte p01
 scripts/verifier.sh --porte p02
 scripts/verifier.sh --porte p03   # ni conteneur ni réseau
+scripts/verifier.sh --porte p04   # ni conteneur ni réseau — construit et sert l'application
 scripts/verifier.sh --porte p05
 ```
 

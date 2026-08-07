@@ -12,13 +12,14 @@ commit. Un identifiant anglais dans du code nouveau est une anomalie, pas une pr
 ```sh
 scripts/verifier.sh                    # les préalables PUIS les portes, arrêt au premier rouge
 scripts/verifier.sh --prealables       # lint, types, construction, tests d'unité — et rien d'autre
-scripts/verifier.sh --porte p01        # une porte seule (p01, p02, p03, p05)
+scripts/verifier.sh --porte p01        # une porte seule (p01, p02, p03, p04, p05)
 scripts/verifier.sh --test-negatif     # casse chaque porte et EXIGE qu'elle rougisse
 scripts/verifier.sh --test-negatif p05 # un seul test négatif
 scripts/verifier.sh --aide
 ```
 
-L'enchaînement complet : `lint → types → construction → tests d'unité → P-01 → P-02 → P-05 → P-03`.
+L'enchaînement complet : `lint → types → construction → tests d'unité → P-01 → P-02 → P-05 → P-03
+→ P-04`.
 La construction se fait **avec `KAYA_PAGE_TEMOIN=1`** — sans le drapeau, les deux pages témoin
 n'entrent pas au routeur et la suite `cycle-de-vie` **échoue** (elle échoue, elle ne se saute pas).
 
@@ -38,7 +39,8 @@ manquant · **`4` un test négatif n'a pas échoué — défaut de la **porte**,
 | **P-02** | toute table du modèle a une classe hors-ligne au registre. Sens : **table → registre**. Une entité déclarée sans table est normale, une table non déclarée est l'erreur | existante |
 | **P-05** | **aucune clé étrangère entre deux schémas** — deux rattachements sont des sagas dont le cas orphelin est le chemin **nominal** | existante |
 | **P-03** | **aucune dépendance en intervalle**, lockfile couvrant, tags d'image exacts, et `docs/versions-reference.md` d'accord avec les manifestes **dans les deux sens**. Ni conteneur ni réseau | existante |
-| **P-04 / P-06** | écrans atteignables sur Chromium **et** WebKit · points d'entrée branchés/dus | **à créer par le cycle F1 en cours** |
+| **P-04** | **l'application démarre**, et chaque écran marqué `CONSTRUIT` à `app/core/ecrans/index.ts` s'atteint — Chromium **et** WebKit, clair **et** sombre. **Deux sens**, borné à `CONSTRUIT`. Inventaire des routes lu **depuis le build**. Les quatre suites de navigateur s'exécutent ici | existante |
+| **P-06** | points d'entrée branchés/dus | **à créer par le cycle F1 en cours** |
 
 Toute porte ajoutée respecte cinq règles : elle déclare son périmètre, vérifie sa complétude, **ne
 modifie rien** de ce qu'elle inspecte, **prouve que sa cible n'est pas vide** (plancher déclaré), et

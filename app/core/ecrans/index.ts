@@ -118,12 +118,33 @@ export const ROUTES_TECHNIQUES: readonly EntreeEcran[] = [
 ]
 
 /**
+ * LE DRAPEAU DE LA PAGE TÉMOIN, LU **DES DEUX CÔTÉS**.
+ *
+ * ⚠️ CE MODULE EST ÉVALUÉ DANS DEUX MONDES, et c'est tout l'intérêt de la source
+ * unique. Sous Vite — l'application, et les suites de navigateur —,
+ * `import.meta.env` porte le drapeau : `vite.envPrefix` fait entrer tout
+ * `KAYA_*` de l'environnement de construction. Sous Node — c'est ainsi que la
+ * porte P-04 lit ce fichier —, `import.meta.env` **n'existe pas du tout**, et
+ * c'est `process.env` qui le porte.
+ *
+ * ⚠️ SANS LE `?.`, LA PORTE NE PEUT PAS LIRE L'INDEX : sous Node, lire une
+ * propriété de `import.meta.env` lève « Cannot read properties of undefined »,
+ * et la porte échouerait en accusant l'index d'être illisible. Constaté en
+ * l'écrivant.
+ */
+function pageTemoinDemandee(): boolean {
+  const depuisVite = import.meta.env?.KAYA_PAGE_TEMOIN
+  const depuisNode = globalThis.process?.env?.KAYA_PAGE_TEMOIN
+  return (depuisVite ?? depuisNode) === '1'
+}
+
+/**
  * ⚠️ LA PAGE TÉMOIN DU CYCLE DE VIE N'ENTRE QUE SOUS `KAYA_PAGE_TEMOIN=1`, ET
  * ELLE LIT LE **MÊME DRAPEAU** QUE `nuxt.config.ts`. Les deux côtés de la porte
  * P-04 ne peuvent donc pas diverger, quel que soit l'état du drapeau.
  */
 export const PAGES_TEMOIN: readonly EntreeEcran[] =
-  import.meta.env.KAYA_PAGE_TEMOIN === '1'
+  pageTemoinDemandee()
     ? [
         { code: null, titre: 'ecrans.titre', route: '/_temoin-cycle-de-vie', cas: 'instrument', avancement: 'CONSTRUIT', reference: 'page de test, jamais du produit' },
         { code: null, titre: 'ecrans.titre', route: '/_temoin-navigation', cas: 'instrument', avancement: 'CONSTRUIT', reference: 'page de test, jamais du produit' },

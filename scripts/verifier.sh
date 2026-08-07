@@ -110,6 +110,13 @@ LES PORTES
            et docs/versions-reference.md d'accord avec les manifestes DANS
            LES DEUX SENS. Plus : aucun .github/workflows/ — le serveur
            d'intégration vient en phase 3. Ni conteneur ni réseau.
+    P-04   L'APPLICATION DÉMARRE, et chaque écran marqué CONSTRUIT à l'index
+           s'atteint — sur Chromium ET WebKit, en clair ET en sombre. Deux
+           sens : toute route servie est déclarée à l'index ; toute entrée
+           CONSTRUIT est servie. Une entrée « pas commencé » n'est PAS
+           exigible. L'inventaire des routes vient DU BUILD, jamais d'une
+           liste écrite à la main. C'est ici que les quatre suites de
+           navigateur s'exécutent. NI CONTENEUR NI RÉSEAU.
     P-05   AUCUNE CLÉ ÉTRANGÈRE ENTRE DEUX SCHÉMAS. Les rattachements
            inter-modules sont des colonnes d'identifiant NUES ; une
            REFERENCES ajoutée de bonne foi ferait échouer en base
@@ -160,6 +167,7 @@ detruire_base() {
         base_demarree=0
         (cd "$RACINE" && docker compose down -v >/dev/null 2>&1) || true
     fi
+    arreter_serveur
     nettoyer_copies
 }
 
@@ -1263,6 +1271,279 @@ rendre_verdict_p03() {
 }
 
 # =============================================================================
+# P-04 · l'application démarre et chaque écran construit s'atteint
+# =============================================================================
+#
+# LA FAMILLE DE DÉFAUTS LA PLUS COÛTEUSE DE LA PHASE 2 : un écran inatteignable
+# pendant que tous les tests sont verts. Un test qui monte un composant contourne
+# le routeur, la suspension, les gabarits et les greffons — c'est-à-dire
+# exactement les quatre mécanismes que cette phase doit prouver.
+#
+# PÉRIMÈTRE INSPECTÉ (point 1 du contrat de porte)
+#   .rapports/routes-du-build.json   l'inventaire des routes RÉELLEMENT servies,
+#                                    écrit par le crochet `pages:resolved` de
+#                                    nuxt.config.ts. ⚠️ JAMAIS UNE LISTE ÉCRITE À
+#                                    LA MAIN : une liste vidée par accident ferait
+#                                    inspecter zéro route à la porte, qui
+#                                    resterait verte.
+#   app/core/ecrans/index.ts         les entrées de l'index et leur avancement.
+#                                    ⚠️ LA PAGE /_ecrans REND CE MODULE ET LA
+#                                    PORTE LIT CE MODULE : une seule source, donc
+#                                    rien qui puisse diverger.
+#
+# ⚠️ AUCUN CONTENEUR. La porte construit l'application et la sert localement avec
+# node. C'est ce qui la rend exécutable sur le poste d'Abengourou, où P-01, P-02
+# et P-05 ne le sont pas.
+
+readonly INVENTAIRE_ROUTES="$RACINE/.rapports/routes-du-build.json"
+readonly INDEX_ECRANS="app/core/ecrans/index.ts"
+
+# Un port à part, et le motif est prosaïque : `pnpm dev` occupe le 3000 sur le
+# poste de développement, et une porte qui échoue parce qu'on avait laissé un
+# serveur ouvert est une porte qu'on cesse de croire.
+readonly PORT_P04=4173
+readonly DELAI_SERVEUR=60
+
+serveur_pid=""
+
+arreter_serveur() {
+    [ -n "$serveur_pid" ] || return 0
+    kill "$serveur_pid" >/dev/null 2>&1 || true
+    wait "$serveur_pid" 2>/dev/null || true
+    serveur_pid=""
+}
+
+# Répond-il ? Par node, jamais par curl : node est déjà exigé par P-03 et par la
+# construction, curl serait un prérequis de plus pour un aller-retour HTTP.
+p04_repond() {
+    node --input-type=module -e '
+      const url = process.argv[1]
+      try {
+        const r = await fetch(url, { redirect: "manual" })
+        process.exit(r.status >= 200 && r.status < 400 ? 0 : 1)
+      } catch { process.exit(1) }
+    ' "http://127.0.0.1:$PORT_P04/" >/dev/null 2>&1
+}
+
+# Rend « route » par ligne, depuis l'inventaire écrit par la construction.
+p04_routes_du_build() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const inv = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      for (const route of inv.routes || []) process.stdout.write(route + "\n");
+    ' "$1"
+}
+
+# Le drapeau de la page témoin, tel que LA CONSTRUCTION l'a vu.
+p04_drapeau_temoin() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const inv = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      process.stdout.write(inv.pageTemoin ? "1" : "0");
+    ' "$1"
+}
+
+# Rend « route<TAB>avancement » pour chaque entrée d'index qui porte une route.
+#
+# ⚠️ LE DRAPEAU VIENT DE L'INVENTAIRE, PAS DE L'ENVIRONNEMENT DU SCRIPT. C'est ce
+# qui rend impossible la divergence : la porte lit l'index dans l'état où la
+# construction l'a lu, quel que soit l'état du drapeau au moment où on la lance.
+p04_entrees_index() {
+    KAYA_PAGE_TEMOIN="$2" node --input-type=module -e '
+      const { pathToFileURL } = await import("node:url")
+      const module_ = await import(pathToFileURL(process.argv[1]).href)
+      for (const entree of module_.toutesLesEntrees()) {
+        if (entree.route === null) continue
+        process.stdout.write(entree.route + "\t" + entree.avancement + "\n")
+      }
+    ' "$1"
+}
+
+# Empreinte de ce que P-04 INSPECTE. L'inventaire des routes n'y est pas, et le
+# motif est écrit : il est PRODUIT par la construction que la porte lance, donc
+# le relever reviendrait à accuser la porte d'avoir fabriqué sa propre entrée.
+empreinte_p04() {
+    { cksum < "$RACINE/$INDEX_ECRANS"
+      find "$RACINE/tests/navigateur" -type f | LC_ALL=C sort | xargs cksum; } | cksum
+}
+
+# porte_p04 <racine des sources> <inventaire des routes> <matrice: oui|non>
+porte_p04() {
+    local racine="${1:-$RACINE}"
+    local inventaire="${2:-$INVENTAIRE_ROUTES}"
+    local matrice="${3:-oui}"
+    local index="$racine/$INDEX_ECRANS"
+
+    local echecs=0
+
+    printf '\n── P-04 · l'\''application démarre et chaque écran construit s'\''atteint\n'
+
+    # --- Point 2 du contrat : complétude du périmètre -----------------------
+    if [ ! -f "$index" ]; then
+        printf '   ✗ l'\''index des écrans est introuvable : %s\n' "$index"
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    fi
+
+    # --- C1 · l'application démarre -----------------------------------------
+    # Un échec ici ARRÊTE LA PORTE : inspecter des routes sur une application qui
+    # ne démarre pas donnerait un second message sans second diagnostic.
+    if [ "$matrice" = "oui" ]; then
+        assurer_build || { printf '   ✗ C1 — la construction a échoué\n   ROUGE — P-04\n'; return "$CODE_ROUGE"; }
+    fi
+
+    if [ ! -f "$inventaire" ]; then
+        printf '   ✗ l'\''inventaire des routes est introuvable : %s\n' "$inventaire"
+        printf '     Il est écrit par le crochet « pages:resolved » de nuxt.config.ts, à la construction.\n'
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    fi
+
+    local drapeau routes entrees
+    drapeau="$(p04_drapeau_temoin "$inventaire")"
+    routes="$(p04_routes_du_build "$inventaire")"
+    entrees="$(p04_entrees_index "$index" "$drapeau")" || {
+        printf '   ✗ l'\''index des écrans n'\''est pas lisible sous node\n'
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    }
+
+    local nb_routes nb_entrees construits nb_construits pas_commences nb_pas_commences
+    nb_routes="$(printf '%s\n' "$routes" | grep -c . || true)"
+    nb_entrees="$(printf '%s\n' "$entrees" | grep -c . || true)"
+    construits="$(printf '%s\n' "$entrees" | awk -F'\t' '$2 == "CONSTRUIT" { print $1 }' | LC_ALL=C sort -u)"
+    nb_construits="$(printf '%s\n' "$construits" | grep -c . || true)"
+    pas_commences="$(printf '%s\n' "$entrees" | awk -F'\t' '$2 != "CONSTRUIT" { print $1 }' | LC_ALL=C sort -u)"
+    nb_pas_commences="$(printf '%s\n' "$pas_commences" | grep -c . || true)"
+
+    printf '   Périmètre : %d route(s) au routeur · %d entrée(s) d'\''index à route\n' \
+        "$nb_routes" "$nb_entrees"
+    printf '               dont %d CONSTRUIT — %d « pas commencé », NON EXIGIBLES\n' \
+        "$nb_construits" "$nb_pas_commences"
+    printf '               page témoin à la construction : %s\n' \
+        "$([ "$drapeau" = "1" ] && printf 'oui' || printf 'non')"
+
+    # --- Non-vacuité · le plancher est DÉRIVÉ DU ROUTEUR --------------------
+    # ⚠️ C'EST UN MEILLEUR PLANCHER QUE CEUX DE P-01, P-02 ET P-05, ET IL VAUT
+    # D'ÊTRE DIT. Les trois autres portent une CONSTANTE qu'un cycle doit penser
+    # à relever — le cycle D2 a dû relever les trois. Celui-ci CROÎT TOUT SEUL
+    # avec l'application, parce que sa source est le routeur. Le seul cas qu'il
+    # ne couvre pas est celui d'un routeur vide, et c'est exactement ce que la
+    # non-vacuité attrape.
+    if [ "$nb_routes" -eq 0 ]; then
+        printf '   ✗ Plancher : le routeur est VIDE — la porte n'\''inspecterait rien\n'
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    fi
+    if [ "$nb_construits" -eq 0 ]; then
+        printf '   ✗ Plancher : aucune entrée CONSTRUIT — la matrice serait vide\n'
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Plancher  : routeur non vide · au moins un écran construit — atteint\n'
+    printf '   Passages  : %d × 2 thèmes × 2 moteurs = %d\n' \
+        "$nb_construits" "$((nb_construits * 4))"
+
+    # --- C1 (suite) · le serveur local répond -------------------------------
+    if [ "$matrice" = "oui" ]; then
+        arreter_serveur
+        (cd "$RACINE" && PORT="$PORT_P04" NITRO_PORT="$PORT_P04" HOST=127.0.0.1 \
+            node .output/server/index.mjs >/dev/null 2>&1) &
+        serveur_pid=$!
+        local attente=0
+        while [ "$attente" -lt "$DELAI_SERVEUR" ]; do
+            p04_repond && break
+            sleep 1
+            attente=$((attente + 1))
+        done
+        if ! p04_repond; then
+            printf '   ✗ C1 — le serveur local ne répond pas après %d s sur le port %d\n' \
+                "$DELAI_SERVEUR" "$PORT_P04"
+            arreter_serveur
+            printf '   ROUGE — P-04\n'
+            return "$CODE_ROUGE"
+        fi
+        printf '   ✓ %-34s port %d\n' 'C1 · l'\''application démarre' "$PORT_P04"
+    fi
+
+    # --- C2 · toute route atteignable est déclarée — PREMIER SENS -----------
+    # C'est le sens qui empêche un écran d'exister sans que personne le sache —
+    # la dérive que l'index existe pour refuser.
+    local index_routes orphelines nb_orphelines
+    index_routes="$(printf '%s\n' "$entrees" | cut -f1 | LC_ALL=C sort -u)"
+    orphelines="$(LC_ALL=C comm -23 <(printf '%s\n' "$routes" | LC_ALL=C sort -u) <(printf '%s\n' "$index_routes"))"
+    nb_orphelines="$(printf '%s\n' "$orphelines" | grep -c . || true)"
+    if [ "$nb_orphelines" -eq 0 ]; then
+        printf '   ✓ %-34s %d/%d (premier sens)\n' 'routes ⊆ index' "$nb_routes" "$nb_routes"
+    else
+        printf '   ✗ %-34s %d/%d (PREMIER SENS — route atteignable NON DÉCLARÉE)\n' \
+            'routes ⊆ index' "$((nb_routes - nb_orphelines))" "$nb_routes"
+        printf '%s\n' "$orphelines" | sed 's/^/     NON DÉCLARÉE À L'\''INDEX : /'
+        echecs=$((echecs + 1))
+    fi
+
+    # --- C3 · toute entrée CONSTRUIT est atteignable — SECOND SENS, BORNÉ ---
+    # ⚠️ LA BORNE EST LE POINT DU CONTRAT. L'index porte 46 écrans du produit
+    # dont 43 « pas commencé » : exiger l'atteignabilité de TOUTES les entrées
+    # rendrait la porte rouge dès son premier jour, et on la désactiverait sous
+    # trois semaines. Seul l'état CONSTRUIT est exigible — et c'est ce qui fait
+    # de l'index un plan de charge autant qu'un contrôle.
+    local inatteignables nb_inatteignables
+    inatteignables="$(LC_ALL=C comm -23 <(printf '%s\n' "$construits") <(printf '%s\n' "$routes" | LC_ALL=C sort -u))"
+    nb_inatteignables="$(printf '%s\n' "$inatteignables" | grep -c . || true)"
+    if [ "$nb_inatteignables" -eq 0 ]; then
+        printf '   ✓ %-34s %d/%d (second sens)\n' 'index[CONSTRUIT] ⊆ routes' \
+            "$nb_construits" "$nb_construits"
+    else
+        printf '   ✗ %-34s %d/%d (SECOND SENS — entrée CONSTRUIT INATTEIGNABLE)\n' \
+            'index[CONSTRUIT] ⊆ routes' "$((nb_construits - nb_inatteignables))" "$nb_construits"
+        printf '%s\n' "$inatteignables" | sed 's/^/     CONSTRUIT MAIS INATTEIGNABLE : /'
+        echecs=$((echecs + 1))
+    fi
+
+    # Le troisième constat, qui n'est pas un contrôle : une entrée « pas
+    # commencé » et inatteignable NE DOIT PAS faire rougir. On l'imprime pour
+    # qu'on voie que la borne mord vraiment, et sur combien d'entrées.
+    local dormantes nb_dormantes
+    dormantes="$(LC_ALL=C comm -23 <(printf '%s\n' "$pas_commences") <(printf '%s\n' "$routes" | LC_ALL=C sort -u))"
+    nb_dormantes="$(printf '%s\n' "$dormantes" | grep -c . || true)"
+    printf '   · %d entrée(s) « pas commencé » et inatteignable(s) — non exigibles, la borne les couvre\n' \
+        "$nb_dormantes"
+
+    # Un échec de C2 ou C3 arrête ici : lancer la matrice sur un index
+    # incohérent donnerait un second message sans second diagnostic.
+    if [ "$echecs" -gt 0 ]; then
+        arreter_serveur
+        printf '   ROUGE — P-04\n'
+        return "$CODE_ROUGE"
+    fi
+
+    # --- C4 · la matrice, et les QUATRE SUITES DE NAVIGATEUR ---------------
+    # ⚠️ C'EST ICI QUE LES SUITES ENTRENT DANS LE SCRIPT, ET PAS AILLEURS. La
+    # porte monte déjà l'application et pilote les deux moteurs : les lancer
+    # séparément serait quatre contrôles de plus qu'on lancerait de mémoire.
+    if [ "$matrice" = "oui" ]; then
+        if ! (cd "$RACINE" && KAYA_PAGE_TEMOIN="$drapeau" KAYA_PORT="$PORT_P04" \
+                pnpm test:navigateur) > "$RACINE/.rapports/p04-navigateur.log" 2>&1; then
+            printf '   ✗ %-34s la matrice a rougi\n' 'rendu, thème, jetons, contraste'
+            tail -n 60 "$RACINE/.rapports/p04-navigateur.log" | sed 's/^/     | /'
+            arreter_serveur
+            printf '   ROUGE — P-04\n'
+            return "$CODE_ROUGE"
+        fi
+        local resume
+        resume="$(grep -E '^ *[0-9]+ (passed|flaky)' "$RACINE/.rapports/p04-navigateur.log" | tail -n 1 | sed 's/^ *//')"
+        printf '   ✓ %-34s %s\n' 'les suites de navigateur' "${resume:-vertes}"
+        arreter_serveur
+    else
+        printf '   · matrice non exécutée (mode « les deux sens » du test négatif)\n'
+    fi
+
+    printf '   VERT\n'
+    return "$CODE_OK"
+}
+
+# =============================================================================
 # Tests négatifs — la preuve qu'une porte SAIT échouer
 # =============================================================================
 #
@@ -1763,6 +2044,8 @@ main() {
             portes_passees=$((portes_passees + 1))
             porte_p03 "$RACINE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
+            porte_p04 "$RACINE" "$INVENTAIRE_ROUTES" oui || exit "$CODE_ROUGE"
+            portes_passees=$((portes_passees + 1))
             ;;
         prealables)
             controles_prealables || exit "$CODE_ROUGE"
@@ -1776,8 +2059,9 @@ main() {
                 p01) porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
                 p02) porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
                 p03) porte_p03 "$RACINE"           || exit "$CODE_ROUGE" ;;
+                p04) porte_p04 "$RACINE" "$INVENTAIRE_ROUTES" oui || exit "$CODE_ROUGE" ;;
                 p05) porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
-                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02, p03 ou p05)" ;;
+                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02, p03, p04 ou p05)" ;;
             esac
             portes_passees=1
             ;;
