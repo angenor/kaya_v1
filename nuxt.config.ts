@@ -93,23 +93,30 @@ export default defineNuxtConfig({
    * `/_nuxt/sw.js`, il ne contrôlerait que `/_nuxt/`, donc aucune navigation. Ce
    * transport de trois fichiers est ce qui sépare une application qui s'ouvre
    * hors ligne d'une application qui affiche la page d'erreur du navigateur.
+   *
+   * ⚠️ ET LE MOMENT DU TRANSPORT COMPTE AUTANT QUE LE TRANSPORT LUI-MÊME.
+   * Constaté en servant le build : posés APRÈS la compilation de nitro, les
+   * trois fichiers existaient sur le disque et le serveur répondait quand même
+   * `text/html` — parce que l'inventaire des actifs publics est figé pendant la
+   * compilation. Le navigateur refusait alors le service worker en disant
+   * « unsupported MIME type », et l'application ne s'ouvrait pas hors ligne.
+   * `nitro:build:public-assets` s'exécute AVANT cet inventaire : les fichiers y
+   * entrent, et sont servis avec leur type.
    */
   hooks: {
-    'nitro:init'(nitro) {
-      nitro.hooks.hook('compiled', () => {
-        const source = join(nitro.options.buildDir, 'dist/client')
-        const cible = join(nitro.options.output.publicDir)
-        if (!existsSync(source)) return
-        const transportes: string[] = []
-        for (const nom of readdirSync(source)) {
-          if (!/^(sw\.js|workbox-[\w-]+\.js|manifest\.webmanifest)$/.test(nom)) continue
-          copyFileSync(join(source, nom), join(cible, nom))
-          transportes.push(nom)
-        }
-        if (transportes.length > 0) {
-          console.info(`[coquille pwa] ${transportes.join(' · ')} → ${cible}`)
-        }
-      })
+    'nitro:build:public-assets'(nitro) {
+      const source = join(nitro.options.buildDir, 'dist/client')
+      const cible = nitro.options.output.publicDir
+      if (!existsSync(source)) return
+      const transportes: string[] = []
+      for (const nom of readdirSync(source)) {
+        if (!/^(sw\.js|workbox-[\w-]+\.js|manifest\.webmanifest)$/.test(nom)) continue
+        copyFileSync(join(source, nom), join(cible, nom))
+        transportes.push(nom)
+      }
+      if (transportes.length > 0) {
+        console.info(`[coquille pwa] ${transportes.join(' · ')} → ${cible}`)
+      }
     },
   },
 
@@ -125,15 +132,14 @@ export default defineNuxtConfig({
       { code: 'fr', language: 'fr-CI', name: 'Français' },
       { code: 'en', language: 'en', name: 'English' },
     ],
-    // La langue choisie survit au rechargement. Le nom du cookie est préfixé
-    // pour ne jamais entrer en collision sur la même origine.
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'kaya.langue',
-      redirectOn: 'root',
-      alwaysRedirect: false,
-      fallbackLocale: 'fr',
-    },
+    // ⚠️ AUCUNE DÉTECTION DE LA LANGUE DU NAVIGATEUR, et c'est une décision.
+    // Constaté en ouvrant l'application dans un navigateur réglé en anglais :
+    // elle démarrait en anglais, alors que « fr par défaut » est une exigence du
+    // principe 8. La détection rendait aussi la porte P-04 non déterministe —
+    // deux moteurs, deux langues système, deux rendus.
+    // La langue choisie est persistée comme le thème, dans les préférences de
+    // L'APPAREIL, et appliquée par un greffon avant le premier rendu.
+    detectBrowserLanguage: false,
   },
 
   app: {

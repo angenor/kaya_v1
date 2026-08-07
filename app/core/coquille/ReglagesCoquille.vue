@@ -2,6 +2,7 @@
 import SelecteurSegmente, {
   type OptionSegment,
 } from '~/core/design-system/SelecteurSegmente.vue'
+import { LANGUES, type Langue, persisterLangue } from '~/core/i18n/useLangue'
 import { CHOIX_THEME, useTheme } from '~/core/theme/useTheme'
 
 /**
@@ -24,10 +25,10 @@ const OPTIONS_THEME: readonly OptionSegment[] = CHOIX_THEME.map((valeur) => ({
   libelleCle: `theme.${valeur}`,
 }))
 
-const OPTIONS_LANGUE: readonly OptionSegment[] = [
-  { valeur: 'fr', libelleCle: 'langue.fr' },
-  { valeur: 'en', libelleCle: 'langue.en' },
-]
+const OPTIONS_LANGUE: readonly OptionSegment[] = LANGUES.map((valeur) => ({
+  valeur,
+  libelleCle: `langue.${valeur}`,
+}))
 
 const themeChoisi = computed({
   get: () => choix.value,
@@ -38,6 +39,7 @@ const langueChoisie = computed({
   get: () => locale.value,
   set: (valeur: string) => {
     locale.value = valeur as typeof locale.value
+    persisterLangue(valeur as Langue)
   },
 })
 </script>
