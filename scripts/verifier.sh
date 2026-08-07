@@ -6,8 +6,10 @@
 # et SORT EN ÉCHEC AU PREMIER CONTRÔLE ROUGE. Pas dix scripts qu'on lance de
 # mémoire, dont on oublie le troisième.
 #
-# Ce cycle (D1) la crée avec deux portes : P-01 et P-02. Elle grossira ; elle ne
-# se dupliquera pas.
+# Le cycle D1 la crée avec deux portes : P-01 et P-02. Le cycle D2 en ajoute
+# UNE — P-05, aucune clé étrangère entre deux schémas —, que le plan du D1 avait
+# explicitement différée à lui, cible non vide à l'appui. Elle grossira À LA
+# DEMANDE ; elle ne se dupliquera pas.
 #
 # Ce que ce script n'est PAS :
 #   — ce n'est pas un installateur : il ne crée aucune base persistante, ne pose
@@ -64,10 +66,12 @@ USAGE
                                              arrêt au premier échec
     scripts/verifier.sh --porte p01          une porte seule
     scripts/verifier.sh --porte p02
+    scripts/verifier.sh --porte p05
     scripts/verifier.sh --test-negatif p01   casse P-01 volontairement et EXIGE
                                              qu'elle échoue
     scripts/verifier.sh --test-negatif p02   idem pour P-02
-    scripts/verifier.sh --test-negatif       les deux
+    scripts/verifier.sh --test-negatif p05   idem pour P-05
+    scripts/verifier.sh --test-negatif       les trois
     scripts/verifier.sh --aide               ce message
 
     --test-negatif n'est pas un mode de débogage, c'est une PREUVE : une porte
@@ -84,6 +88,11 @@ LES PORTES
            docs/registre-classes-offline.md. Sens : table → registre. Une
            entité déclarée sans table est normale ; une table non déclarée
            est l'erreur.
+    P-05   AUCUNE CLÉ ÉTRANGÈRE ENTRE DEUX SCHÉMAS. Les rattachements
+           inter-modules sont des colonnes d'identifiant NUES ; une
+           REFERENCES ajoutée de bonne foi ferait échouer en base
+           l'écriture orpheline que le produit doit accepter puis
+           réconcilier. Elle réutilise la base montée par P-01.
 
 CODES DE SORTIE
     0   toutes les portes demandées passent
@@ -487,6 +496,137 @@ porte_p02() {
 }
 
 # =============================================================================
+# P-05 · aucune clé étrangère entre deux schémas
+# =============================================================================
+#
+# Ajoutée par le cycle D2. Le cycle D1 l'avait EXAMINÉE PUIS DIFFÉRÉE À CELUI-CI,
+# en écrivant pourquoi : « la tentation n'apparaîtra qu'au cycle D2, où
+# ventes → hebergement et pressing → hebergement sont deux rattachements sans
+# FK. C'est là qu'elle sera justifiée, avec une cible non vide à inspecter. »
+#
+# CE QU'ELLE REFUSE, et le coût de son absence :
+#   Une clé étrangère sur hebergement.ligne_sejour.ligne_commande_id CASSE LE
+#   CHEMIN NOMINAL du conflit le plus fréquent du produit — la consommation
+#   prise hors ligne qui arrive sur une note déjà arrêtée. Avec la contrainte,
+#   l'écriture orpheline ne part pas en réconciliation : elle ÉCHOUE EN BASE.
+#   Le mode de défaillance est SILENCIEUX ET DIFFÉRÉ : un cycle de phase 3 prend
+#   l'absence de REFERENCES pour un oubli et l'ajoute DE BONNE FOI ; la migration
+#   s'applique, tous les tests passent, et le défaut se voit à la première
+#   coupure réseau en exploitation.
+#   Jusqu'ici, la seule défense était un commentaire de colonne — et UN
+#   COMMENTAIRE NE REFUSE RIEN.
+#
+# ⚠️ P-05 CHERCHE UNE ABSENCE, et c'est LE PIRE PROFIL DE PORTE QUI SOIT : elle
+# est verte quand elle ne trouve rien. Une requête mal écrite, un nom de
+# catalogue changé, un filtre trop large — et elle reste verte pour toujours,
+# sans que rien ne le signale. C'est pourquoi le point 4 du contrat de porte
+# compte ICI PLUS QU'AILLEURS : LE PLANCHER DE CONTRAINTES EXAMINÉES EST CE QUI
+# DISTINGUE « RIEN À TROUVER » DE « JE NE CHERCHE PLUS ».
+
+# Plancher de non-vacuité — nombre de contraintes de clé étrangère que la porte
+# doit avoir EXAMINÉES pour que son vert veuille dire quelque chose.
+#
+# Posé PROVISOIREMENT à 1 : à la création de la porte, seul le socle existe et
+# son compte réel n'est pas encore celui du modèle complet. Il est porté à sa
+# valeur définitive en fin de cycle, réglé JUSTE SOUS le compte réel — un
+# plancher confortable ne refuse rien.
+readonly PLANCHER_FK=1
+
+porte_p05() {
+    local repertoire="$1"
+    local declares trouves nb_schemas total inter
+
+    printf '\n── P-05 · aucune clé étrangère entre deux schémas\n'
+
+    # Réutilise la base que P-01 a montée. Jamais un second conteneur : c'est
+    # l'un des choix qui tiennent la durée totale sous les deux minutes.
+    preparer_base "$repertoire" || return "$CODE_ROUGE"
+
+    # --- Point 2 du contrat : complétude ------------------------------------
+    #
+    # LA MÊME LISTE OPPOSABLE QUE P-01, jamais une seconde. Deux listes
+    # divergeraient, et la porte inspecterait alors un périmètre que personne
+    # n'aurait déclaré.
+    declares="$(schemas_declares "$repertoire")"
+    trouves="$(interroger "SELECT n.nspname FROM pg_namespace n
+                           WHERE n.nspname NOT LIKE 'pg\\_%'
+                             AND n.nspname NOT IN ('information_schema', 'public')
+                           ORDER BY 1;")"
+
+    if [ "$declares" != "$trouves" ]; then
+        printf '   ✗ les schémas de la base et ceux déclarés au README du modèle diffèrent\n'
+        diff <(printf '%s\n' "$declares" | grep -v '^$' || true) \
+             <(printf '%s\n' "$trouves"  | grep -v '^$' || true) \
+            | sed -e 's/^< /     DÉCLARÉ SANS ÊTRE CRÉÉ : /' \
+                  -e 's/^> /     CRÉÉ SANS ÊTRE DÉCLARÉ : /' \
+            | grep -E 'DÉCLARÉ SANS|CRÉÉ SANS' || true
+        printf '   ROUGE — P-05\n'
+        return "$CODE_ROUGE"
+    fi
+    nb_schemas="$(printf '%s\n' "$trouves" | grep -c . || true)"
+
+    # --- Point 1 du contrat : périmètre inspecté ----------------------------
+    #
+    # `contype = 'f'` sélectionne les contraintes de clé étrangère. conrelid
+    # porte la table PORTEUSE, confrelid la table RÉFÉRENCÉE ; c'est la
+    # comparaison de leurs relnamespace qui fait tout le contrôle.
+    total="$(interroger "SELECT count(*)
+        FROM pg_constraint k
+        JOIN pg_class     cp ON cp.oid = k.conrelid
+        JOIN pg_namespace np ON np.oid = cp.relnamespace
+        WHERE k.contype = 'f'
+          AND np.nspname NOT LIKE 'pg\\_%'
+          AND np.nspname NOT IN ('information_schema', 'public');")"
+
+    printf '   Périmètre : %d schéma(s) · %d contrainte(s) de clé étrangère examinée(s)\n' \
+        "$nb_schemas" "$total"
+
+    # --- Point 4 du contrat : non-vacuité -----------------------------------
+    if [ "$total" -lt "$PLANCHER_FK" ]; then
+        printf '   Plancher  : %d contrainte(s) attendue(s) au minimum — NON ATTEINT (%d)\n' \
+            "$PLANCHER_FK" "$total"
+        printf '   ✗ la porte n'\''a rien examiné : un vert ne prouverait rien\n'
+        printf '     Une porte qui cherche une ABSENCE et ne trouve rien à inspecter\n'
+        printf '     est indistinguable d'\''une porte cassée.\n'
+        printf '   ROUGE — P-05\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Plancher  : %d contrainte(s) attendue(s) au minimum — atteint\n' "$PLANCHER_FK"
+
+    # --- Le contrôle --------------------------------------------------------
+    #
+    # La sortie NOMME LES TROIS OBJETS — la contrainte, la table portante, la
+    # table référencée. « Une clé étrangère inter-schémas existe » envoie
+    # chercher ; « fk_ligne_sejour_ligne_commande : hebergement.ligne_sejour →
+    # ventes.ligne_commande » envoie à la ligne.
+    inter="$(interroger "SELECT k.conname || ' : '
+                             || np.nspname || '.' || cp.relname || ' → '
+                             || nr.nspname || '.' || cr.relname
+        FROM pg_constraint k
+        JOIN pg_class     cp ON cp.oid = k.conrelid
+        JOIN pg_namespace np ON np.oid = cp.relnamespace
+        JOIN pg_class     cr ON cr.oid = k.confrelid
+        JOIN pg_namespace nr ON nr.oid = cr.relnamespace
+        WHERE k.contype = 'f'
+          AND np.nspname NOT LIKE 'pg\\_%'
+          AND np.nspname NOT IN ('information_schema', 'public')
+          AND np.nspname <> nr.nspname
+        ORDER BY 1;")"
+
+    if [ -n "$inter" ]; then
+        printf '   ✗ contrainte(s) inter-schémas trouvée(s) : %d\n' \
+            "$(printf '%s\n' "$inter" | grep -c .)"
+        printf '%s\n' "$inter" | sed 's/^/     /'
+        printf '   ROUGE — P-05\n'
+        return "$CODE_ROUGE"
+    fi
+
+    printf '   ✓ aucune contrainte inter-schémas\n'
+    printf '   VERT\n'
+    return "$CODE_OK"
+}
+
+# =============================================================================
 # Tests négatifs — la preuve qu'une porte SAIT échouer
 # =============================================================================
 #
@@ -704,7 +844,7 @@ main() {
                 exit "$CODE_OK"
                 ;;
             --porte)
-                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01 ou p02)"
+                [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01, p02 ou p05)"
                 mode="porte"
                 porte="$2"
                 shift 2
@@ -741,12 +881,15 @@ main() {
             portes_passees=$((portes_passees + 1))
             porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
+            porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
+            portes_passees=$((portes_passees + 1))
             ;;
         porte)
             case "$porte" in
                 p01) porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
                 p02) porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
-                *)   erreur_usage "porte inconnue : $porte (attendu : p01 ou p02)" ;;
+                p05) porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
+                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02 ou p05)" ;;
             esac
             portes_passees=1
             ;;
