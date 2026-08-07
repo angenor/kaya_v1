@@ -305,3 +305,51 @@ sous-ensemble sans le dire — ce qui est très exactement le point 1 du contrat
 
 **Verdict : SC-005 est constaté.** Zéro clé étrangère inter-schémas sur les quatorze, et la règle
 n'est plus un commentaire : elle est refusée par une commande.
+
+---
+
+## T018 · Revue des référentiels — les quatre décisions ont-elles été prises, ou approchées ?
+
+**Date** : 2026-08-07 · **Méthode** : interrogation du catalogue — définitions de contraintes,
+nullabilité, commentaires de colonne —, confrontée au récapitulatif des paramètres de
+`docs/user-stories-v1.md` §« quatre valeurs HEB ».
+
+**Le test de cette revue** : *lire le schéma et retrouver, sans ouvrir la spécification, pourquoi
+chacune est une table.*
+
+| # | Décision | Constaté |
+|---|---|---|
+| **1** | `uq_temps_remise_categorie_formule` porte sur le **couple** | `UNIQUE (tenant_id, categorie_id, formule_id)` ✓ — deux formules d'une même catégorie ont donc **deux durées**, ce qu'une colonne de `categorie` ne porterait pas |
+| **2** | `destination_preparation` rattachée à l'**établissement** | Colonnes : `id, tenant_id, etablissement_id, nom, actif, cree_le, modifie_le` — **aucun `point_de_vente_id`** ✓. *Une cuisine sert plusieurs points de vente* |
+| **3** | `article.destination_preparation_id` **nullable**, avec le repli énoncé | `nullable = true`, commentaire : *« le nul veut dire suivre la clé de catalogue `ventes.destination_preparation_defaut` du point de vente — POUR QU'AUCUN BON D'ENVOI NE MANQUE »* ✓ |
+| **4** | Trois **tables**, et les clés du catalogue non dupliquées | `bareme_palier`, `plage_demi_journee`, `calendrier_tarifaire` sont des tables ✓ · `seuil_bascule_nuitee_minutes` **n'a aucune colonne nulle part dans le modèle** ✓ |
+| **5** | `assujettie_taxe_nuitee` et `regle_conversion_taxe` sont des **entrées**, jamais une règle | Les deux portent un commentaire qui le dit ✓ · et **zéro `TRIGGER`, zéro fonction** dans les quatorze schémas — *aucune règle fiscale ne peut vivre là où il n'y a pas de code* ✓ |
+
+### Le point 4 mérite une précision, parce qu'il aurait pu être coché à tort
+
+`heure_arrivee_standard` et `heure_depart_standard` **existent comme colonnes de `formule`** — ce
+qui, lu vite, ressemble à la duplication que ce point interdit. Ce n'en est pas une, et trois
+constats le montrent :
+
+1. **Les deux colonnes sont `NULLABLE`**, et le nul a un sens déclaré : *« prendre la clé de
+   catalogue de l'établissement »*. Une duplication porterait une valeur par défaut.
+2. **Aucune valeur d'heure n'est écrite en dur dans le SQL** — ni `14:00`, ni `12:00`, qui sont les
+   valeurs du récapitulatif des paramètres.
+3. **`seuil_bascule_nuitee_minutes`, lui, n'a AUCUNE colonne** : c'est le contrôle qui distingue une
+   surcharge d'une duplication. Si les colonnes de `formule` étaient des copies du catalogue, il y
+   en aurait une pour lui aussi.
+
+**La différence est celle entre *surcharger* et *recopier*.** Une surcharge nullable dit « sauf
+indication contraire, demande à l'établissement » ; une copie dit « la valeur est ici », et le jour
+où l'on modifie le catalogue, la copie ment. Le seul contrôle qui les sépare mécaniquement est la
+nullabilité **plus** l'absence de valeur par défaut — les deux sont vérifiés.
+
+### Le point 5 mérite d'être vérifié autrement qu'en lisant un commentaire
+
+Un commentaire qui dit « ceci n'est pas une règle » n'est pas une preuve. **La preuve est qu'il n'y
+a nulle part où une règle pourrait vivre** : le modèle des quatorze schémas contient **zéro
+`TRIGGER`** et **zéro fonction**. Aucun calcul fiscal ne s'exécute dans cette base — ni ici, ni
+ailleurs —, et le `JurisdictionAdapter` de la phase 3 reste le seul endroit possible.
+
+**Verdict : conforme sur les cinq points.** Aucune de ces décisions ne coûtera de migration au
+premier exploitant qui aura deux cuisines, ou deux durées de ménage sur la même catégorie.
