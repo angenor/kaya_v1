@@ -140,3 +140,84 @@ fichiers portent désormais tous leur recherche nommée, dans la même forme.**
 
 **Verdict : conforme.** On peut lire les `GRANT` d'une table du cycle et en déduire son régime
 **sans lire un seul commentaire** — ce qui est précisément ce que le récit demandait.
+
+---
+
+## T014 · Doubles classes déclarées, et unicité de la forme RLS
+
+**Date** : 2026-08-07 · **Méthode** : lecture des commentaires d'en-tête, décompte croisé sur les
+fichiers, et **mesure indépendante sur le catalogue** après application.
+
+### Les six tables à double classe déclarent bien les deux, avec l'opération de chacune
+
+| Table | Première classe · opération | Seconde classe · opération |
+|---|---|---|
+| `ventes.commande` | **A · A4** — ouverture, réception d'une commande QR | **B · B3** — validation QR, addition de table |
+| `ventes.ligne_commande` | **A · A4** — saisie, modification **avant** envoi | **B · B3** — annulation **après** envoi |
+| `hebergement.unite` | **C · C2** — référentiel : code, étage, catégorie | **A · A4** — `statut_menage`, dernier-écrit-gagne, **seul cas du produit** |
+| `hebergement.arrhes` | **B · B3** — espèces, virement | **D · D1** — Mobile Money, carte |
+| `hebergement.ligne_sejour` | **B · B3** — effet monétaire sur la note | **« celle de la ligne d'origine »** — quand elle vient d'un point de vente |
+| `pressing.bon_depot` | **B · B3** — création, transition `pret → retire` | **A · A4** — transitions `depose → en_traitement → pret` |
+
+**Décompte croisé — c'est ce qui rend la vérification mécanique plutôt que déclarative** :
+
+| Fichier | `CREATE TABLE` | Classes déclarées | Doubles classes |
+|---|---|---|---|
+| `55-ventes.sql` | 11 | 13 | **2** |
+| `96-stocks.sql` | 7 | 7 | **0** |
+| `97-hebergement.sql` | 21 | 24 | **3** |
+| `98-pressing.sql` | 3 | 4 | **1** |
+| | **42** | **48** | **6** ✓ |
+
+### `mouvement_stock` et `inventaire` déclarent **une seule** classe
+
+Les deux portent **B · B3**, avec un privilège **plus strict** que la classe n'exige — `SELECT,
+INSERT` seuls là où B autoriserait `UPDATE` —, et le commentaire d'en-tête dit pourquoi : **une
+correction est une contre-passation**, pas une réécriture. Corriger une entrée de 12 en 10 par
+`UPDATE` effacerait la trace de l'erreur ; écrire un ajustement de −2 la conserve.
+
+> **Une décision de forme n'est pas une seconde classe**, et les confondre ferait chercher au
+> lecteur une double déclaration qui n'a pas lieu d'être.
+
+### Le défaut trouvé par cet audit, et corrigé
+
+**Le commentaire d'`inventaire` produisait une huitième ligne `-- CLASSE` sur sept tables.** La
+phrase « une décision de forme n'est pas une seconde **CLASSE.** » se terminait sur un retour à la
+ligne, et le mot isolé en début de ligne était **indistinguable d'une déclaration de classe** pour
+un décompte mécanique. Le décompte disait donc « 8 classes pour 7 tables », c'est-à-dire **une
+double classe sur `stocks`** — précisément la confusion que ce commentaire existe pour empêcher.
+
+*Un commentaire qui met en garde contre une confusion et la produit lui-même est pire qu'un
+commentaire absent.* La phrase est reformatée sur une seule ligne ; le décompte de `96-stocks.sql`
+rend désormais 7 pour 7.
+
+### L'expression de politique est strictement identique à celle du socle
+
+**Deux mesures indépendantes, l'une sur les fichiers, l'autre sur le catalogue.**
+
+Sur les quatre fichiers du cycle :
+
+| Élément | Formes distinctes |
+|---|---|
+| `USING (tenant_id = current_setting('app.current_tenant', true)::uuid)` | **1** |
+| `WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid)` | **1** |
+| `FOR ALL TO kaya_owner USING (true) WITH CHECK (true)` | **1** |
+
+| Instruction | Occurrences |
+|---|---|
+| `CREATE TABLE` | **42** |
+| `ENABLE ROW LEVEL SECURITY` | **42** |
+| `FORCE  ROW LEVEL SECURITY` | **42** |
+| `CREATE POLICY isolation_tenant` | **42** |
+| `CREATE POLICY administration_editeur` | **42** |
+
+Sur le catalogue, **modèle entier** — socle et verticales confondus :
+
+| Politique | Tables portées | Formes distinctes de `qual` | de `with_check` |
+|---|---|---|---|
+| `isolation_tenant` | **113** | **1** | **1** |
+| `administration_editeur` | **113** | **1** | **1** |
+
+**Verdict : conforme.** Le modèle complet n'a **qu'une seule forme de politique**, ce qui est la
+condition pour que P-01 n'en cherche qu'une — *une porte qui accepterait deux formes en accepterait
+trois*.

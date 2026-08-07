@@ -292,8 +292,8 @@ CREATE INDEX ix_mouvement_stock_point_date
 --
 -- ⚠️ UNE SEULE CLASSE, B, AVEC UN PRIVILÈGE PLUS STRICT — même régime que
 -- `mouvement_stock`, même motif : un inventaire corrigé est un inventaire
--- refait, pas un inventaire réécrit. UNE DÉCISION DE FORME N'EST PAS UNE SECONDE
--- CLASSE.
+-- refait, pas un inventaire réécrit.
+-- ⚠️ UNE DÉCISION DE FORME N'EST PAS UNE SECONDE CLASSE.
 --
 -- Conséquence directe de l'absence d'`UPDATE` : la clôture d'un inventaire ne
 -- peut PAS être un changement d'état sur cette ligne. `cloture_le` est donc
