@@ -121,6 +121,142 @@ export async function contrasteDe(page: Page, cible: Locator): Promise<number> {
 }
 
 /**
+ * LES MESURES EN **UN SEUL ALLER-RETOUR**, calculées DANS la page.
+ *
+ * ⚠️ CE N'EST PAS UNE OPTIMISATION DE CONFORT, ET LE CONSTAT L'A IMPOSÉ. Une
+ * mesure par élément, c'est un aller-retour de protocole par élément et par
+ * propriété : sur le guide de style, plus de cinq cents pour un seul passage.
+ * Sur un poste chargé — c'est-à-dire le poste réel —, **WebKit dépassait les
+ * trente secondes et la porte rougissait sans qu'aucun défaut n'existe**. Une
+ * porte qui rougit selon la charge de la machine est désactivée sous trois
+ * semaines, et elle a raison de l'être.
+ *
+ * Tout est donc calculé **dans la page**, en une fois : le style, la géométrie,
+ * la résolution des couleurs par canevas, la composition alpha et le rapport de
+ * contraste. Les mêmes formules, au même endroit qu'avant — c'est le nombre de
+ * traversées qui change, pas la mesure.
+ */
+
+export interface MesureTexte {
+  readonly texte: string
+  readonly corps: number
+  readonly gras: boolean
+  readonly attenue: boolean
+  readonly rapport: number
+}
+
+export interface MesureCible {
+  readonly texte: string
+  readonly hauteur: number
+  readonly rayon: string
+  readonly corps: string
+  readonly exemption: string | null
+  readonly hauteurAttendue: number | null
+}
+
+/**
+ * Mesure le contraste de tous les textes d'un sélecteur, EN UNE FOIS.
+ *
+ * ⚠️ LES FORMULES SONT RECOPIÉES DANS LA FONCTION PASSÉE À LA PAGE, et ce n'est
+ * pas un oubli de factorisation : le corps envoyé au navigateur est sérialisé,
+ * donc il ne peut RIEN capturer de la portée du test. Recopier est la seule
+ * façon de les exécuter là où sont les éléments. Les versions de ce fichier —
+ * `luminance`, `composer`, `contraste` — restent la référence, et le test
+ * `mesures-en-page.spec.ts` vérifie que les deux rendent le même nombre.
+ */
+export async function mesurerTextes(page: Page, selecteur: string): Promise<MesureTexte[]> {
+  return page.evaluate((sel) => {
+    const canevas = document.createElement('canvas')
+    canevas.width = 1
+    canevas.height = 1
+    const contexte = canevas.getContext('2d')!
+
+    const resoudre = (couleur: string): number[] => {
+      contexte.clearRect(0, 0, 1, 1)
+      contexte.fillStyle = couleur
+      contexte.fillRect(0, 0, 1, 1)
+      const d = contexte.getImageData(0, 0, 1, 1).data
+      return [d[0]!, d[1]!, d[2]!, d[3]! / 255]
+    }
+    const luminance = (c: number[]): number => {
+      const canal = (v: number) => {
+        const s = v / 255
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+      }
+      return 0.2126 * canal(c[0]!) + 0.7152 * canal(c[1]!) + 0.0722 * canal(c[2]!)
+    }
+    const composer = (avant: number[], arriere: number[]): number[] => {
+      const a = avant[3]!
+      return [
+        avant[0]! * a + arriere[0]! * (1 - a),
+        avant[1]! * a + arriere[1]! * (1 - a),
+        avant[2]! * a + arriere[2]! * (1 - a),
+        1,
+      ]
+    }
+    const fondEffectif = (element: Element): number[] => {
+      let noeud: Element | null = element
+      while (noeud) {
+        const fond = getComputedStyle(noeud).backgroundColor
+        if (fond && fond !== 'transparent' && !/,\s*0\)$/.test(fond)) return resoudre(fond)
+        noeud = noeud.parentElement
+      }
+      return resoudre('rgb(255, 255, 255)')
+    }
+
+    const mesures = []
+    for (const element of Array.from(document.querySelectorAll(sel))) {
+      const boite = element.getBoundingClientRect()
+      if (boite.width === 0 && boite.height === 0) continue
+      const texte = (element.textContent ?? '').trim()
+      if (texte === '') continue
+      const style = getComputedStyle(element)
+      const arriere = fondEffectif(element)
+      const la = luminance(composer(resoudre(style.color), arriere))
+      const lb = luminance(arriere)
+      mesures.push({
+        texte: texte.slice(0, 32),
+        corps: Number.parseFloat(style.fontSize),
+        gras: Number(style.fontWeight) >= 700,
+        attenue:
+          Boolean(element.closest('[disabled]')) || element.hasAttribute('disabled'),
+        rapport: (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05),
+      })
+    }
+    return mesures
+  }, selecteur)
+}
+
+/** Mesure hauteur, rayon et corps de toutes les cibles cliquables, en une fois. */
+export async function mesurerCibles(
+  page: Page,
+  selecteur: string,
+  exemptions: readonly { selecteur: string; hauteur: number; nom: string }[],
+): Promise<MesureCible[]> {
+  return page.evaluate(
+    ([sel, exs]) => {
+      const mesures: MesureCible[] = []
+      for (const element of Array.from(document.querySelectorAll(sel!))) {
+        const boite = element.getBoundingClientRect()
+        if (boite.height === 0) continue
+        const style = getComputedStyle(element)
+        const exemption = exs!.find((e) => element.closest(e.selecteur) !== null) ?? null
+        mesures.push({
+          texte: (element.textContent ?? '').trim().slice(0, 24) || '(sans texte)',
+          hauteur: Math.round(boite.height),
+          rayon: style.borderTopLeftRadius,
+          corps: style.fontSize,
+          exemption: exemption?.nom ?? null,
+          hauteurAttendue: exemption?.hauteur ?? null,
+        })
+      }
+      return mesures
+    },
+    [selecteur, exemptions] as const,
+  )
+}
+
+/**
  * WCAG : 3:1 pour le grand texte (≥ 24 px, ou ≥ 18,66 px gras), 4,5:1 sinon.
  * AAA (FR-095, montants et statuts) : 4,5:1 pour le grand texte, 7:1 sinon.
  */

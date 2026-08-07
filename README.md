@@ -106,6 +106,24 @@ qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déc
 > cycle doit penser à relever — le cycle D2 a dû relever les trois. Celui de P-04 **croît tout seul**
 > avec l'application.
 
+### Sur un poste sans conteneur — le poste d'Abengourou
+
+```sh
+scripts/verifier.sh --sans-conteneur
+```
+
+**Exécute** les préalables, **P-03** et **P-04**. **Saute et NOMME** P-01, P-02 et P-05, en disant
+ce que chacune aurait prouvé. Imprime « **VERT SOUS RÉSERVE** », **jamais « TOUT VERT »**.
+
+> **Sans le drapeau et sans démon, le script sort en code 3.** Un poste de développement sans
+> conteneur est une **anomalie, pas un mode** : le saut doit être une **intention déclarée**, sinon
+> un vert partiel se lirait comme un vert — et personne ne saurait quel jour le modèle a cessé
+> d'être vérifié.
+>
+> Le prérequis de conteneur appartient **aux portes qui en ont un**, pas au script : il est exigé
+> par `preparer_base`, pas par `main`. C'est ce qui permet à `--sans-conteneur` de fonctionner
+> **sans transiger sur le code 3**.
+
 ### Une porte seule
 
 ```sh

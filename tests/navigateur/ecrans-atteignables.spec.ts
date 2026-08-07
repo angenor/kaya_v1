@@ -6,6 +6,8 @@ import {
   contrasteDe,
   exigerAucunNomDetatInterne,
   JETONS,
+  mesurerCibles,
+  mesurerTextes,
   nomDuTheme,
   PLANCHER_TACTILE,
   seuilAA,
@@ -82,6 +84,32 @@ test('PLANCHER · l’index déclare au moins un écran construit', () => {
   ).toBeGreaterThan(0)
 })
 
+test('les DEUX mesures de contraste rendent le MÊME nombre', async ({ page }) => {
+  // ⚠️ IL Y A DEUX IMPLÉMENTATIONS DU RAPPORT DE CONTRASTE, ET C'EST INÉVITABLE :
+  // celle qui s'exécute dans le test et celle qui part dans la page, sérialisée,
+  // sans pouvoir capturer quoi que ce soit de la portée du test. **Deux copies
+  // qui divergent, c'est un contrôle qui ment sans rien casser.** Ce test les
+  // confronte sur un élément réel, dans le navigateur réel.
+  await page.goto('/_guide-de-style', { waitUntil: 'networkidle' })
+
+  const cible = page.locator('[data-composant="01"] button').first()
+  const parLeTest = await contrasteDe(page, cible)
+  const texteCible = (await cible.innerText()).trim().slice(0, 32)
+
+  const enPage = await mesurerTextes(page, '[data-composant="01"] button')
+  const correspondant = enPage.find((m) => m.texte === texteCible)
+
+  expect(correspondant, `« ${texteCible} » n'a pas été mesuré en page`).toBeDefined()
+  expect(
+    correspondant!.rapport,
+    'les deux implémentations du contraste ont divergé — le contrôle mentirait sans rien casser',
+  ).toBeCloseTo(parLeTest, 6)
+  expect(
+    correspondant!.corps,
+    'le corps lu en page diffère de celui lu par le test',
+  ).toBeCloseTo(Number.parseFloat(await styleCalcule(cible, 'font-size')), 6)
+})
+
 for (const schema of ['light', 'dark'] as const) {
   const nom = nomDuTheme(schema)
 
@@ -129,51 +157,37 @@ for (const schema of ['light', 'dark'] as const) {
         ).toBe(JETONS.corps.corps)
 
         // ── HAUTEUR, RAYON, CORPS des cibles cliquables ─────────────────────
-        const cibles = page.locator('button:visible, input:visible')
-        const total = await cibles.count()
-        expect(total, `${route} : aucune cible cliquable — le contrôle serait vide`).toBeGreaterThan(0)
+        const cibles = await mesurerCibles(
+          page,
+          'button, input',
+          EXEMPTIONS.map((e) => ({ selecteur: e.selecteur, hauteur: e.hauteur, nom: e.nom })),
+        )
+        expect(
+          cibles.length,
+          `${route} : aucune cible cliquable — le contrôle serait vide`,
+        ).toBeGreaterThan(0)
 
         const souslePlancher: string[] = []
         const rayonsHorsJetons: string[] = []
         const corpsHorsJetons: string[] = []
 
-        for (let i = 0; i < total; i += 1) {
-          const cible = cibles.nth(i)
-          const mesure = await cible.evaluate(
-            (element, exemptions) => {
-              const style = getComputedStyle(element)
-              const exemption =
-                exemptions.find((e) => element.closest(e.selecteur) !== null) ?? null
-              return {
-                hauteur: Math.round(element.getBoundingClientRect().height),
-                rayon: style.borderTopLeftRadius,
-                corps: style.fontSize,
-                exemption: exemption?.nom ?? null,
-                attendue: exemption?.hauteur ?? null,
-                texte: (element.textContent ?? '').trim().slice(0, 24),
-              }
-            },
-            EXEMPTIONS.map((e) => ({ selecteur: e.selecteur, hauteur: e.hauteur, nom: e.nom })),
-          )
-
-          if (mesure.hauteur === 0) continue
-
-          if (mesure.attendue !== null) {
+        for (const mesure of cibles) {
+          if (mesure.hauteurAttendue !== null) {
             // L'exemption est CONTRÔLÉE : la hauteur du tableau, ou le plancher.
-            if (mesure.hauteur !== mesure.attendue && mesure.hauteur < PLANCHER_TACTILE) {
+            if (mesure.hauteur !== mesure.hauteurAttendue && mesure.hauteur < PLANCHER_TACTILE) {
               souslePlancher.push(
-                `${mesure.texte || '(sans texte)'} · ${mesure.exemption} → ${mesure.hauteur}px, attendu ${mesure.attendue}px ou ${PLANCHER_TACTILE}px`,
+                `${mesure.texte} · ${mesure.exemption} → ${mesure.hauteur}px, attendu ${mesure.hauteurAttendue}px ou ${PLANCHER_TACTILE}px`,
               )
             }
           } else if (mesure.hauteur < PLANCHER_TACTILE) {
-            souslePlancher.push(`${mesure.texte || '(sans texte)'} → ${mesure.hauteur}px`)
+            souslePlancher.push(`${mesure.texte} → ${mesure.hauteur}px`)
           }
 
           if (!RAYONS_JETON.has(mesure.rayon)) {
-            rayonsHorsJetons.push(`${mesure.texte || '(sans texte)'} → ${mesure.rayon}`)
+            rayonsHorsJetons.push(`${mesure.texte} → ${mesure.rayon}`)
           }
           if (!CORPS_JETON.has(mesure.corps)) {
-            corpsHorsJetons.push(`${mesure.texte || '(sans texte)'} → ${mesure.corps}`)
+            corpsHorsJetons.push(`${mesure.texte} → ${mesure.corps}`)
           }
         }
 
@@ -191,30 +205,18 @@ for (const schema of ['light', 'dark'] as const) {
         ).toEqual([])
 
         // ── CONTRASTE AA sur tout ce qui porte du texte visible ─────────────
-        const textes = page.locator(
-          'main h1:visible, main h2:visible, main p:visible, main button:visible, header button:visible, [data-forme]:visible',
+        const textes = await mesurerTextes(
+          page,
+          'main h1, main h2, main p, main button, header button, [data-forme]',
         )
-        const nbTextes = await textes.count()
-        expect(nbTextes, `${route} : aucun texte inspecté — le contrôle serait vide`).toBeGreaterThan(0)
+        expect(
+          textes.length,
+          `${route} : aucun texte inspecté — le contrôle serait vide`,
+        ).toBeGreaterThan(0)
 
-        const echecsAA: string[] = []
-        for (let i = 0; i < nbTextes; i += 1) {
-          const cible = textes.nth(i)
-          const attenue = await cible.evaluate(
-            (element) => Boolean(element.closest('[disabled]')) || element.hasAttribute('disabled'),
-          )
-          if (attenue) continue
-          if ((await cible.innerText()).trim() === '') continue
-
-          const rapport = await contrasteDe(page, cible)
-          const corps = Number.parseFloat(await styleCalcule(cible, 'font-size'))
-          const gras = Number(await styleCalcule(cible, 'font-weight')) >= 700
-          if (rapport < seuilAA(corps, gras)) {
-            echecsAA.push(
-              `${(await cible.innerText()).slice(0, 24)} → ${rapport.toFixed(2)}:1`,
-            )
-          }
-        }
+        const echecsAA = textes
+          .filter((m) => !m.attenue && m.rapport < seuilAA(m.corps, m.gras))
+          .map((m) => `${m.texte} → ${m.rapport.toFixed(2)}:1`)
         expect(echecsAA, `${route} : contraste sous AA — ${echecsAA.join(' · ')}`).toEqual([])
 
         // ── LE TÉMOIN ne laisse échapper aucun nom d'état interne (SC-022) ──

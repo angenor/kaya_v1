@@ -65,6 +65,12 @@ USAGE
     scripts/verifier.sh                      les préalables PUIS toutes les
                                              portes, dans l'ordre, arrêt au
                                              premier contrôle rouge
+    scripts/verifier.sh --sans-conteneur     exécute les préalables, P-03 et
+                                             P-04 ; SAUTE ET NOMME P-01, P-02
+                                             et P-05 ; imprime « VERT SOUS
+                                             RÉSERVE », jamais « TOUT VERT ».
+                                             Sans le drapeau et sans démon :
+                                             code 3, comme avant.
     scripts/verifier.sh --prealables         lint, types, construction, tests
                                              d'unité — et rien d'autre
     scripts/verifier.sh --porte p01          une porte seule
@@ -378,6 +384,14 @@ executer_prealable() {
 build_fait=0
 
 construire_application() {
+    # ⚠️ L'INVENTAIRE DES ROUTES EST RETIRÉ AVANT, ET CE N'EST PAS UNE PRÉCAUTION
+    # THÉORIQUE. `nuxt typecheck` résout les pages lui aussi, donc il déclenche le
+    # même crochet — SANS le drapeau de page témoin. Constaté en le lançant :
+    # l'inventaire tombait à quatre routes. Le retirer d'abord garantit que P-04
+    # lit un inventaire produit par LA construction de cette exécution, et par
+    # aucune autre. Un inventaire survivant est exactement le genre de fichier
+    # qui rend une porte verte sur un état qui n'existe plus.
+    rm -f "$RACINE/.rapports/routes-du-build.json"
     executer_prealable 'construction (témoin)' env KAYA_PAGE_TEMOIN=1 pnpm build || return "$CODE_ROUGE"
     build_fait=1
     return 0
@@ -456,8 +470,19 @@ schemas_declares() {
 # SC-008 (l'autre est le tmpfs de compose.yml).
 modele_applique=0
 
+# ⚠️ LE PRÉREQUIS DE CONTENEUR EST EXIGÉ **ICI**, ET NON DANS main().
+#
+# Il vivait dans main() : le script s'arrêtait donc en code 3 **avant tout**, y
+# compris avant les contrôles qui n'ont besoin d'aucun conteneur — le lint, la
+# construction, les tests, P-03 et P-04. Sur le poste d'Abengourou, où l'on
+# démontre sans démon, cela revenait à ne rien pouvoir vérifier du tout.
+#
+# Descendu ici, le prérequis appartient **aux portes qui en ont un**, et à elles
+# seules. C'est ce qui rend `--sans-conteneur` possible sans transiger : sans le
+# drapeau et sans démon, la sortie reste **code 3**, comme avant.
 preparer_base() {
     [ "$modele_applique" -eq 1 ] && return 0
+    exiger_prerequis
     demarrer_base
     appliquer_modele "$1" || return 1
     modele_applique=1
@@ -1448,7 +1473,13 @@ porte_p04() {
     # --- C1 (suite) · le serveur local répond -------------------------------
     if [ "$matrice" = "oui" ]; then
         arreter_serveur
-        (cd "$RACINE" && PORT="$PORT_P04" NITRO_PORT="$PORT_P04" HOST=127.0.0.1 \
+        # ⚠️ `exec` N'EST PAS DÉCORATIF ICI, ET LE CONSTAT L'A IMPOSÉ. Sans lui,
+        # `$!` est le PID du SOUS-SHELL, pas celui de node : `kill` tuait le
+        # sous-shell et LAISSAIT LE SERVEUR VIVANT sur le port. La porte suivante
+        # trouvait un serveur qu'elle croyait avoir monté, servant un build
+        # PRÉCÉDENT — un vert qui n'aurait rien prouvé de la construction du
+        # jour. Constaté en relevant les processus après une exécution.
+        (cd "$RACINE" && exec env PORT="$PORT_P04" NITRO_PORT="$PORT_P04" HOST=127.0.0.1 \
             node .output/server/index.mjs >/dev/null 2>&1) &
         serveur_pid=$!
         local attente=0
@@ -2115,6 +2146,26 @@ rendre_verdict() {
     return 1
 }
 
+# Les trois portes qui demandent un démon de conteneurs. Elles sont NOMMÉES, et
+# ce n'est pas une politesse : « trois portes sautées » ne dit pas lesquelles, et
+# c'est en ne sachant pas lesquelles qu'on prend un vert partiel pour un vert.
+readonly PORTES_CONTENEUR="P-01, P-02 et P-05"
+
+# Le saut est une INTENTION DÉCLARÉE, jamais un repli automatique.
+#
+# ⚠️ SANS LE DRAPEAU ET SANS DÉMON, LA SORTIE RESTE LE CODE 3. Un poste de
+# développement sans conteneur est une anomalie, pas un mode : si le script
+# sautait tout seul, un vert partiel finirait par se lire comme un vert — et
+# personne ne saurait quel jour le modèle a cessé d'être vérifié.
+annoncer_portes_sautees() {
+    printf '\n── %s · SAUTÉES sur demande (--sans-conteneur)\n' "$PORTES_CONTENEUR"
+    printf '   Ce qu'\''elles auraient prouvé et que RIEN d'\''autre ne prouve :\n'
+    printf '   · P-01 — le modèle s'\''applique sur une base vierge, et chaque table est isolée\n'
+    printf '   · P-02 — toute table du modèle a une classe hors-ligne au registre\n'
+    printf '   · P-05 — aucune clé étrangère entre deux schémas\n'
+    printf '   Le drapeau ne les rend pas facultatives : il déclare qu'\''on ne les lance PAS ICI.\n'
+}
+
 # Le coût de l'enchaînement, dit à voix haute (SC-017).
 #
 # ⚠️ CE N'EST PAS UNE PORTE, ET CE NE DOIT PAS EN DEVENIR UNE. Faire rougir le
@@ -2140,10 +2191,14 @@ annoncer_duree() {
 # =============================================================================
 
 main() {
-    local mode="tout" porte="" cible_negatif="tous"
+    local mode="tout" porte="" cible_negatif="tous" sans_conteneur=0
 
     while [ $# -gt 0 ]; do
         case "$1" in
+            --sans-conteneur)
+                sans_conteneur=1
+                shift
+                ;;
             --aide|-h|--help)
                 aide
                 exit "$CODE_OK"
@@ -2173,8 +2228,6 @@ main() {
         esac
     done
 
-    exiger_prerequis
-
     local debut=$SECONDS
     local portes_passees=0
     # Point 3 du contrat de porte, relevé AVANT toute exécution.
@@ -2192,12 +2245,16 @@ main() {
             # base PostgreSQL pour découvrir ensuite que le lint échoue coûte
             # huit secondes à chaque fois, et l'on finit par sauter le script.
             controles_prealables || exit "$CODE_ROUGE"
-            porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
-            portes_passees=$((portes_passees + 1))
-            porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
-            portes_passees=$((portes_passees + 1))
-            porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
-            portes_passees=$((portes_passees + 1))
+            if [ "$sans_conteneur" -eq 1 ]; then
+                annoncer_portes_sautees
+            else
+                porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
+                portes_passees=$((portes_passees + 1))
+                porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
+                portes_passees=$((portes_passees + 1))
+                porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
+                portes_passees=$((portes_passees + 1))
+            fi
             porte_p03 "$RACINE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
             porte_p04 "$RACINE" "$INVENTAIRE_ROUTES" oui || exit "$CODE_ROUGE"
@@ -2272,7 +2329,16 @@ main() {
     local duree=$((SECONDS - debut))
     local mot="portes"
     [ "$portes_passees" -le 1 ] && mot="porte"
-    printf '\nTOUT VERT — %d %s — %d s\n' "$portes_passees" "$mot" "$duree"
+    if [ "$sans_conteneur" -eq 1 ]; then
+        # ⚠️ JAMAIS « TOUT VERT ». Un vert partiel qui se lit comme un vert est
+        # pire qu'un rouge : il fait croire que le modèle est vérifié alors
+        # qu'aucune ligne de SQL n'a été appliquée.
+        printf '\nVERT SOUS RÉSERVE — %d %s — %d s\n' "$portes_passees" "$mot" "$duree"
+        printf '   %s N'\''ONT PAS ÉTÉ EXÉCUTÉES — le modèle de données n'\''est PAS vérifié.\n' \
+            "$PORTES_CONTENEUR"
+    else
+        printf '\nTOUT VERT — %d %s — %d s\n' "$portes_passees" "$mot" "$duree"
+    fi
     annoncer_duree "$duree"
     exit "$CODE_OK"
 }

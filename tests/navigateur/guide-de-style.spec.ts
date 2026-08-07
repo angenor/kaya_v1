@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 import {
-  contrasteDe,
   hauteur,
   JETONS,
+  mesurerCibles,
+  mesurerTextes,
   PLANCHER_TACTILE,
   seuilAA,
   seuilAAA,
@@ -105,28 +106,19 @@ for (const schema of ['light', 'dark'] as const) {
     test('44 px de zone de touche, partout sauf le segment — qui fait bien 32', async ({
       page,
     }) => {
-      const cliquables = page.locator('[data-composant] button, [data-composant] input')
-      const total = await cliquables.count()
-      expect(total, "aucune cible cliquable : le contrôle n'inspecterait rien").toBeGreaterThan(20)
+      const cliquables = await mesurerCibles(page, '[data-composant] button, [data-composant] input', [
+        { selecteur: '[role="radiogroup"]', hauteur: JETONS.hauteur.segment, nom: 'segment' },
+        { selecteur: '[data-composant-03]', hauteur: JETONS.hauteur.discret, nom: 'discret' },
+      ])
+      expect(
+        cliquables.length,
+        "aucune cible cliquable : le contrôle n'inspecterait rien",
+      ).toBeGreaterThan(20)
 
-      const trop_petites: string[] = []
-      const exemptes: number[] = []
-      for (let i = 0; i < total; i += 1) {
-        const cible = cliquables.nth(i)
-        const exempte = await cible.evaluate(
-          (element) =>
-            Boolean(element.closest('[role="radiogroup"]')) ||
-            element.hasAttribute('data-composant-03'),
-        )
-        const h = await hauteur(cible)
-        if (exempte) {
-          if (h > 0) exemptes.push(h)
-          continue
-        }
-        if (h > 0 && h < PLANCHER_TACTILE) {
-          trop_petites.push(`${await cible.innerText()} → ${h}px`)
-        }
-      }
+      const trop_petites = cliquables
+        .filter((m) => m.exemption === null && m.hauteur < PLANCHER_TACTILE)
+        .map((m) => `${m.texte} → ${m.hauteur}px`)
+      const exemptes = cliquables.filter((m) => m.exemption !== null).map((m) => m.hauteur)
       expect(
         trop_petites,
         `cibles sous le plancher tactile de 44 px : ${trop_petites.join(' · ')}`,
@@ -152,46 +144,27 @@ for (const schema of ['light', 'dark'] as const) {
     })
 
     test('le contraste est AA partout, et AAA sur les montants', async ({ page }) => {
-      const echecsAA: string[] = []
-      const textes = page.locator(
+      const textes = await mesurerTextes(
+        page,
         '[data-composant] button, [data-composant] h2, [data-composant] [data-forme], [data-composant] .font-mono',
       )
-      const total = await textes.count()
-      expect(total, "aucun texte inspecté : le contrôle serait vide").toBeGreaterThan(20)
+      expect(textes.length, 'aucun texte inspecté : le contrôle serait vide').toBeGreaterThan(20)
 
-      for (let i = 0; i < total; i += 1) {
-        const cible = textes.nth(i)
-        if (!(await cible.isVisible())) continue
-        // Les éléments désactivés portent 0,45 d'opacité par le thème : le
-        // contraste s'y juge sur l'état actif, pas sur l'atténuation voulue.
-        const attenue = await cible.evaluate((element) =>
-          Boolean(element.closest('[disabled]')) || element.hasAttribute('disabled'),
-        )
-        if (attenue) continue
-
-        const rapport = await contrasteDe(page, cible)
-        const corps = Number.parseFloat(await styleCalcule(cible, 'font-size'))
-        const gras = Number(await styleCalcule(cible, 'font-weight')) >= 700
-        const seuil = seuilAA(corps, gras)
-        if (rapport < seuil) {
-          echecsAA.push(`${(await cible.innerText()).slice(0, 24)} → ${rapport.toFixed(2)}:1`)
-        }
-      }
+      // Les éléments désactivés portent 0,45 d'opacité par le thème : le
+      // contraste s'y juge sur l'état actif, pas sur l'atténuation voulue.
+      const echecsAA = textes
+        .filter((m) => !m.attenue && m.rapport < seuilAA(m.corps, m.gras))
+        .map((m) => `${m.texte} → ${m.rapport.toFixed(2)}:1`)
       expect(echecsAA, `contraste sous AA : ${echecsAA.join(' · ')}`).toEqual([])
 
       // ⚠️ AAA SUR LES MONTANTS ET LES STATUTS (FR-095). Ce sont les deux
       // choses qu'on lit à bout de bras, en plein soleil ou dans un bar.
-      const montants = page.locator('[data-composant="06"] [data-valeur]')
-      const nbMontants = await montants.count()
-      expect(nbMontants).toBeGreaterThan(0)
-      for (let i = 0; i < nbMontants; i += 1) {
-        const cible = montants.nth(i)
-        if (!(await cible.isVisible())) continue
-        const rapport = await contrasteDe(page, cible)
-        const corps = Number.parseFloat(await styleCalcule(cible, 'font-size'))
-        const seuil = seuilAAA(corps)
-        expect(rapport, `montant « ${await cible.innerText()} » : ${rapport.toFixed(2)}:1`).toBeGreaterThanOrEqual(seuil)
-      }
+      const montants = await mesurerTextes(page, '[data-composant="06"] [data-valeur]')
+      expect(montants.length).toBeGreaterThan(0)
+      const echecsAAA = montants
+        .filter((m) => m.rapport < seuilAAA(m.corps))
+        .map((m) => `${m.texte} → ${m.rapport.toFixed(2)}:1`)
+      expect(echecsAAA, `montants sous AAA : ${echecsAAA.join(' · ')}`).toEqual([])
     })
 
     test('EN NIVEAUX DE GRIS, chaque état reste lisible — la forme le porte', async ({ page }) => {

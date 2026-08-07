@@ -11,6 +11,7 @@ commit. Un identifiant anglais dans du code nouveau est une anomalie, pas une pr
 
 ```sh
 scripts/verifier.sh                    # les préalables PUIS les portes, arrêt au premier rouge
+scripts/verifier.sh --sans-conteneur   # saute et NOMME P-01/P-02/P-05 — « VERT SOUS RÉSERVE »
 scripts/verifier.sh --prealables       # lint, types, construction, tests d'unité — et rien d'autre
 scripts/verifier.sh --porte p01        # une porte seule (p01, p02, p03, p04, p05)
 scripts/verifier.sh --test-negatif     # casse chaque porte et EXIGE qu'elle rougisse
