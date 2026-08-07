@@ -68,9 +68,13 @@ const MOTIFS_PLATEFORME = [
      — `border-[1.5px]` : tokens.md §7 — Tailwind 4 n'a pas d'espace de nom pour
        les épaisseurs de bordure, c'est la décision n° 1 du README de design ;
      — `[clip-path:…]`, `[&…]`, `[data-…]`, `[--…]` : ce ne sont pas des valeurs,
-       ce sont des sélecteurs et des propriétés que Tailwind n'expose pas. */
+       ce sont des sélecteurs et des propriétés que Tailwind n'expose pas ;
+     — `transition-[…]` : la LISTE DES PROPRIÉTÉS qui transitionnent, et non une
+       valeur. `composants.md` §01 l'écrit littéralement —
+       `transition-[transform,box-shadow,background-color]`. La durée et la
+       courbe, elles, restent des jetons et restent contrôlées. */
 const EXEMPTIONS_ARBITRAIRES =
-  /^(?:(?:max-w|min-w|min-h|w)-\[|border-\[1\.5px\]|\[clip-path:|\[&|\[data-|\[--)/
+  /^(?:(?:max-w|min-w|min-h|w)-\[|border-\[1\.5px\]|transition-\[|\[clip-path:|\[&|\[data-|\[--)/
 
 const MOTIFS_JETONS = [
   // Une couleur écrite en clair, sous toutes ses formes.
