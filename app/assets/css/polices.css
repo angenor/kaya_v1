@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   KAYA — POLICES EMBARQUÉES
+
+   ⚠️ AUCUN CHARGEMENT DEPUIS UN SERVICE DISTANT. Les maquettes de
+   docs/design/html/ chargent Archivo, Chivo Mono et Phosphor depuis un CDN ;
+   l'application ne le fait jamais. Le produit tourne sur des liaisons lentes et
+   doit s'ouvrir HORS LIGNE — une police absente le jour de la démonstration
+   serait irrattrapable.
+
+   VARIABLE PLUTÔT QUE STATIQUE. Quatre fichiers variables — deux familles ×
+   {latin, latin-ext}, axe wght 100→900 — pèsent 114 ko ; l'équivalent statique
+   demande douze fichiers pour 153 ko. Le produit emploie quatre graisses
+   d'Archivo et deux de Chivo Mono.
+
+   LATIN **ET** LATIN-EXT, JAMAIS LATIN SEUL. Le sous-ensemble `latin` ne porte
+   ni Ÿ ni les latines étendues, et le texte est dynamique : noms de clients,
+   communes, libellés saisis. Aucun sous-réglage de CARACTÈRES sur le texte,
+   contrairement aux icônes — il produirait un caractère manquant sur un nom
+   propre ivoirien, constaté en production.
+
+   LE NOM DES FAMILLES NE CHANGE PAS. Fontsource déclare « Archivo Variable » et
+   « Chivo Mono Variable » ; docs/design/theme.css dit « Archivo » et « Chivo
+   Mono ». Les @font-face sont donc réécrits ici sous les noms du thème : seule
+   la SOURCE change, jamais le contrat.
+
+   ⚠️ U+202F EST ABSENT DES DEUX FAMILLES — écart constaté, non corrigé, et
+   documenté au rapport de cycle. La mesure : sous-réglé sur U+202F, chaque
+   fichier rend exactement la même taille que sous-réglé sur un idéogramme
+   absent, alors que U+2009 en rend une autre. Conséquence, et sa portée réelle :
+   le séparateur de milliers d'un montant tombe sur une police de repli. Ce qui
+   PROTÈGE malgré tout l'alignement : `whitespace-nowrap` sur tout porteur de
+   montant (tokens.md §2) tient l'insécabilité — elle vient du caractère, de
+   catégorie Zs non sécable, pas de la police —, et les colonnes de montants
+   sont alignées à DROITE sur une largeur fixe (composant 08), donc une chasse
+   différente sur un seul caractère ne les décale pas. Le remède complet — mapper
+   U+202F sur le dessin de U+2009 dans la table cmap — demande un éditeur de
+   tables de police, absent du jeu de dépendances.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/archivo/files/archivo-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Chivo Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/chivo-mono/files/chivo-mono-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Chivo Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/chivo-mono/files/chivo-mono-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Les glyphes d'icônes, sous-réglés et commités. Fichier ENGENDRÉ — voir
+   scripts/polices/sous-regler-icones.mjs. */
+@import '../polices/icones.css';

@@ -1,0 +1,37 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ENGENDRÉ PAR scripts/polices/sous-regler-icones.mjs — NE PAS ÉDITER.
+
+   Les glyphes réellement employés par app/, et rien de plus. La source est
+   @phosphor-icons/web ; ce fichier et les .woff2 à côté sont ce qui part au
+   client. Aucun chargement depuis un service distant : l'ouverture hors
+   ligne l'interdit.
+
+   Pour régénérer : node scripts/polices/sous-regler-icones.mjs
+   Pour vérifier  : node scripts/polices/sous-regler-icones.mjs --verifier
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ph {
+  font-family: "Phosphor";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-transform: none;
+  display: inline-block;
+  speak: never;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ph-fill {
+  font-family: "Phosphor-Fill";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-transform: none;
+  display: inline-block;
+  speak: never;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

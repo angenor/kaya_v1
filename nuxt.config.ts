@@ -20,7 +20,7 @@ export default defineNuxtConfig({
   // theme.css est la COPIE CONFORME de docs/design/theme.css — jamais éditée
   // ici. Il porte `@import "tailwindcss"`, donc il est le point d'entrée du
   // noyau Tailwind autant que celui des jetons.
-  css: ['~/assets/css/theme.css'],
+  css: ['~/assets/css/theme.css', '~/assets/css/polices.css'],
 
   vite: {
     plugins: [tailwindcss()],
