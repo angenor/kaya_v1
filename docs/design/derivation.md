@@ -151,6 +151,36 @@ Un écran se code dans **quatre cas** :
 4. **il est découvert à l'implémentation** — les documents ne l'avaient pas prévu, et sans lui un
    parcours ne se termine pas.
 
+### La catégorie « instrument de développement » — amendée le 2026-08-07 par le cycle F1
+
+**Motif de l'amendement, et pourquoi une entrée de tableau n'aurait pas suffi.** Le cycle F1
+livre trois écrans qui ne sont pas le produit : le **guide de style**, l'**index des écrans** et
+le **panneau de scénarios**. Les inscrire comme *composés* était le réflexe — et l'analyse a
+établi que **le guide de style échoue à la condition 1** du test d'un écran composé, *« liste,
+formulaire ou fiche suivant un motif déjà posé »*. `/_ecrans` (une liste) et `/_scenarios` (un
+formulaire) la satisfont ; lui non : il ne suit aucun motif, **il les montre**.
+
+*La condition 1 existe pour empêcher qu'un écran invente un motif. Le guide de style n'en invente
+aucun. La substance est respectée, la lettre ne l'est pas — et un écart constaté ne se tranche
+jamais en silence.*
+
+**La règle gagne donc une catégorie explicite**, plutôt que d'introduire par une entrée de tableau
+une cinquième catégorie que la constitution ne connaît pas :
+
+> **Instrument de développement** — assemblé **uniquement** à partir des seize composants
+> canoniques, **en zone de charme**, **consulté par le développeur et non par l'exploitant**,
+> **hors du décompte des écrans du produit**, et **sans code de préfixe**. Sa route porte un
+> **trait bas** — c'est ce qui le distingue à l'œil dans une barre d'adresse.
+
+⚠️ **Le décompte des 46 reste INCHANGÉ**, et `docs/Kaya_Design.md` §3 **n'est pas amendé** : les
+instruments n'ont pas de code, donc ils n'ajoutent aucun préfixe aux onze existants.
+
+| Instrument | Route | Composants employés | Zone |
+|---|---|---|---|
+| **Guide de style** | `/_guide-de-style` | **les seize**, chacun dans tous ses états, importés **explicitement** — c'est ce qui les « branche » (porte P-06) | charme |
+| **Écrans** | `/_ecrans` | **08** ligne de liste · **04** pastille d'état · **12** sélecteur segmenté | charme |
+| **Scénarios** | `/_scenarios` | **16** champ de saisie (dont « choix fermé ») · **12** sélecteur segmenté · **01 · 02** actions · **07** bandeau d'alerte · **08** ligne de liste · **10** témoin · **11** état vide | charme |
+
 ### Le quatrième cas, et ce qu'il exige
 
 > **Les documents ne peuvent pas avoir tout prévu** : c'est en construisant un parcours qu'on

@@ -3,13 +3,47 @@
 *Logiciel de gestion pour les établissements d'Afrique de l'Ouest — hébergement, restauration,
 bar, pressing. Multi-tenant, hors-ligne d'abord, conforme à la facturation normalisée ivoirienne.*
 
-**Phase 1 — le modèle de données : CLOSE.** Aucun écran, aucun endpoint, aucune migration n'existe
-encore, et c'est l'ordre voulu (constitution, principe 0) : le modèle vient d'abord, les écrans
-ensuite sur données simulées, le serveur en dernier.
+**Phase 1 — le modèle de données : CLOSE.** 118 tables · 15 fichiers · 14 schémas · 20 provisions.
+**Phase 2 — l'application en données simulées : EN COURS**, cycle F1 (la coquille).
 
-**Le modèle complet du MVP existe en SQL : 118 tables · 15 fichiers · 14 schémas · 20 provisions.**
-Cycle D1 — le socle, 71 tables. Cycle D2 — les capacités et les verticales, 47 tables. La phase 2
-peut donner à ses données simulées la forme exacte de ces tables.
+---
+
+## Démarrer — une commande
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+**L'application répond sur `http://localhost:3000`. Aucun conteneur n'a été démarré, aucune base,
+aucun service distant.** C'est la propriété du cycle, et elle se vérifie en l'éprouvant : arrêtez
+votre démon de conteneurs avant de commencer.
+
+**Prérequis** : Node **24.18.1** (`.nvmrc`) et pnpm **11.18.0** — le champ `packageManager` du
+manifeste l'installe tout seul.
+
+### Les trois écrans à ouvrir
+
+| Écran | Route | Ce qu'on y voit |
+|---|---|---|
+| **Écrans** | [`/_ecrans`](http://localhost:3000/_ecrans) | **L'index** : les 46 écrans du produit avec leur état d'avancement, et les 3 instruments. `/` y redirige |
+| **Guide de style** | [`/_guide-de-style`](http://localhost:3000/_guide-de-style) | **Les seize composants**, chacun dans tous ses états, avec la bascule de thème et celle de zone de mouvement |
+| **Scénarios** | [`/_scenarios`](http://localhost:3000/_scenarios) | **Les leviers** : latence, échec réseau, hors connexion, jeu vide, compte et établissement actifs — plus l'essai d'écriture, qui exerce le refus |
+
+> **Le trait bas marque les INSTRUMENTS.** Les 46 écrans du produit n'en portent pas — `/passage`,
+> `/arrivee`, `/articles`. Un exploitant qui verrait `/_ecrans` dans sa barre d'adresse saurait
+> qu'il n'est pas au bon endroit.
+
+### Le parcours de démonstration, en quatre gestes
+
+1. **`/_ecrans`** → basculer entre « Le produit » et « Les instruments », suivre un lien.
+2. **`/_guide-de-style`** → basculer **Clair / Sombre / Comme l'appareil**, puis **Français /
+   English**. Tout suit, y compris les seize composants.
+3. **`/_scenarios`** → **Lancer l'essai** sur « Note interne » : accepté, et le témoin de la barre
+   passe à « **En attente d'envoi (1)** ».
+4. Passer **Hors connexion** sur **Actif**, choisir « **Réglage d'établissement** », relancer :
+   refusé, avec « **Cette action nécessite internet.** » **et ce qui reste possible**. Recharger :
+   la file est intacte.
 
 ---
 
@@ -20,73 +54,53 @@ scripts/verifier.sh
 ```
 
 **Une seule commande, qui enchaîne tout ce qui doit passer et sort en échec au premier contrôle
-rouge.** Pas dix scripts qu'on lance de mémoire, dont on oublie le troisième. Elle grossira à
-mesure que le produit grandit ; elle ne se dupliquera pas.
+rouge.** Pas dix scripts qu'on lance de mémoire, dont on oublie le troisième.
 
-**Prérequis : `docker` et le greffon `compose`. Rien d'autre.** Ni `psql`, ni Rust, ni Node : le
-client `psql` est celui de l'image `postgres:18.4`, appelé par `docker compose exec`.
-
-**Repère de coût : moins de deux minutes.** Le script imprime sa durée. Au-delà de deux ou trois
-minutes, on cesse de lancer un script — c'est le déclencheur documenté du passage au serveur
-d'intégration, en phase 3.
+**Prérequis : `docker` et le greffon `compose`** pour P-01, P-02 et P-05 ; **rien** pour P-03.
 
 ### Ce que chaque porte vérifie
 
-| Porte | Ce qu'elle prouve |
-|---|---|
-| **P-01** | Le modèle de [`docs/modele-donnees/`](docs/modele-donnees/) s'applique **dans l'ordre, sans erreur, sur une base PostgreSQL vierge** — et chaque table porte les quatre éléments d'isolation : une colonne `tenant_id` non nulle, `ENABLE` **et** `FORCE ROW LEVEL SECURITY`, la politique `isolation_tenant` en `USING` **et** `WITH CHECK`, et la politique `administration_editeur` posée dès la création |
-| **P-02** | Toute table du modèle a une **classe hors-ligne déclarée** dans [`docs/registre-classes-offline.md`](docs/registre-classes-offline.md). Sens de la comparaison : **table → registre**. Une entité déclarée sans table est normale — le registre déclare déjà le cycle suivant ; une **table non déclarée est l'erreur** |
-| **P-05** | **Aucune clé étrangère entre deux schémas.** Les rattachements inter-modules sont des colonnes d'identifiant **nues**, et deux d'entre eux sont des **sagas dont le cas orphelin est le chemin nominal** — une consommation prise hors ligne qui arrive sur une note déjà arrêtée. Une `REFERENCES` ajoutée de bonne foi **ferait échouer en base** l'écriture que le produit doit accepter puis réconcilier, et rien ne le signalerait avant la première coupure réseau en exploitation |
+| Porte | Ce qu'elle prouve | Conteneur ? |
+|---|---|---|
+| **P-01** | Le modèle de [`docs/modele-donnees/`](docs/modele-donnees/) s'applique **dans l'ordre, sans erreur, sur une base vierge** — et chaque table porte `tenant_id` non nul, `ENABLE` **et** `FORCE ROW LEVEL SECURITY`, la politique `isolation_tenant` en `USING` **et** `WITH CHECK`, et la politique `administration_editeur` | oui |
+| **P-02** | Toute table du modèle a une **classe hors-ligne déclarée** dans [`docs/registre-classes-offline.md`](docs/registre-classes-offline.md). Sens : **table → registre** | oui |
+| **P-03** | **Aucune dépendance en intervalle**, lockfile commité et couvrant, tags d'image exacts, environnement cohérent en trois écritures, et `docs/versions-reference.md` d'accord avec les manifestes **dans les deux sens**. Plus : **aucun `.github/workflows/`** — le serveur d'intégration vient en phase 3 | **non** |
+| **P-05** | **Aucune clé étrangère entre deux schémas** — les rattachements inter-modules sont des colonnes nues, et le cas orphelin est le **chemin nominal** d'une saga | oui |
 
 Chaque porte déclare son **périmètre inspecté**, vérifie sa **complétude**, ne **modifie pas** ce
-qu'elle inspecte — l'empreinte du modèle et du registre est relevée avant et après —, et prouve que
-sa **cible n'est pas vide** par un plancher déclaré.
+qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déclaré.
 
-> **Pourquoi P-05 porte le numéro 5 alors qu'elle est la troisième.** `P-03` (dépendances) et `P-04`
-> (écrans) sont **nommées par la constitution** et réservées par le noyau de quatre portes. Les
-> numéros s'attribuent **dans l'ordre d'apparition** ; la première porte hors noyau est donc P-05.
-> `P-03` naîtra avec le premier manifeste de dépendances, `P-04` avec le premier écran.
-
-> **Pourquoi P-05 est le profil de porte le plus fragile qui soit — et ce qui la tient.** Elle
-> cherche une **absence** : elle est verte quand elle ne trouve rien. Un filtre trop étroit, un nom
-> de catalogue changé, et elle resterait verte pour toujours. Elle déclare donc **le nombre de clés
-> étrangères qu'elle a examinées**, avec un plancher — ce qui distingue *« rien à trouver »* de
-> *« je ne cherche plus »*. Le cycle D2 a vérifié que **ce plancher ne suffit pas** : en sabotant le
-> prédicat de détection, la porte est restée verte en annonçant 92 contraintes examinées, et **seul
-> le test négatif a vu la faute**.
+> **Le plancher de P-03 est DÉRIVÉ, pas constant** : c'est le nombre de dépendances que les
+> manifestes présents déclarent. Un `package.json` vidé par accident ferait passer une porte à
+> plancher bas ; il ne passe pas celle-ci, dont le plancher tombe à zéro **en même temps** que la
+> cible.
 
 ### Une porte seule
 
 ```sh
 scripts/verifier.sh --porte p01
 scripts/verifier.sh --porte p02
+scripts/verifier.sh --porte p03   # ni conteneur ni réseau
 scripts/verifier.sh --porte p05
 ```
 
-### Les trois tests négatifs
+### Les tests négatifs — la preuve qu'une porte SAIT échouer
 
 ```sh
-scripts/verifier.sh --test-negatif p01   # retire une politique et EXIGE que P-01 échoue
-scripts/verifier.sh --test-negatif p02   # ajoute une table non déclarée et EXIGE que P-02 échoue
-scripts/verifier.sh --test-negatif p05   # ajoute une clé étrangère inter-schémas et EXIGE que P-05 échoue
-scripts/verifier.sh --test-negatif       # les trois
+scripts/verifier.sh --test-negatif p01   # retire une politique RLS
+scripts/verifier.sh --test-negatif p02   # ajoute une table non déclarée au registre
+scripts/verifier.sh --test-negatif p03   # introduit un « ^ » dans une version
+scripts/verifier.sh --test-negatif p05   # ajoute une clé étrangère inter-schémas
+scripts/verifier.sh --test-negatif       # les quatre
 ```
 
 > **`--test-negatif` n'est pas un mode de débogage, c'est une preuve.** *Une porte qui ne trouve
 > jamais rien est indistinguable d'une porte qui n'a rien à trouver.* Le mode opère sur une **copie
-> de travail** du modèle : il ne touche jamais `docs/modele-donnees/`, et l'empreinte du répertoire
-> le vérifie plutôt que de le promettre.
+> de travail**, et l'empreinte de ce qui est inspecté est relevée **avant et après**.
 
-La table ajoutée par le test de P-02 porte **son tronc commun et sa RLS complète**, pour qu'elle
-passe P-01 et n'échoue que sur P-02. Sans cela, l'échec viendrait de P-01 et l'on croirait avoir
-prouvé P-02 alors qu'on aurait prouvé P-01 une seconde fois. **Le test de P-05 suit le même
-principe, en trois temps** : P-01 **et** P-02 doivent rester vertes, et P-05 seule doit rougir — en
-nommant **la contrainte, la table portante et la table référencée**.
-
-> **Le test de P-05 rejoue l'erreur réelle, pas une erreur de laboratoire.** Il transforme
-> `hebergement.ligne_sejour.ligne_commande_id` en clé étrangère vers `ventes.ligne_commande` — c'est
-> **précisément la colonne** qu'un cycle de phase 3 serait tenté de « réparer », de bonne foi, en
-> croyant corriger un oubli.
+Chaque test négatif se déroule **en deux temps au moins** : les portes qui ne sont pas visées
+doivent rester **vertes**. Sans cette précaution, on croirait avoir prouvé P-02 alors qu'on aurait
+prouvé P-01 une seconde fois.
 
 ### Codes de sortie
 
@@ -95,12 +109,50 @@ nommant **la contrainte, la table portante et la table référencée**.
 | `0` | Toutes les portes demandées passent |
 | `1` | Une porte a échoué — la sortie nomme la porte, la cause et **l'objet fautif** |
 | `2` | Erreur d'usage |
-| `3` | Prérequis manquant — `docker compose` indisponible, ou base qui ne démarre pas |
+| `3` | Prérequis manquant — `docker compose` indisponible |
 | `4` | **Un test négatif n'a pas échoué — la porte est aveugle** |
 
-> **Le code `4` mérite d'être distinct du `1`.** Une porte rouge signale un défaut du **modèle** ;
-> une porte qui refuse d'être rouge signale un défaut **de la porte**, et les deux ne se réparent
-> pas au même endroit.
+> Le code `4` mérite d'être distinct du `1` : une porte rouge signale un défaut du **produit** ;
+> une porte qui refuse d'être rouge signale un défaut **de la porte**.
+
+---
+
+## Les autres contrôles
+
+Ils sont **appelés par la commande unique** dès la phase 13 du cycle F1 ; d'ici là on les lance
+séparément, et le rapport de cycle le dit.
+
+```sh
+pnpm lint                # les quatre règles opposables + aucune chaîne visible en dur
+pnpm build               # la construction, avec la coquille PWA
+pnpm test                # les tests d'unité
+pnpm test:navigateur     # Chromium ET WebKit, clair ET sombre
+```
+
+### Les quatre règles opposables du lint
+
+| Règle | Ce qu'elle refuse |
+|---|---|
+| **(a)** | Toute API de plateforme hors de `app/core/plateforme/` et `app/core/file/` — c'est elle, et elle seule, qui rendra le passage à Capacitor mécanique |
+| **(b)** | Tout import d'une simulation ou d'un jeu de données par un composant — il ne connaît jamais la provenance |
+| **(c)** | Toute valeur littérale de couleur, espacement, rayon, durée ou courbe hors des jetons |
+| **(d)** | Une page à plusieurs racines, ou dont la racine est un `v-if`/`v-else` — elle se démonterait, et le témoin clignoterait à chaque navigation |
+
+> ⚠️ **(d) est écrite à la main, et le constat vaut d'être dit.** `vue/no-root-v-if` ne signale que
+> le `v-if` de racine **sans** `v-else` ; `vue/no-multiple-template-root` compte une chaîne
+> `v-if`/`v-else` comme **une** racine. Le cas exact les traverse toutes les deux sans un mot. Les
+> deux règles amont restent activées pour les cas voisins, et un test **exige** qu'elles laissent
+> passer celui-ci — le jour où une montée le couvrirait, ce test le dirait.
+
+### Les artefacts engendrés et commités
+
+```sh
+node scripts/polices/sous-regler-icones.mjs --verifier    # les glyphes d'icônes
+node scripts/icones/engendrer-icones.mjs --verifier       # les icônes du manifeste
+node scripts/classes/extraire-registre.mjs --verifier     # les classes hors-ligne
+```
+
+Chacun compare **à l'octet** et échoue si le commité diffère de ce que la source engendre.
 
 ---
 
@@ -111,11 +163,8 @@ nommant **la contrainte, la table portante et la table référencée**.
 | Le modèle de données, table par table | [`docs/modele-donnees/README.md`](docs/modele-donnees/README.md) |
 | La classe hors-ligne d'une entité — **fait foi** | [`docs/registre-classes-offline.md`](docs/registre-classes-offline.md) |
 | Les principes non négociables | [`.specify/memory/constitution.md`](.specify/memory/constitution.md) |
-| Le patron que toute tranche recopie | [`docs/module-dore.md`](docs/module-dore.md) |
+| Les jetons, les seize composants, le lexique, le mouvement | [`docs/design/`](docs/design/) |
+| De quel motif hérite chaque écran | [`docs/design/derivation.md`](docs/design/derivation.md) |
 | Les versions épinglées et leur journal | [`docs/versions-reference.md`](docs/versions-reference.md) |
-| Le cadrage et les récits utilisateur | [`docs/cadrage-v1.md`](docs/cadrage-v1.md), [`docs/user-stories-v1.md`](docs/user-stories-v1.md) |
-| La conception du cycle **D1** — le socle | [`specs/001-modele-donnees-socle/`](specs/001-modele-donnees-socle/) |
-| La conception du cycle **D2** — capacités et verticales | [`specs/002-modele-donnees-verticales/`](specs/002-modele-donnees-verticales/) |
-| Ce que les portes ne prouvent pas, constaté à la main | [`specs/001-…/rapport-de-cycle.md`](specs/001-modele-donnees-socle/rapport-de-cycle.md), [`specs/002-…/rapport-de-cycle.md`](specs/002-modele-donnees-verticales/rapport-de-cycle.md) |
-| Ce que la base garantit sur la disponibilité, et ce qu'elle ne garantit pas | [`contracts/disponibilite.md`](specs/002-modele-donnees-verticales/contracts/disponibilite.md) |
-| Ce que la phase 3 doit faire du cas orphelin | [`contracts/sagas-inter-modules.md`](specs/002-modele-donnees-verticales/contracts/sagas-inter-modules.md) |
+| La conception du cycle **F1** — la coquille | [`specs/003-coquille-application/`](specs/003-coquille-application/) |
+| **Ce que les portes ne prouvent pas**, constaté à la main | les `rapport-de-cycle.md` de chaque cycle |
