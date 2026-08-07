@@ -14,7 +14,13 @@
  *
  * ⚠️ UN SEUL `<main>` DANS LE DOCUMENT. Le gabarit le porte ; une page n'en
  * écrit jamais un second (FR-032).
+ *
+ * ⚠️ LES TROIS EMPLACEMENTS SONT REMPLIS PAR LE GABARIT LUI-MÊME, jamais par la
+ * page. « Présents partout » ne se délègue pas : si chaque page devait remplir
+ * la barre, la première qui oublierait la rendrait vide, et personne ne le
+ * verrait avant la démonstration.
  */
+import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
 </script>
 
 <template>
@@ -23,12 +29,16 @@
       class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3.5 border-b border-line bg-surf px-5"
     >
       <!-- Emplacement du composant 09 · sélecteur d'établissement.
-           « Toujours en haut à gauche, il ne bouge jamais de place. » -->
+           « Toujours en haut à gauche, il ne bouge jamais de place. »
+           Rempli à T018, quand le composant existe. -->
       <div
         data-emplacement="etablissement"
         class="flex min-w-0 items-center gap-3.5"
       >
-        <slot name="etablissement" />
+        <span
+          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-ink"
+          aria-hidden="true"
+        >K</span>
       </div>
 
       <span class="flex-1" />
@@ -42,14 +52,14 @@
         <slot name="temoin" />
       </div>
 
-      <!-- Emplacements des deux réglages de la coquille : le thème et la
-           langue. Ce ne sont pas des réglages d'établissement — ils vivent sur
-           l'appareil, et c'est pourquoi ils sont ici et pas dans G1. -->
+      <!-- Les deux réglages de la coquille : le thème et la langue. Ce ne sont
+           pas des réglages d'établissement — ils vivent sur l'appareil, et
+           c'est pourquoi ils sont ici et pas dans G1. -->
       <div
         data-emplacement="reglages"
         class="flex items-center gap-1.5 border-l border-line pl-3.5"
       >
-        <slot name="reglages" />
+        <ReglagesCoquille />
       </div>
     </header>
 

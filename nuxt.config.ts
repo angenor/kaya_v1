@@ -51,6 +51,31 @@ export default defineNuxtConfig({
 
   future: { compatibilityVersion: 4 },
 
+  modules: ['@nuxtjs/i18n'],
+
+  // ⚠️ FRANÇAIS PAR DÉFAUT, ANGLAIS EN SECOND (constitution, principe 8).
+  // `no_prefix` : la langue n'entre PAS dans l'URL. Une route est visible, et
+  // `/fr/_ecrans` ferait entrer un détail d'implémentation dans la barre
+  // d'adresse — la même raison qui a fait nommer `S1` « /mes-envois » et non
+  // « /synchronisation ».
+  i18n: {
+    defaultLocale: 'fr',
+    strategy: 'no_prefix',
+    locales: [
+      { code: 'fr', language: 'fr-CI', name: 'Français' },
+      { code: 'en', language: 'en', name: 'English' },
+    ],
+    // La langue choisie survit au rechargement. Le nom du cookie est préfixé
+    // pour ne jamais entrer en collision sur la même origine.
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'kaya.langue',
+      redirectOn: 'root',
+      alwaysRedirect: false,
+      fallbackLocale: 'fr',
+    },
+  },
+
   app: {
     head: {
       htmlAttrs: { lang: 'fr' },

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs'
+
 import js from '@eslint/js'
 import intlify from '@intlify/eslint-plugin-vue-i18n'
 import vue from 'eslint-plugin-vue'
@@ -5,6 +7,48 @@ import tseslint from 'typescript-eslint'
 import vueParser from 'vue-eslint-parser'
 
 import kaya from './scripts/eslint/regles-kaya.mjs'
+
+/**
+ * LES AUTO-IMPORTS DE NUXT, LUS DEPUIS CE QUE LA PRÉPARATION ENGENDRE.
+ *
+ * ⚠️ CE N'EST PAS UNE LISTE TENUE À LA MAIN, et c'est le point : `useState`,
+ * `computed`, `navigateTo`… n'ont pas d'instruction `import`, donc `no-undef`
+ * les signale toutes. Une liste écrite à la main serait fausse au premier module
+ * ajouté, et on désactiverait `no-undef` — c'est-à-dire la règle qui attrape les
+ * vraies fautes de frappe.
+ *
+ * La source est `.nuxt/imports.d.ts`, engendré par `nuxt prepare` à
+ * l'installation. Elle grandit toute seule avec les modules.
+ */
+function autoImportsDeNuxt(): Record<string, 'readonly'> {
+  const chemin = new URL('./.nuxt/imports.d.ts', import.meta.url)
+  const noms = new Set<string>()
+  if (existsSync(chemin)) {
+    const contenu = readFileSync(chemin, 'utf8')
+    for (const bloc of contenu.matchAll(/export\s*\{([^}]*)\}/g)) {
+      for (const brut of bloc[1]!.split(',')) {
+        const nom = brut.trim().split(/\s+as\s+/).pop()?.trim()
+        if (nom && /^[A-Za-z_$][\w$]*$/.test(nom)) noms.add(nom)
+      }
+    }
+  }
+  // Les macros et les composables que la préparation ne déclare PAS dans ce
+  // fichier : `definePageMeta` est une macro du compilateur de pages, et les
+  // quatre suivantes viennent de vue-i18n. Constaté en cherchant dans `.nuxt/`,
+  // jamais supposé.
+  for (const nom of [
+    'definePageMeta',
+    'defineI18nConfig',
+    'defineI18nLocale',
+    'useI18n',
+    'useLocalePath',
+    'useSwitchLocalePath',
+    'useLocaleHead',
+  ]) {
+    noms.add(nom)
+  }
+  return Object.fromEntries([...noms].map((nom) => [nom, 'readonly' as const]))
+}
 
 /**
  * Le lint porte QUATRE RÈGLES OPPOSABLES, et aucune n'est décorative : chacune
@@ -66,6 +110,7 @@ export default tseslint.config(
         MediaQueryListEvent: 'readonly',
         HTMLElement: 'readonly',
         process: 'readonly',
+        ...autoImportsDeNuxt(),
       },
     },
     plugins: { kaya },
