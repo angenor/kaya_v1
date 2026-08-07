@@ -12,6 +12,13 @@ import { ETATS_PASTILLE, type EtatPastille } from '~/core/design-system/etatsPas
  *
  * ⚠️ LA PASTILLE N'EST PAS CLIQUABLE. Si elle doit l'être, elle devient un
  * bouton discret — et elle passe alors à 44 px.
+ *
+ * ⚠️ LE NOM DE L'ÉTAT N'EST PAS RENDU DANS LE HTML, ET C'EST UNE CORRECTION.
+ * Une première version portait `data-etat="horsLigne"` : constaté en cherchant
+ * les mots proscrits dans le document rendu, c'était le NOM INTERNE d'un état
+ * qui atteignait l'écran — au sens de SC-022, qui inspecte le HTML et non ce
+ * qu'un œil y lit. Seule la FORME est exposée, parce qu'un test doit pouvoir
+ * vérifier qu'un état n'est pas porté par la couleur seule.
  */
 const props = withDefaults(
   defineProps<{
@@ -33,7 +40,6 @@ const apparence = computed(() => ETATS_PASTILLE[props.etat])
       apparence.encre,
       contour ? ['border', apparence.bord, 'bg-transparent'] : apparence.fond,
     ]"
-    :data-etat="etat"
     :data-forme="apparence.forme"
   >
     <span

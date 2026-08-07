@@ -4,8 +4,11 @@ import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import BoutonPrincipal from '~/core/design-system/BoutonPrincipal.vue'
 import BoutonSecondaire from '~/core/design-system/BoutonSecondaire.vue'
 import CarteChiffre from '~/core/design-system/CarteChiffre.vue'
+import EtatVide from '~/core/design-system/EtatVide.vue'
 import LigneListe from '~/core/design-system/LigneListe.vue'
 import PastilleEtat from '~/core/design-system/PastilleEtat.vue'
+import SelecteurEtablissement from '~/core/design-system/SelecteurEtablissement.vue'
+import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vue'
 import TuileAction from '~/core/design-system/TuileAction.vue'
 import SelecteurSegmente, {
   type OptionSegment,
@@ -39,7 +42,41 @@ useHead({ title: () => t('guideDeStyle.titre') })
  * un test la confronte au nombre de sections numérotées du fichier de
  * référence. Un nombre écrit à la main a déjà été faux deux fois.
  */
-const SECTIONS = ['01', '02', '03', '04', '05', '06', '07', '08'] as const
+const SECTIONS = [
+  '01',
+  '02',
+  '03',
+  '04',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
+  '11',
+  '12',
+] as const
+
+/** Deux établissements : c'est ce qui fait exister l'état « plusieurs ». */
+const ETABLISSEMENTS_DEMO = [
+  {
+    id: 'deloria',
+    nom: t('guideDeStyle.demo.deloria'),
+    detail: t('guideDeStyle.demo.deloriaDetail'),
+  },
+  {
+    id: 'residence-test',
+    nom: t('guideDeStyle.demo.residenceTest'),
+    detail: t('guideDeStyle.demo.residenceTestDetail'),
+    alerte: true,
+  },
+]
+
+const OPTIONS_SEGMENT_DEMO: readonly OptionSegment[] = [
+  { valeur: 'toutes', libelleCle: 'guideDeStyle.demo.toutes' },
+  { valeur: 'impayees', libelleCle: 'guideDeStyle.demo.impayees', compteur: 3 },
+]
+const segmentDemo = ref('toutes')
 
 const { choix, choisir } = useTheme()
 const OPTIONS_THEME: readonly OptionSegment[] = CHOIX_THEME.map((valeur) => ({
@@ -376,6 +413,110 @@ const themeChoisi = computed({
           libelle-cle="guideDeStyle.demo.total"
           montant="101 000 F"
           etat="total"
+        />
+      </div>
+    </section>
+
+    <!-- 09 · Sélecteur d'établissement -->
+    <section
+      id="composant-09"
+      data-composant="09"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">09</span>
+        {{ $t('guideDeStyle.composant.09') }}
+      </h2>
+      <div class="flex flex-wrap items-start gap-6 rounded-xl border border-line bg-surf p-4">
+        <!-- Un seul établissement : il perd son chevron et cesse d'être un
+             bouton. Un bouton qui n'ouvre rien apprend à ne plus cliquer. -->
+        <SelecteurEtablissement
+          :etablissements="[ETABLISSEMENTS_DEMO[0]!]"
+          actif-id="deloria"
+        />
+        <!-- Plusieurs, dont un qui remonte une alerte. -->
+        <SelecteurEtablissement
+          :etablissements="ETABLISSEMENTS_DEMO"
+          actif-id="deloria"
+        />
+      </div>
+    </section>
+
+    <!-- 10 · Témoin de synchronisation -->
+    <section
+      id="composant-10"
+      data-composant="10"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">10</span>
+        {{ $t('guideDeStyle.composant.10') }}
+      </h2>
+      <!-- ⚠️ QUATRE LIBELLÉS, ET AUCUN NE NOMME LE RÉSEAU. « Connecté »,
+           « dégradé » et « hors ligne » sont des mots d'ingénieur : ce que
+           l'utilisateur lit dit si SON TRAVAIL est en sécurité. -->
+      <div class="flex flex-wrap items-center gap-3.5 rounded-xl border border-line bg-surf p-4">
+        <TemoinSynchronisation etat="connecte" />
+        <TemoinSynchronisation
+          etat="connecte"
+          :en-attente="4"
+        />
+        <TemoinSynchronisation etat="degrade" />
+        <TemoinSynchronisation etat="horsLigne" />
+        <TemoinSynchronisation
+          etat="connecte"
+          compact
+        />
+      </div>
+    </section>
+
+    <!-- 11 · État vide illustré -->
+    <section
+      id="composant-11"
+      data-composant="11"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">11</span>
+        {{ $t('guideDeStyle.composant.11') }}
+      </h2>
+      <div class="grid gap-3.5 md:grid-cols-2">
+        <div class="rounded-xl border border-line bg-surf">
+          <EtatVide
+            message-cle="guideDeStyle.demo.aucunSejour"
+            action-cle="guideDeStyle.demo.commencerUnPassage"
+          />
+        </div>
+        <div class="rounded-xl border border-line bg-surf">
+          <EtatVide
+            message-cle="guideDeStyle.demo.aucunResultat"
+            de-resultat
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 · Sélecteur segmenté -->
+    <section
+      id="composant-12"
+      data-composant="12"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">12</span>
+        {{ $t('guideDeStyle.composant.12') }}
+      </h2>
+      <div class="flex flex-wrap items-end gap-6 rounded-xl border border-line bg-surf p-4">
+        <SelecteurSegmente
+          v-model="segmentDemo"
+          :options="OPTIONS_SEGMENT_DEMO"
+        />
+        <!-- La variante tactile : `h-12`, `text-lead`. C'est elle qu'on emploie
+             debout, au comptoir. -->
+        <SelecteurSegmente
+          v-model="segmentDemo"
+          :options="OPTIONS_SEGMENT_DEMO"
+          taille="comptoir"
         />
       </div>
     </section>

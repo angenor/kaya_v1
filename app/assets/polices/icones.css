@@ -31,11 +31,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.ph.ph-caret-down::before { content: "\e136"; }
 .ph.ph-cash-register::before { content: "\ed80"; }
 .ph.ph-check-circle::before { content: "\e184"; }
 .ph.ph-door-open::before { content: "\e7e6"; }
 .ph.ph-funnel::before { content: "\e266"; }
 .ph.ph-info::before { content: "\e2ce"; }
+.ph.ph-magnifying-glass::before { content: "\e30c"; }
 .ph.ph-user-plus::before { content: "\e4d0"; }
 .ph.ph-warning::before { content: "\e4e0"; }
 .ph.ph-warning-circle::before { content: "\e4e2"; }

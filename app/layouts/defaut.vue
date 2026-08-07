@@ -21,6 +21,8 @@
  * verrait avant la démonstration.
  */
 import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
+import SelecteurEtablissement from '~/core/design-system/SelecteurEtablissement.vue'
+import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vue'
 </script>
 
 <template>
@@ -28,17 +30,15 @@ import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
     <header
       class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3.5 border-b border-line bg-surf px-5"
     >
-      <!-- Emplacement du composant 09 · sélecteur d'établissement.
+      <!-- Composant 09 · sélecteur d'établissement.
            « Toujours en haut à gauche, il ne bouge jamais de place. »
-           Rempli à T018, quand le composant existe. -->
+           Sa liste vient de la session, à T035 : ici, il rend son état
+           « un seul établissement », non cliquable. -->
       <div
         data-emplacement="etablissement"
         class="flex min-w-0 items-center gap-3.5"
       >
-        <span
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-ink"
-          aria-hidden="true"
-        >K</span>
+        <SelecteurEtablissement />
       </div>
 
       <span class="flex-1" />
@@ -49,7 +49,9 @@ import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
         data-emplacement="temoin"
         class="flex items-center"
       >
-        <slot name="temoin" />
+        <!-- Le décompte réel et l'état du réseau lui viennent de la file,
+             à T041. Il rend ici l'état nominal — « Enregistré ». -->
+        <TemoinSynchronisation compact />
       </div>
 
       <!-- Les deux réglages de la coquille : le thème et la langue. Ce ne sont
