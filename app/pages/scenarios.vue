@@ -14,7 +14,7 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
 import { useFile } from '~/core/file/useFile'
 import { CLASSES_ESSAI } from '~/core/scenarios/reglages'
 import { useScenarios } from '~/core/scenarios/useScenarios'
-import { useSession } from '~/core/session/useSession'
+import { etablissementDe, useSession } from '~/core/session/useSession'
 import { useCoquille } from '~/core/coquille/useCoquille'
 import { useInstallation } from '~/core/coquille/useInstallation'
 import { capacitesAbsentes } from '~/core/plateforme/capacites'
@@ -97,8 +97,9 @@ async function appliquerContexte(compteId: string, etablissementId: string): Pro
   const resolues = await fournisseur().comptes.resoudrePermissions(compteId, etablissementId)
   await definir({
     compteId,
-    etablissementId,
+    portee: { type: 'etablissement', id: etablissementId },
     permissions: resolues.ok ? resolues.valeur : [],
+    posteUnique: null,
   })
 }
 
@@ -113,7 +114,7 @@ async function appliquerContexte(compteId: string, etablissementId: string): Pro
  */
 if (
   session.value.compteId !== reglages.value.compteActif ||
-  session.value.etablissementId !== reglages.value.etablissementActif
+  etablissementDe(session.value) !== reglages.value.etablissementActif
 ) {
   await appliquerContexte(reglages.value.compteActif, reglages.value.etablissementActif)
 }

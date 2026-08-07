@@ -6,7 +6,8 @@ import type {
   PointDeVente,
 } from '~/core/donnees/etablissements/types'
 import * as deloria from '~/core/donnees/jeux/deloria'
-import * as test from '~/core/donnees/jeux/residence-test'
+import * as residenceTest from '~/core/donnees/jeux/residence-test'
+import * as tantieAdjo from '~/core/donnees/jeux/tantie-adjo'
 import { lireSimule, lireUnSimule } from '~/core/donnees/simulationCommune'
 
 /**
@@ -16,8 +17,17 @@ import { lireSimule, lireUnSimule } from '~/core/donnees/simulationCommune'
  * changer UNE LIGNE de liaison — pas retirer des gestionnaires un à un dans un
  * fichier partagé.
  */
-const TOUS_ETABLISSEMENTS = [...deloria.etablissements, ...test.etablissements]
-const TOUS_MODULES_ACTIFS = [...deloria.etablissementModules, ...test.etablissementModules]
+const TOUS_ETABLISSEMENTS = [
+  ...deloria.etablissements,
+  ...tantieAdjo.etablissements,
+  ...residenceTest.etablissements,
+]
+const TOUS_MODULES_ACTIFS = [
+  ...deloria.etablissementModules,
+  ...tantieAdjo.etablissementModules,
+  ...residenceTest.etablissementModules,
+]
+const TOUS_POINTS_DE_VENTE = [...deloria.pointsDeVente, ...tantieAdjo.pointsDeVente]
 
 export const simulationEtablissements: DonneesEtablissements = {
   listerEtablissements(): Promise<ResultatDomaine<readonly Etablissement[]>> {
@@ -45,7 +55,7 @@ export const simulationEtablissements: DonneesEtablissements = {
   listerPointsDeVente(portee: PorteeLecture): Promise<ResultatDomaine<readonly PointDeVente[]>> {
     // Résidence Test n'en a AUCUN, et c'est le point du test d'agnosticité.
     return lireSimule(
-      () => deloria.pointsDeVente.filter((p) => p.etablissementId === portee.etablissementId),
+      () => TOUS_POINTS_DE_VENTE.filter((p) => p.etablissementId === portee.etablissementId),
       [],
     )
   },

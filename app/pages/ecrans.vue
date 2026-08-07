@@ -13,7 +13,7 @@ import { ECRANS_PRODUIT, INSTRUMENTS, type EntreeEcran } from '~/core/ecrans/ind
 import { registreDesCapacites } from '~/core/plateforme/capacites'
 import { ACTIONS_DE_LA_COQUILLE, type ActionDeLaCoquille } from '~/core/session/actions'
 import { useAutorisation } from '~/core/session/useAutorisation'
-import { useSession } from '~/core/session/useSession'
+import { etablissementDe, useSession } from '~/core/session/useSession'
 
 /**
  * L'INDEX DES ÉCRANS — la page par laquelle le produit se regarde.
@@ -73,7 +73,12 @@ const etat = ref<EtatSurface>('chargement')
 const actionsAutorisees = ref<readonly ActionDeLaCoquille[]>([])
 
 async function chargerLesActions(): Promise<void> {
-  const etablissementId = session.value.etablissementId
+  // ⚠️ SOUS LA PORTÉE « TOUS », ON NE LIT PAS. Une lecture paramétrée par
+  // l'établissement n'a pas de sens sur une vue d'ensemble, et `etablissementDe`
+  // rend `null` dans ce cas comme dans celui d'un choix absent : les deux se
+  // traitent pareil ICI. Ce qui les distingue — ce que l'en-tête affirme, ce que
+  // l'accueil compose — lit `portee` directement.
+  const etablissementId = etablissementDe(session.value)
   if (etablissementId === null) {
     etat.value = 'vide'
     actionsAutorisees.value = []
@@ -126,7 +131,7 @@ const absenceAAnnoncer = computed(() => {
 // Le compte ou l'établissement change au panneau Scénarios : la surface suit,
 // sans rechargement. C'est ce qui rend le pas 9 du quickstart observable.
 watch(
-  () => [session.value.compteId, session.value.etablissementId, session.value.permissions] as const,
+  () => [session.value.compteId, session.value.portee, session.value.permissions] as const,
   () => void chargerLesActions(),
   { immediate: true, deep: true },
 )

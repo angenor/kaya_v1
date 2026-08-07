@@ -25,6 +25,28 @@ function sectionsDuDocument(): string[] {
   return [...contenu.matchAll(/^##\s+(\d{2})\s/gm)].map((m) => m[1]!)
 }
 
+/**
+ * Le corps NORMATIF d'une section numérotée : ce que le document prescrit.
+ *
+ * ⚠️ LES BLOCS DE CITATION SONT RETIRÉS, ET CE N'EST PAS UNE ÉCHAPPATOIRE. Un
+ * bloc `>` porte une note de décision — « ce paragraphe disait ceci, voici
+ * pourquoi il ne le dit plus » —, et une telle note **doit** citer ce qu'elle
+ * retire, sans quoi la correction serait tranchée en silence. Ce qui est
+ * opposable est ce que la section prescrit ; ce qui est cité est ce qu'elle a
+ * cessé de prescrire. **Constaté en écrivant ce test** : il a d'abord rougi sur
+ * sa propre note de correction.
+ */
+function sectionDuDocument(numero: string): string {
+  const lignes = readFileSync(COMPOSANTS_MD, 'utf8').split('\n')
+  const debut = lignes.findIndex((l) => new RegExp(`^##\\s+${numero}\\s`).test(l))
+  if (debut === -1) throw new Error(`section ${numero} introuvable dans composants.md`)
+  const reste = lignes.slice(debut + 1)
+  const fin = reste.findIndex((l) => /^##\s+\d{2}\s/.test(l))
+  return [lignes[debut], ...(fin === -1 ? reste : reste.slice(0, fin))]
+    .filter((ligne) => !/^\s*>/.test(ligne ?? ''))
+    .join('\n')
+}
+
 /** Les sections rendues par le guide de style : `data-composant="01"`. */
 function sectionsDuGuide(): string[] {
   const contenu = readFileSync(GUIDE, 'utf8')
@@ -60,6 +82,49 @@ describe('les seize composants canoniques', () => {
       fichiers.length,
       `fichiers : ${fichiers.join(', ')}`,
     ).toBe(16)
+  })
+
+  /**
+   * ⚠️ LA TUILE D'ACTION N'A PAS D'ÉTAT DÉSACTIVÉ, ET CE TEST EST CE QUI
+   * L'EMPÊCHE DE REVENIR.
+   *
+   * Le §05 en portait un — « désactivé (rôle) », « Désactivée, elle passe sur
+   * `bg-tile` et dit pourquoi (« rôle serveuse ») ». **Deux violations en une
+   * ligne** : une action non autorisée est **absente, jamais grisée**
+   * (constitution, principe 8), et le mot « rôle » n'atteint **jamais** l'écran
+   * (lexique). Le cycle F2 les a retirées ; sans ce test, la phrase reviendrait
+   * à la première relecture qui la croirait perdue — et elle serait recopiée
+   * dans un composant.
+   *
+   * Le contrôle porte sur le DOCUMENT, pas sur un composant : c'est le document
+   * qui fait foi, et c'est de lui que la faute serait repartie.
+   */
+  it("le §05 ne rétablit ni état désactivé, ni le mot « rôle » sur l'écran", () => {
+    const section = sectionDuDocument('05')
+
+    // ⚠️ LE CONTRÔLE PORTE SUR L'ÉNUMÉRATION DES ÉTATS, ET C'EST LÀ QUE L'ÉTAT
+    // RETIRÉ VIVAIT. Chercher le mot « désactivé » dans toute la section
+    // rougirait sur la phrase qui l'INTERDIT — « il n'existe aucun état
+    // désactivé » —, et un test qu'on ne peut satisfaire qu'en cessant
+    // d'expliquer sa règle est un test qui finit désactivé.
+    const etats = section.match(/^\*\*États\.\*\*(.*)$/m)?.[1] ?? ''
+    expect(etats.length, "la ligne « **États.** » du §05 n'a pas été trouvée").toBeGreaterThan(10)
+    expect(
+      etats,
+      "l'état « désactivé » est revenu à l'énumération du §05 — une tuile non autorisée est ABSENTE, jamais grisée (principe 8)",
+    ).not.toMatch(/désactiv/i)
+
+    // Le mot du lexique. « **Rôle.** » est l'étiquette structurelle de chaque
+    // section — elle nomme le rôle DU COMPOSANT et n'atteint aucun écran. Ce
+    // qui est proscrit, c'est le rôle RBAC rendu visible.
+    expect(section, '« rôle serveuse » est revenu au §05 — le mot « rôle » n’atteint jamais l’écran').not.toMatch(
+      /rôle\s+(serveuse|serveur|caissier|gérant)/i,
+    )
+    expect(section, '« (rôle) » est revenu au §05').not.toMatch(/\(rôle\)/i)
+
+    // Le sens positif : la règle qui vaut doit y être écrite, sans quoi le
+    // retrait aurait laissé un trou au lieu d'une décision.
+    expect(section).toContain("n'est pas rendue")
   })
 
   it('le guide IMPORTE chaque composant explicitement — c’est ce qui les branche', () => {

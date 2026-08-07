@@ -21,6 +21,7 @@ import type {
   Unite,
 } from '~/core/donnees/hebergement/types'
 import type { Article, CategorieArticle } from '~/core/donnees/ventes/types'
+import { ETABLISSEMENT_TANTIE_ADJO } from '~/core/donnees/jeux/tantie-adjo'
 
 /**
  * LE JEU DE DONNÉES DE LA RÉSIDENCE HÔTEL DELORIA — Abengourou, Côte d'Ivoire.
@@ -135,6 +136,22 @@ export const compteRoles: readonly CompteRole[] = [
   { id: 'cr-adjoua-caissier', tenantId: TENANT_DELORIA, compteId: 'compte-adjoua', roleId: 'role-caissier', etablissementId: ETABLISSEMENT_DELORIA },
   { id: 'cr-adjoua-reception', tenantId: TENANT_DELORIA, compteId: 'compte-adjoua', roleId: 'role-receptionniste', etablissementId: ETABLISSEMENT_DELORIA },
   { id: 'cr-yao-reception', tenantId: TENANT_DELORIA, compteId: 'compte-yao', roleId: 'role-receptionniste', etablissementId: ETABLISSEMENT_DELORIA },
+  // ── Chez Tantie Adjo — LA MÊME PERSONNE, DES RÔLES DIFFÉRENTS SELON LE SITE ─
+  //
+  // ⚠️ YAO RESTE RÉCEPTIONNISTE À DELORIA, ci-dessus, et il est gérant ET
+  // caissier au maquis. Ce n'est pas une redondance du jeu : c'est ce que
+  // FR-027 exige de prouver — **un droit détenu ailleurs ne suit pas la
+  // personne**. Basculer d'un site à l'autre recalcule l'union, et un accueil
+  // qui garderait les droits du site précédent ferait encaisser là où on n'y a
+  // pas droit.
+  //
+  // ⚠️ ET LE MAQUIS EST LE SECOND ÉTABLISSEMENT DU **MÊME TENANT**. Aucune
+  // exception n'est introduite ici : `cr-koffi-test` reste la seule liaison qui
+  // traverse un tenant, et elle porte son motif.
+  { id: 'cr-yao-tantie-adjo-gerant', tenantId: TENANT_DELORIA, compteId: 'compte-yao', roleId: 'role-gerant', etablissementId: ETABLISSEMENT_TANTIE_ADJO },
+  { id: 'cr-yao-tantie-adjo-caissier', tenantId: TENANT_DELORIA, compteId: 'compte-yao', roleId: 'role-caissier', etablissementId: ETABLISSEMENT_TANTIE_ADJO },
+  // M. Koffi, propriétaire de sa DEUXIÈME maison — lecture seule, comme ailleurs.
+  { id: 'cr-koffi-tantie-adjo', tenantId: TENANT_DELORIA, compteId: 'compte-koffi', roleId: 'role-proprietaire', etablissementId: ETABLISSEMENT_TANTIE_ADJO },
   { id: 'cr-aminata-serveur', tenantId: TENANT_DELORIA, compteId: 'compte-aminata', roleId: 'role-serveur', etablissementId: ETABLISSEMENT_DELORIA },
   { id: 'cr-koffi-deloria', tenantId: TENANT_DELORIA, compteId: 'compte-koffi', roleId: 'role-proprietaire', etablissementId: ETABLISSEMENT_DELORIA },
   // Le multi-établissement : la MÊME personne, propriétaire sur DEUX sites.

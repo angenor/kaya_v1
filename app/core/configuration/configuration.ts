@@ -18,6 +18,15 @@
 export const CLE_SEUIL_LATENCE_DEGRADEE = 'sync.latence_degradee_seuil_ms'
 
 /**
+ * ⚠️ L'INDICATIF PAR DÉFAUT EST UN PARAMÈTRE, JAMAIS UNE CONSTANTE — et c'est
+ * le paramètre qui décide si un numéro tapé sans indicatif est compris. La clé
+ * vient du Récapitulatif des paramètres d'établissement (`user-stories-v1.md`,
+ * CPT-01), qui fait foi. Le produit vise un **second pays** : un `+225` écrit
+ * dans le code serait la première ligne à corriger, et on l'oublierait.
+ */
+export const CLE_INDICATIF_TELEPHONIQUE_DEFAUT = 'identite.indicatif_telephonique_defaut'
+
+/**
  * Les valeurs initiales, par clé.
  *
  * ⚠️ « VALEUR INITIALE » ET NON « CONSTANTE ». La nuance décide de tout : une
@@ -29,6 +38,9 @@ export const CLE_SEUIL_LATENCE_DEGRADEE = 'sync.latence_degradee_seuil_ms'
  */
 const VALEURS_INITIALES: Readonly<Record<string, string>> = {
   [CLE_SEUIL_LATENCE_DEGRADEE]: '3000',
+  // « +225 (Côte d'Ivoire) », valeur initiale du Récapitulatif — celle que voit
+  // un établissement avant d'avoir réglé quoi que ce soit, pas une vérité.
+  [CLE_INDICATIF_TELEPHONIQUE_DEFAUT]: '+225',
 }
 
 /** Les surcharges posées en session — le panneau Scénarios les emploie. */

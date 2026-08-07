@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import * as deloria from '../../app/core/donnees/jeux/deloria'
 import * as test from '../../app/core/donnees/jeux/residence-test'
+import * as tantieAdjo from '../../app/core/donnees/jeux/tantie-adjo'
 
 /**
  * LE JEU SIMULÉ A LA **FORME** DU MODÈLE : mêmes noms de champs, mêmes types,
@@ -80,6 +81,7 @@ const CORRESPONDANCES = [
   { type: 'ModuleActivite', fichier: '10-etablissements.sql', table: 'module_activite', exemple: deloria.modulesActivite[0] },
   { type: 'EtablissementModule', fichier: '10-etablissements.sql', table: 'etablissement_module', exemple: deloria.etablissementModules[0] },
   { type: 'PointDeVente', fichier: '10-etablissements.sql', table: 'point_de_vente', exemple: deloria.pointsDeVente[0] },
+  { type: 'TablePdv', fichier: '10-etablissements.sql', table: 'table_pdv', exemple: tantieAdjo.tablesPdv[0] },
   { type: 'Personne', fichier: '20-comptes.sql', table: 'personne', exemple: deloria.personnes[0] },
   { type: 'Compte', fichier: '20-comptes.sql', table: 'compte', exemple: deloria.comptes[0] },
   { type: 'Role', fichier: '20-comptes.sql', table: 'role', exemple: deloria.roles[0] },
@@ -99,7 +101,7 @@ describe('le jeu simulé a la forme du modèle SQL', () => {
   it('inspecte assez de tables pour que son vert veuille dire quelque chose', () => {
     // Un extracteur cassé rendrait des listes vides, donc zéro écart, donc un
     // vert qui ne compare plus rien.
-    expect(CORRESPONDANCES.length).toBeGreaterThanOrEqual(18)
+    expect(CORRESPONDANCES.length).toBeGreaterThanOrEqual(19)
     for (const { fichier, table } of CORRESPONDANCES) {
       expect(colonnesDeLaTable(fichier, table).length, `${table}`).toBeGreaterThan(3)
     }
@@ -139,9 +141,17 @@ describe('le jeu simulé a la forme du modèle SQL', () => {
 })
 
 describe('les décomptes du jeu de Deloria', () => {
-  it('2 tenants, 2 établissements, 5 modules, 3 points de vente', () => {
+  it('2 tenants, 3 établissements, 5 modules, 3 points de vente', () => {
+    // ⚠️ DEUX TENANTS ET TROIS ÉTABLISSEMENTS, ET L'ÉCART EST LE POINT : un
+    // tenant porte PLUSIEURS établissements, et le maquis est le second de
+    // `deloria`. C'est ce que le modèle prévoit et ce que la maquette du
+    // propriétaire suppose — M. Koffi voit ses deux maisons côte à côte.
     expect([...deloria.tenants, ...test.tenants]).toHaveLength(2)
-    expect([...deloria.etablissements, ...test.etablissements]).toHaveLength(2)
+    expect([
+      ...deloria.etablissements,
+      ...tantieAdjo.etablissements,
+      ...test.etablissements,
+    ]).toHaveLength(3)
     expect(deloria.modulesActivite).toHaveLength(5)
     expect(deloria.pointsDeVente).toHaveLength(3)
     // Le pressing est un COMPTOIR : l'absence de tables EST le comptoir.
@@ -154,7 +164,7 @@ describe('les décomptes du jeu de Deloria', () => {
     const rolesAdjoua = deloria.compteRoles.filter((r) => r.compteId === 'compte-adjoua')
     expect(rolesAdjoua, 'Adjoua porte trois rôles — le cumul est la norme').toHaveLength(3)
     const koffi = deloria.compteRoles.filter((r) => r.compteId === 'compte-koffi')
-    expect(koffi, 'M. Koffi est propriétaire sur DEUX établissements').toHaveLength(2)
+    expect(koffi, 'M. Koffi est propriétaire sur TROIS établissements').toHaveLength(3)
   })
 
   it('17 unités en 5 catégories, plus la salle de réunion', () => {
@@ -235,6 +245,70 @@ describe('les décomptes du jeu de Deloria', () => {
     }
   })
 
+  it('Chez Tantie Adjo : UN SEUL module actif, une salle, neuf tables dont le comptoir', () => {
+    // ⚠️ C'EST L'UNIQUE LIGNE `etablissement_module` QUI REND SC-003 VÉRIFIABLE.
+    // Hébergement, bar, pressing et salle de réunion sont ABSENTS des actifs —
+    // et `listerModulesActifs` ne rend que les actifs, jamais un module inactif
+    // avec un drapeau. Aucun écran n'a donc à décider d'en griser un.
+    expect(tantieAdjo.etablissementModules).toHaveLength(1)
+    expect(tantieAdjo.etablissementModules[0]?.moduleActiviteId).toBe('module-restauration')
+    expect(tantieAdjo.pointsDeVente).toHaveLength(1)
+    expect(tantieAdjo.pointsDeVente[0]?.nom, 'le poste unique de Yao').toBe('La salle')
+    expect(tantieAdjo.pointsDeVente[0]?.avecTables).toBe(true)
+    // `caisse_id` est une colonne NUE, sans REFERENCES : `socle/caisse` est un
+    // autre module, et la simulation ne la remplit pas (principe 2, P-05).
+    expect(tantieAdjo.pointsDeVente[0]?.caisseId).toBeNull()
+
+    expect(tantieAdjo.tablesPdv, 'la salle de neuf tables').toHaveLength(9)
+    const comptoirs = tantieAdjo.tablesPdv.filter((t) => t.code === 'COMPTOIR')
+    expect(comptoirs, 'le comptoir est UNE table_pdv, pas un point de vente séparé').toHaveLength(1)
+    // Un libellé partout ferait croire que l'exploitant en a saisi un.
+    expect(tantieAdjo.tablesPdv.filter((t) => t.libelle !== null)).toEqual(comptoirs)
+  })
+
+  it('le maquis est le SECOND ÉTABLISSEMENT du tenant deloria, jamais un tenant propre', () => {
+    // ⚠️ CE TEST FERME LE SEUL RISQUE QU'OUVRE LE SENS D'IMPORT UNIQUE.
+    // `tantie-adjo.ts` écrit son tenant plutôt que de l'importer — l'importer
+    // formerait un cycle, `deloria.ts` lisant déjà l'identifiant du maquis. La
+    // divergence que l'écriture rendrait possible, cette assertion l'interdit.
+    for (const ligne of [
+      ...tantieAdjo.etablissements,
+      ...tantieAdjo.etablissementModules,
+      ...tantieAdjo.pointsDeVente,
+      ...tantieAdjo.tablesPdv,
+    ]) {
+      expect(ligne.tenantId, `${ligne.id}`).toBe(deloria.TENANT_DELORIA)
+    }
+    // Une seule liaison traverse un tenant dans tout le jeu, et elle porte son
+    // motif : `cr-koffi-test`, qui éprouve l'agnosticité du socle (ETB-02c).
+    const versTest = deloria.compteRoles.filter(
+      (r) => r.etablissementId === test.ETABLISSEMENT_TEST,
+    )
+    expect(versTest.map((r) => r.id)).toEqual(['cr-koffi-test'])
+  })
+
+  it('Yao : réceptionniste à Deloria, gérant ET caissier au maquis (FR-027)', () => {
+    // La MÊME personne, des rôles différents selon le site. Un droit détenu
+    // ailleurs ne suit pas la personne — et c'est ce que le jeu doit rendre
+    // observable, pas seulement possible.
+    const surDeloria = deloria.compteRoles
+      .filter((r) => r.compteId === 'compte-yao' && r.etablissementId === deloria.ETABLISSEMENT_DELORIA)
+      .map((r) => r.roleId)
+    expect(surDeloria).toEqual(['role-receptionniste'])
+
+    const surMaquis = deloria.compteRoles
+      .filter(
+        (r) =>
+          r.compteId === 'compte-yao' && r.etablissementId === tantieAdjo.ETABLISSEMENT_TANTIE_ADJO,
+      )
+      .map((r) => r.roleId)
+      .sort()
+    expect(surMaquis).toEqual(['role-caissier', 'role-gerant'])
+
+    // M. Koffi voit désormais TROIS sites — Deloria, le maquis, Résidence Test.
+    expect(deloria.compteRoles.filter((r) => r.compteId === 'compte-koffi')).toHaveLength(3)
+  })
+
   it('Résidence Test : 4 unités, une catégorie, UN SEUL module, aucun point de vente', () => {
     expect(test.unites).toHaveLength(4)
     expect(test.categories).toHaveLength(1)
@@ -249,7 +323,7 @@ describe('les décomptes du jeu de Deloria', () => {
   })
 
   it("aucun secret dans le jeu — ni empreinte, ni jeton", () => {
-    const serialise = JSON.stringify({ deloria, test })
+    const serialise = JSON.stringify({ deloria, test, tantieAdjo })
     for (const mot of ['empreinte', 'motDePasse', 'password', 'token', 'jeton', 'secret']) {
       expect(serialise.toLowerCase()).not.toContain(mot.toLowerCase())
     }

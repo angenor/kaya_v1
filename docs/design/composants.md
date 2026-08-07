@@ -113,7 +113,7 @@ La pastille n'est pas cliquable. Si elle doit l'être, elle devient un bouton di
 **Rôle.** La grande cible de l'écran d'accueil : un geste du métier par tuile, quatre à six
 au total.
 
-**États.** repos · survol · appui · avec compteur · désactivé (rôle) · variante compacte.
+**États.** repos · survol · appui · avec compteur · variante compacte.
 
 ```html
 <button class="min-h-28 rounded-lg bg-surf border border-line p-4 flex flex-col
@@ -122,8 +122,25 @@ au total.
 ```
 
 **Règles.** Surface entièrement cliquable : pas d'îlot de clic à l'intérieur. Le compteur
-(`bg-alerte`) ne s'affiche que s'il y a du travail en attente, jamais à zéro. Désactivée,
-elle passe sur `bg-tile` et dit **pourquoi** (« rôle serveuse »).
+(`bg-alerte`) ne s'affiche que s'il y a du travail en attente, jamais à zéro.
+
+**Une tuile dont la permission manque, ou dont le service est inactif ici, n'est pas rendue.**
+Il n'existe donc **aucun état désactivé** : les deux conditions se cumulent, et l'absence est
+totale — ni `bg-tile`, ni opacité, ni attribut `disabled`. Le test porte sur le **HTML rendu**.
+
+> ⚠️ **Correction du cycle F2, sur constat.** Ce paragraphe portait un état « désactivé (rôle) »
+> et la phrase *« Désactivée, elle passe sur `bg-tile` et dit pourquoi (« rôle serveuse ») »*.
+> **Deux violations en une ligne** : une action non autorisée est **absente, jamais grisée**
+> (constitution, principe 8 — griser donne une leçon d'organigramme sur un écran de travail et
+> laisse dans le document une cible que rien n'empêche d'actionner autrement) ; et le mot
+> **« rôle » n'atteint jamais l'écran** (`lexique.md` — on montre ce qui est possible, pas la
+> mécanique qui l'autorise). La constitution et le lexique priment sur ce document, et le
+> document perdant se corrige **dans le même changement** — l'employer tel quel aurait propagé
+> la faute au premier écran RBAC du produit, `R1`, dont onze écrans héritent le motif.
+>
+> **La variante compacte reste**, et c'est elle que la grille de tables des accueils serveuse et
+> maquis emploie : le même composant, portant une **pastille 04** au lieu d'une icône. Aucun
+> composant nouveau n'est dû de ce chef.
 
 ## 06 · Carte chiffre
 

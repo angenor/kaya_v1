@@ -75,3 +75,20 @@ export interface PointDeVente {
   readonly avecTables: boolean
   readonly caisseId: string | null
 }
+
+/**
+ * ← `etablissements.table_pdv`
+ *
+ * ⚠️ LE COMPTOIR EST UNE `table_pdv` DE CODE `COMPTOIR`, PAS UN POINT DE VENTE
+ * SÉPARÉ. « L'absence de tables **est** le comptoir » vaut pour un point de
+ * vente entier — le pressing de Deloria ; ici la salle du maquis a des tables
+ * **et** un comptoir, ce que la maquette montre. Les deux formes coexistent, et
+ * les confondre ferait disparaître l'une des deux.
+ */
+export interface TablePdv {
+  readonly id: string
+  readonly tenantId: string
+  readonly pointDeVenteId: string
+  readonly code: string
+  readonly libelle: string | null
+}
