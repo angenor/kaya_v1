@@ -46,20 +46,36 @@ ailleurs, donc pas de liste qui puisse diverger du répertoire.
 > le script et le répertoire. Il coûte le renommage d'un fichier si un schéma devait s'intercaler —
 > d'où les pas de dix, qui laissent neuf places libres entre chaque.
 
-| Ordre | Fichier | Schéma | Tables | Dont provisions |
-|---|---|---|---|---|
-| 1 | `00-conventions.sql` | *(aucun — rôles, extension, domaines, patrons)* | — | — |
-| 2 | `10-etablissements.sql` | `etablissements` | 19 | 6 |
-| 3 | `20-comptes.sql` | `comptes` | 11 | 1 |
-| 4 | `30-caisse.sql` | `caisse` | 12 | 3 |
-| 5 | `40-fiscalite.sql` | `fiscalite` | 10 | 2 |
-| 6 | `50-documents.sql` | `documents` | 3 | — |
-| 7 | `60-synchronisation.sql` | `synchronisation` | 3 | — |
-| 8 | `70-pilotage.sql` | `pilotage` | 1 | — |
-| 9 | `80-editeur.sql` | `editeur` | 8 | — |
-| 10 | `90-metriques.sql` | `metriques` | 2 | — |
-| 11 | `95-comptabilite.sql` | `comptabilite` | 2 | 2 |
-| | | **Total** | **71** | **14** |
+| Ordre | Fichier | Schéma | Famille de crate | Tables | Dont provisions |
+|---|---|---|---|---|---|
+| 1 | `00-conventions.sql` | *(aucun — rôles, extension, domaines, patrons)* | — | — | — |
+| 2 | `10-etablissements.sql` | `etablissements` | `socle/` | 19 | 6 |
+| 3 | `20-comptes.sql` | `comptes` | `socle/` | 11 | 1 |
+| 4 | `30-caisse.sql` | `caisse` | `socle/` | 12 | 3 |
+| 5 | `40-fiscalite.sql` | `fiscalite` | `socle/` | 10 | 2 |
+| 6 | `50-documents.sql` | `documents` | `socle/` | 3 | — |
+| 7 | `55-ventes.sql` | `ventes` | `socle/` | 11 | 1 |
+| 8 | `60-synchronisation.sql` | `synchronisation` | `socle/` | 3 | — |
+| 9 | `70-pilotage.sql` | `pilotage` | `socle/` | 1 | — |
+| 10 | `80-editeur.sql` | `editeur` | `socle/` | 8 | — |
+| 11 | `90-metriques.sql` | `metriques` | `socle/` | 2 | — |
+| 12 | `95-comptabilite.sql` | `comptabilite` | `socle/` | 2 | 2 |
+| 13 | `96-stocks.sql` | `stocks` | `capacites/` | 7 | — |
+| 14 | `97-hebergement.sql` | `hebergement` | `verticales/` | 26 | 5 |
+| 15 | `98-pressing.sql` | `pressing` | `verticales/` | 3 | — |
+| | | | **Total** | **118** | **20** |
+
+> **Ce tableau ÉNUMÈRE LES FICHIERS et peut annoncer ce qui vient ; la liste `## Schémas déclarés`
+> ci-dessous est OPPOSABLE et ne dit que ce qui existe.** Les deux listes ne sont pas de même
+> nature, et les confondre rendrait P-01 soit aveugle, soit rouge en permanence. Chaque schéma
+> entre à la liste opposable **dans le changement qui crée son fichier**.
+
+> **`ventes` s'intercale à `55-`, hors du pas de dix, et c'est ce que les pas de dix achètent.**
+> `ventes` est un crate de **`socle/`** : le placer à `99-`, avec les verticales, dirait le
+> contraire à qui lit le répertoire. L'ordre lexicographique n'est **aucunement** une contrainte
+> technique — aucune clé étrangère ne traverse un schéma, PostgreSQL accepterait n'importe quel
+> ordre. Il est **purement documentaire**, et c'est précisément pourquoi il doit dire la
+> hiérarchie de dépendance : c'est la seule information qu'il porte.
 
 ---
 
