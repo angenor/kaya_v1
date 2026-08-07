@@ -185,9 +185,54 @@ demarrer_base() {
 }
 
 # psql en lecture — rend des tuples nus, sans en-tête ni alignement.
+#
+# ⚠️ UNE REQUÊTE DE CONTRÔLE QUI ÉCHOUE DOIT ÊTRE ROUGE, JAMAIS VERTE.
+# C'était le défaut le plus dangereux du script, et il touchait LES TROIS PORTES.
+# Le mécanisme, en trois temps :
+#   1. psql écrit ses erreurs sur STDERR et sort en 1 ; la substitution de
+#      commande ne capturait que STDOUT, donc le résultat était une chaîne VIDE ;
+#   2. `set -e` est NEUTRALISÉ dans le corps d'une fonction appelée en
+#      « porte_pXX … || exit », donc rien n'arrêtait le script ;
+#   3. une chaîne vide est indiscernable de « aucun objet fautif » — et
+#      `rendre_verdict` imprimait « ✓ 118/118 » puis « VERT ».
+# Sur un contrôle de plancher, c'était pire encore : `[ "" -lt 90 ]` rend le code
+# 2 (« integer expression expected »), donc la branche du `if` N'EST PAS PRISE et
+# la porte imprimait « Plancher atteint » sur ZÉRO objet examiné.
+#
+# La correction tient en trois points, et les trois comptent :
+#   — STDERR est capturé ET le statut de psql est relevé ;
+#   — un échec rend un statut NON NUL, que chaque appelant transforme en ROUGE
+#     par « || return "$CODE_ROUGE" » — sans quoi le statut se perdrait dans la
+#     substitution de commande ;
+#   — l'erreur de psql est IMPRIMÉE : une porte qui échoue sans dire pourquoi
+#     envoie chercher pendant vingt minutes.
 interroger() {
-    (cd "$RACINE" && docker compose exec -T "$SERVICE" \
-        psql -X -q -A -t -v ON_ERROR_STOP=1 -U "$PROPRIETAIRE" -d "$BASE" -c "$1")
+    local sortie statut
+    sortie="$( (cd "$RACINE" && docker compose exec -T "$SERVICE" \
+        psql -X -q -A -t -v ON_ERROR_STOP=1 -U "$PROPRIETAIRE" -d "$BASE" -c "$1") 2>&1 )"
+    statut=$?
+    if [ "$statut" -ne 0 ]; then
+        printf '   ✗ LA REQUÊTE DE CONTRÔLE A ÉCHOUÉ — la porte ne peut RIEN prouver.\n' >&2
+        printf '%s\n' "$sortie" | sed 's/^/     /' >&2
+        return 1
+    fi
+    printf '%s' "$sortie"
+}
+
+# Interroge et EXIGE un entier. Second garde-fou, distinct du premier : une
+# requête peut réussir et rendre autre chose qu'un nombre — un `count(*)` devenu
+# `count(*), autre_chose`, une colonne renommée, un tuple vide. Comparer une
+# non-valeur avec `-lt` rend le code 2, que le `if` lit comme FAUX : le plancher
+# serait alors SAUTÉ au lieu de mordre, ce qui est l'inverse de sa raison d'être.
+interroger_nombre() {
+    local valeur
+    valeur="$(interroger "$1")" || return 1
+    if ! printf '%s' "$valeur" | grep -qE '^[0-9]+$'; then
+        printf '   ✗ LE CONTRÔLE N'\''A PAS RENDU UN NOMBRE — la porte ne peut RIEN prouver.\n' >&2
+        printf '     valeur obtenue : « %s »\n' "$valeur" >&2
+        return 1
+    fi
+    printf '%s' "$valeur"
 }
 
 # =============================================================================
@@ -299,7 +344,7 @@ porte_p01() {
     trouves="$(interroger "SELECT n.nspname FROM pg_namespace n
                            WHERE n.nspname NOT LIKE 'pg\\_%'
                              AND n.nspname NOT IN ('information_schema', 'public')
-                           ORDER BY 1;")"
+                           ORDER BY 1;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
 
     if [ "$declares" != "$trouves" ]; then
         printf '   ✗ les schémas de la base et ceux déclarés au README du modèle diffèrent\n'
@@ -312,9 +357,9 @@ porte_p01() {
         return "$CODE_ROUGE"
     fi
 
-    total="$(interroger "SELECT count(*) FROM pg_class c
+    total="$(interroger_nombre "SELECT count(*) FROM pg_class c
                          JOIN pg_namespace n ON n.oid = c.relnamespace
-                         WHERE $PERIMETRE_SQL;")"
+                         WHERE $PERIMETRE_SQL;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
 
     printf '   Périmètre : %d fichier(s) appliqué(s) · %d schéma(s) · %d table(s) inspectée(s)\n' \
         "$fichiers_appliques" "$(printf '%s\n' "$trouves" | grep -c . || true)" "$total"
@@ -339,7 +384,7 @@ porte_p01() {
               SELECT 1 FROM pg_attribute a
               WHERE a.attrelid = c.oid AND a.attname = 'tenant_id'
                 AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull)
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
     rendre_verdict "tenant_id NOT NULL" "$total" "$manquants" || echecs=1
 
     # --- Contrôle 2 : l'activation -----------------------------------------
@@ -347,7 +392,7 @@ porte_p01() {
         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE $PERIMETRE_SQL
           AND NOT (c.relrowsecurity AND c.relforcerowsecurity)
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
     rendre_verdict "ENABLE + FORCE" "$total" "$manquants" || echecs=1
 
     # --- Contrôle 3 : la politique -----------------------------------------
@@ -362,7 +407,7 @@ porte_p01() {
                 AND p.with_check IS NOT NULL
                 AND p.qual       LIKE '%current_setting(''app.current_tenant''::text, true)%'
                 AND p.with_check LIKE '%current_setting(''app.current_tenant''::text, true)%')
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
     rendre_verdict "politique isolation_tenant" "$total" "$manquants" \
         "(USING et WITH CHECK non nuls, second argument \`true\` présent)" || echecs=1
 
@@ -387,7 +432,7 @@ porte_p01() {
                 AND p.roles = '{kaya_owner}'::name[]
                 AND p.qual       IS NOT NULL
                 AND p.with_check IS NOT NULL)
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-01\n'; return "$CODE_ROUGE"; }
     rendre_verdict "politique administration_editeur" "$total" "$manquants" \
         "(FOR ALL TO kaya_owner, posée dès la création)" || echecs=1
 
@@ -460,7 +505,7 @@ porte_p02() {
     tables="$(interroger "SELECT n.nspname || '.' || c.relname || '|' || c.relname
         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE $PERIMETRE_SQL
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-02\n'; return "$CODE_ROUGE"; }
     nb_tables="$(printf '%s\n' "$tables" | grep -c . || true)"
 
     printf '   Périmètre : %d table(s) réelle(s) confrontée(s) à %d entité(s) extraite(s) du registre\n' \
@@ -570,7 +615,7 @@ porte_p05() {
     trouves="$(interroger "SELECT n.nspname FROM pg_namespace n
                            WHERE n.nspname NOT LIKE 'pg\\_%'
                              AND n.nspname NOT IN ('information_schema', 'public')
-                           ORDER BY 1;")"
+                           ORDER BY 1;")" || { printf '   ROUGE — P-05\n'; return "$CODE_ROUGE"; }
 
     if [ "$declares" != "$trouves" ]; then
         printf '   ✗ les schémas de la base et ceux déclarés au README du modèle diffèrent\n'
@@ -589,13 +634,13 @@ porte_p05() {
     # `contype = 'f'` sélectionne les contraintes de clé étrangère. conrelid
     # porte la table PORTEUSE, confrelid la table RÉFÉRENCÉE ; c'est la
     # comparaison de leurs relnamespace qui fait tout le contrôle.
-    total="$(interroger "SELECT count(*)
+    total="$(interroger_nombre "SELECT count(*)
         FROM pg_constraint k
         JOIN pg_class     cp ON cp.oid = k.conrelid
         JOIN pg_namespace np ON np.oid = cp.relnamespace
         WHERE k.contype = 'f'
           AND np.nspname NOT LIKE 'pg\\_%'
-          AND np.nspname NOT IN ('information_schema', 'public');")"
+          AND np.nspname NOT IN ('information_schema', 'public');")" || { printf '   ROUGE — P-05\n'; return "$CODE_ROUGE"; }
 
     printf '   Périmètre : %d schéma(s) · %d contrainte(s) de clé étrangère examinée(s)\n' \
         "$nb_schemas" "$total"
@@ -630,7 +675,7 @@ porte_p05() {
           AND np.nspname NOT LIKE 'pg\\_%'
           AND np.nspname NOT IN ('information_schema', 'public')
           AND np.nspname <> nr.nspname
-        ORDER BY 1;")"
+        ORDER BY 1;")" || { printf '   ROUGE — P-05\n'; return "$CODE_ROUGE"; }
 
     if [ -n "$inter" ]; then
         printf '   ✗ contrainte(s) inter-schémas trouvée(s) : %d\n' \
