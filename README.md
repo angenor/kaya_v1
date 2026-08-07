@@ -61,7 +61,7 @@ rouge.** Pas dix scripts qu'on lance de mémoire, dont on oublie le troisième.
 Elle enchaîne, dans cet ordre :
 
 ```
-lint → types → construction → tests d'unité → P-01 → P-02 → P-05 → P-03
+lint → types → construction → tests d'unité → P-01 → P-02 → P-05 → P-03 → P-04 → P-06
 ```
 
 ### Les préalables — avant les portes, parce qu'ils sont les moins chers
@@ -75,7 +75,7 @@ scripts/verifier.sh --prealables   # les quatre, et rien d'autre
 | **lint** | `eslint .` | les quatre règles opposables, et **aucune chaîne visible en dur** |
 | **types** | `nuxt typecheck` | un type faux que la construction ne regarde pas |
 | **construction** | `nuxt build`, **avec `KAYA_PAGE_TEMOIN=1`** | une application qui ne se construit pas |
-| **tests d'unité** | `vitest run` | 128 cas |
+| **tests d'unité** | `vitest run --coverage` | 134 cas — **avec la couverture**, que P-06 lit |
 
 > ⚠️ **Le drapeau `KAYA_PAGE_TEMOIN=1` n'est pas un réglage de confort.** Sans lui, les deux pages
 > témoin n'entrent pas au routeur et la suite `cycle-de-vie` **échoue** — elle échoue, elle ne se
@@ -93,6 +93,7 @@ monte déjà l'application et pilote les deux moteurs. *Ce qui compte est dedans
 | **P-03** | **Aucune dépendance en intervalle**, lockfile commité et couvrant, tags d'image exacts, environnement cohérent en trois écritures, et `docs/versions-reference.md` d'accord avec les manifestes **dans les deux sens**. Plus : **aucun `.github/workflows/`** — le serveur d'intégration vient en phase 3 | **non** |
 | **P-04** | **L'application démarre**, et chaque écran marqué **construit** à [`app/core/ecrans/index.ts`](app/core/ecrans/index.ts) s'atteint — sur **Chromium et WebKit**, en **clair et en sombre**. **Deux sens** : toute route servie est déclarée à l'index ; toute entrée construite est servie. Une entrée « pas commencé » **n'est pas exigible**. C'est ici que **les quatre suites de navigateur** s'exécutent | **non** |
 | **P-05** | **Aucune clé étrangère entre deux schémas** — les rattachements inter-modules sont des colonnes nues, et le cas orphelin est le **chemin nominal** d'une saga | oui |
+| **P-06** | **Tout point d'entrée est « branché » ou « dû »**, et tout branché est exercé. [`docs/points-entree.md`](docs/points-entree.md) déclare l'**intention**, `knip` dit le **fait**, et les deux se confrontent **dans les deux sens** : un « dû » qui a **acquis** un appelant rougit, un « branché » qui a **perdu** le sien rougit. La propriété « exercé » se lit à la couverture **par fonction** | **non** |
 
 Chaque porte déclare son **périmètre inspecté**, vérifie sa **complétude**, ne **modifie pas** ce
 qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déclaré.
@@ -105,6 +106,10 @@ qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déc
 > C'est un meilleur plancher que ceux de P-01, P-02 et P-05, qui portent une **constante** qu'un
 > cycle doit penser à relever — le cycle D2 a dû relever les trois. Celui de P-04 **croît tout seul**
 > avec l'application.
+>
+> **P-06 en porte TROIS**, et le plus important est celui des « dû » : un rapport `knip` devenu vide
+> — configuration cassée, chemin changé — rendrait **tout « dû » faux et tout « branché » vrai**, et
+> la porte passerait au vert **en ne comparant plus rien**.
 
 ### Sur un poste sans conteneur — le poste d'Abengourou
 
@@ -112,7 +117,7 @@ qu'elle inspecte, et prouve que sa **cible n'est pas vide** par un plancher déc
 scripts/verifier.sh --sans-conteneur
 ```
 
-**Exécute** les préalables, **P-03** et **P-04**. **Saute et NOMME** P-01, P-02 et P-05, en disant
+**Exécute** les préalables, **P-03**, **P-04** et **P-06**. **Saute et NOMME** P-01, P-02 et P-05, en disant
 ce que chacune aurait prouvé. Imprime « **VERT SOUS RÉSERVE** », **jamais « TOUT VERT »**.
 
 > **Sans le drapeau et sans démon, le script sort en code 3.** Un poste de développement sans
@@ -132,6 +137,7 @@ scripts/verifier.sh --porte p02
 scripts/verifier.sh --porte p03   # ni conteneur ni réseau
 scripts/verifier.sh --porte p04   # ni conteneur ni réseau — construit et sert l'application
 scripts/verifier.sh --porte p05
+scripts/verifier.sh --porte p06   # ni conteneur ni réseau — lit knip et la couverture
 ```
 
 ### Les tests négatifs — la preuve qu'une porte SAIT échouer
@@ -142,7 +148,8 @@ scripts/verifier.sh --test-negatif p02   # ajoute une table non déclarée au re
 scripts/verifier.sh --test-negatif p03   # introduit un « ^ » dans une version
 scripts/verifier.sh --test-negatif p04   # DEUX mutations, une PAR SENS
 scripts/verifier.sh --test-negatif p05   # ajoute une clé étrangère inter-schémas
-scripts/verifier.sh --test-negatif       # les cinq
+scripts/verifier.sh --test-negatif p06   # DEUX mutations, une PAR SENS
+scripts/verifier.sh --test-negatif       # les six
 ```
 
 | Porte | Mutation | Ce qu'elle prouve |
@@ -153,6 +160,8 @@ scripts/verifier.sh --test-negatif       # les cinq
 | **P-04** **A** | `/_scenarios` retirée de l'index, route servie | le **premier sens** — une route atteignable non déclarée |
 | **P-04** **B** | `/_guide-de-style` rendue inatteignable, entrée construite | le **second sens** — une entrée qui ne mène nulle part |
 | **P-05** | une clé étrangère ajoutée entre deux schémas | la clé inter-schémas est vue, **et nommée** |
+| **P-06** **A** | `SESSION_VIDE` acquiert un appelant, son entrée restant « dû » | le sens **« a acquis un appelant »** |
+| **P-06** **B** | l'import de `TuileAction` retiré du guide, son entrée restant « branché » | le sens **« a perdu son dernier appelant »** — *celui qu'on oublie d'écrire* |
 
 > **Une porte à deux sens a DEUX mutations.** Une seule ne prouverait qu'une moitié — et c'est
 > précisément la moitié manquante qui rendrait le contrôle muet.

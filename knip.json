@@ -10,7 +10,7 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "eslint.config.ts",
-    "scripts/polices/*.mjs",
+    "scripts/**/*.mjs",
     "tests/**/*.spec.ts"
   ],
   "project": ["app/**/*.{ts,vue}", "scripts/**/*.mjs", "tests/**/*.ts"],

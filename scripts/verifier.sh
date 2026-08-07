@@ -124,6 +124,11 @@ LES PORTES
            exigible. L'inventaire des routes vient DU BUILD, jamais d'une
            liste écrite à la main. C'est ici que les quatre suites de
            navigateur s'exécutent. NI CONTENEUR NI RÉSEAU.
+    P-06   TOUT POINT D'ENTRÉE EST « BRANCHÉ » OU « DÛ », et tout branché est
+           exercé. Deux sens : un « dû » qui a ACQUIS un appelant rougit, un
+           « branché » qui a PERDU le sien rougit. Un export sans référence
+           hors registre rougit. La propriété « exercé » se lit à la
+           couverture PAR FONCTION. Ni conteneur ni réseau.
     P-05   AUCUNE CLÉ ÉTRANGÈRE ENTRE DEUX SCHÉMAS. Les rattachements
            inter-modules sont des colonnes d'identifiant NUES ; une
            REFERENCES ajoutée de bonne foi ferait échouer en base
@@ -411,7 +416,10 @@ controles_prealables() {
     executer_prealable 'lint'                pnpm lint || return "$CODE_ROUGE"
     executer_prealable 'types'               pnpm typecheck || return "$CODE_ROUGE"
     construire_application                   || return "$CODE_ROUGE"
-    executer_prealable "tests d'unité"       pnpm test || return "$CODE_ROUGE"
+    # ⚠️ AVEC LA COUVERTURE, ET EN UNE SEULE EXÉCUTION. La porte P-06 lit le
+    # rapport par fonction ; lancer `pnpm test` puis `pnpm test:couverture`
+    # exécuterait les mêmes 134 cas deux fois pour le même verdict.
+    executer_prealable "tests d'unité"       pnpm test:couverture || return "$CODE_ROUGE"
 
     printf '   VERT\n'
     return 0
@@ -1576,6 +1584,280 @@ porte_p04() {
 }
 
 # =============================================================================
+# P-06 · tout point d'entrée est branché ou dû, et tout branché est exercé
+# =============================================================================
+#
+# L'ERREUR RÉELLE EST DOCUMENTÉE DANS LE DÉPÔT, et c'est ce qui autorise la
+# porte (principe 13) : `docs/design/lexique.md` version 1.3.0 — « fermerSession()
+# existait depuis le cycle CPT SANS AUCUN APPELANT — il n'y avait,
+# littéralement, aucun moyen de sortir de sa session ». Une fonction écrite,
+# compilée, passant le lint et les tests, et que rien n'appelait.
+#
+# ⚠️ DEUX ÉTATS, ET NON UN. Un contrôle « aucun export sans appelant » rendrait
+# rouge toute méthode légitimement en attente de la phase 3 — et ce cycle en
+# livre une trentaine. C'est « dû » qui rend la porte tenable, et c'est le SECOND
+# SENS qui l'empêche d'être muette : sans lui, tout déclarer « branché »
+# suffirait à la faire taire pour toujours.
+#
+# PÉRIMÈTRE INSPECTÉ (point 1 du contrat de porte)
+#   docs/points-entree.md          le registre — l'INTENTION, déclarée à la main
+#   la sortie JSON de `knip`       le FAIT — les exports sans référence
+#   .rapports/couverture/          la couverture PAR FONCTION, pour « exercé »
+#
+# ⚠️ CE QUI REND LA PORTE FIABLE N'EST PAS KNIP, C'EST UNE DÉCISION DE
+# CONCEPTION. L'auto-import de Nuxt supprime les instructions `import` : un
+# composant employé dans un gabarit ne serait référencé nulle part, et toute
+# analyse statique le déclarerait mort. La parade est structurelle — LE GUIDE DE
+# STYLE IMPORTE LES SEIZE COMPOSANTS EXPLICITEMENT, un par un —, et la porte le
+# vérifie plutôt que de l'espérer.
+
+readonly REGISTRE_POINTS="docs/points-entree.md"
+readonly COUVERTURE_JSON=".rapports/couverture/coverage-final.json"
+
+# Planchers, posés JUSTE SOUS LE RÉEL à la clôture du cycle : 121 entrées, 30
+# « dû », 9 « unité ». Un plancher se règle juste sous la valeur réelle, jamais
+# loin en dessous — sinon il cesse de mordre au premier retrait.
+readonly PLANCHER_ENTREES=110
+readonly PLANCHER_DUS=25
+readonly PLANCHER_UNITE=8
+readonly COMPOSANTS_CANONIQUES=16
+
+# Rend « chemin#nom<TAB>etat<TAB>exerce » pour chaque ligne du registre.
+p06_registre() {
+    awk -F'|' '
+        /^\| `[^`]+` \| (branché|dû) \|/ {
+            cle = $2; etat = $3; exerce = $4
+            gsub(/[` ]/, "", cle); gsub(/^ +| +$/, "", etat); gsub(/^ +| +$/, "", exerce)
+            print cle "\t" etat "\t" exerce
+        }
+    ' "$1"
+}
+
+# Rend « chemin#nom » pour chaque export SANS RÉFÉRENCE que knip rapporte.
+#
+# ⚠️ KNIP SORT EN CODE 1 DÈS QU'IL TROUVE QUELQUE CHOSE, ET C'EST SON MODE
+# NORMAL ICI : le dépôt porte trente entrées « dû », donc knip a toujours
+# quelque chose à dire. Traiter son code de sortie comme un échec ferait rougir
+# la porte sur le cas nominal ; c'est la SORTIE qu'on lit, pas le statut. En
+# revanche, une sortie qui ne contient pas de JSON est une vraie panne, et la
+# porte la distingue.
+p06_sans_reference() {
+    local sortie
+    sortie="$( (cd "$RACINE" && pnpm knip) 2>/dev/null )" || true
+    printf '%s' "$sortie" | node --input-type=commonjs -e '
+      let brut = "";
+      process.stdin.on("data", (d) => (brut += d));
+      process.stdin.on("end", () => {
+        const i = brut.indexOf("{\"issues\"");
+        if (i < 0) { process.exit(2); }
+        const j = JSON.parse(brut.slice(i, brut.lastIndexOf("}") + 1));
+        // Le jeu de donnees est HORS PERIMETRE, et declare comme tel dans le
+        // registre : app/core/donnees/jeux/ DISPARAIT au branchement de la
+        // phase 3. Y tenir un registre reviendrait a tenir la comptabilite de
+        // ce que le cycle suivant supprimera.
+        // (Sans accent ni apostrophe : ce programme vit dans une chaine shell.)
+        const horsPerimetre = (chemin) => chemin.includes("/donnees/jeux/");
+        for (const it of j.issues) {
+          if (horsPerimetre(it.file)) continue;
+          for (const e of it.exports || []) process.stdout.write(it.file + "#" + e.name + "\n");
+          // Un FICHIER inutilise sort sous sa cle de registre — le chemin nu,
+          // sans « # » : c est ainsi qu un composant est inscrit, et les deux
+          // ensembles doivent parler la meme langue pour etre comparables.
+          for (const f of it.files || []) {
+            if (!horsPerimetre(f.name)) process.stdout.write(f.name + "\n");
+          }
+        }
+      });
+    '
+}
+
+# Rend « chemin#nom » pour chaque fonction du rapport de couverture ayant AU
+# MOINS UN PASSAGE. Par FONCTION, jamais par fichier : « ce fichier est testé »
+# et « cette méthode est appelée par un test » ne sont pas la même affirmation.
+p06_fonctions_exercees() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const rapport = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      // Le rapport porte des chemins ABSOLUS, ceux de la machine qui a lance
+      // les tests. On relativise sur le segment app/ plutot que sur la racine
+      // passee : le test negatif fait tourner la porte depuis une COPIE, et une
+      // relativisation sur la racine y rendrait alors ZERO fonction exercee —
+      // la porte aurait rougi sur une copie intacte, en accusant le produit.
+      for (const [absolu, d] of Object.entries(rapport)) {
+        const i = absolu.lastIndexOf("/app/");
+        const rel = i >= 0 ? absolu.slice(i + 1) : absolu;
+        for (const [k, fn] of Object.entries(d.fnMap || {})) {
+          if ((d.f || {})[k] > 0) process.stdout.write(rel + "#" + fn.name + "\n");
+        }
+      }
+    ' "$1"
+}
+
+# porte_p06 <racine des sources> [fichier de rapport knip]
+#
+# ⚠️ LE SECOND ARGUMENT EXISTE POUR LES TESTS NÉGATIFS, ET IL EST DÉCLARÉ ICI
+# PLUTÔT QUE CACHÉ. `knip` analyse LE DÉPÔT, pas une copie de travail : sans lui,
+# aucune mutation ne pourrait produire « ce point d'entrée a acquis un appelant »
+# sans écrire dans le dépôt — ce qu'une porte ne fait jamais. La mutation porte
+# donc sur L'ENTRÉE de la porte, ce qui est exactement ce qu'on veut éprouver :
+# la porte confronte deux ensembles, et on lui en donne un faux.
+porte_p06() {
+    local racine="${1:-$RACINE}"
+    local rapport_knip="${2:-}"
+    local registre="$racine/$REGISTRE_POINTS"
+    local guide="$racine/app/pages/guide-de-style.vue"
+    local echecs=0
+
+    printf '\n── P-06 · tout point d'\''entrée est branché ou dû, et tout branché est exercé\n'
+
+    if [ ! -f "$registre" ]; then
+        printf '   ✗ le registre est introuvable : %s\n' "$registre"
+        printf '   ROUGE — P-06\n'
+        return "$CODE_ROUGE"
+    fi
+
+    local entrees sans_ref nb_entrees nb_sans_ref
+    entrees="$(p06_registre "$registre")"
+    if [ -n "$rapport_knip" ]; then
+        sans_ref="$(cat "$rapport_knip")"
+        printf '   Source : rapport fourni (%s) — mode test négatif\n' "$(basename "$rapport_knip")"
+    elif ! sans_ref="$(p06_sans_reference)"; then
+        printf '   ✗ la sortie de knip ne contient aucun JSON — la porte ne peut RIEN prouver.\n'
+        printf '     Un rapport illisible rendrait tout « dû » faux et tout « branché » vrai.\n'
+        printf '   ROUGE — P-06\n'
+        return "$CODE_ROUGE"
+    fi
+
+    nb_entrees="$(printf '%s\n' "$entrees" | grep -c . || true)"
+    nb_sans_ref="$(printf '%s\n' "$sans_ref" | grep -c . || true)"
+
+    local dus branches unite
+    dus="$(printf '%s\n' "$entrees" | awk -F'\t' '$2 == "dû" { print $1 }' | LC_ALL=C sort -u)"
+    branches="$(printf '%s\n' "$entrees" | awk -F'\t' '$2 == "branché" { print $1 }' | LC_ALL=C sort -u)"
+    unite="$(printf '%s\n' "$entrees" | awk -F'\t' '$3 == "unité" { print $1 }' | LC_ALL=C sort -u)"
+
+    local nb_dus nb_branches nb_unite
+    nb_dus="$(printf '%s\n' "$dus" | grep -c . || true)"
+    nb_branches="$(printf '%s\n' "$branches" | grep -c . || true)"
+    nb_unite="$(printf '%s\n' "$unite" | grep -c . || true)"
+
+    printf '   Périmètre : %d entrée(s) au registre · %d export(s) sans référence chez knip\n' \
+        "$nb_entrees" "$nb_sans_ref"
+    printf '               %d « branché » · %d « dû » · %d exercé(s) par les tests d'\''unité\n' \
+        "$nb_branches" "$nb_dus" "$nb_unite"
+
+    # --- Non-vacuité · TROIS planchers, des deux côtés ----------------------
+    # ⚠️ LE PLUS IMPORTANT EST CELUI DES « DÛ ». Un rapport knip devenu vide —
+    # configuration cassée, chemin changé — rendrait TOUT « dû » faux et TOUT
+    # « branché » vrai, et la porte passerait au vert EN NE COMPARANT PLUS RIEN.
+    # C'est exactement le mode de défaillance qu'un plancher existe pour refuser.
+    local plancher_rouge=0
+    [ "$nb_entrees" -lt "$PLANCHER_ENTREES" ] && plancher_rouge=1
+    [ "$nb_dus" -lt "$PLANCHER_DUS" ] && plancher_rouge=1
+    [ "$nb_unite" -lt "$PLANCHER_UNITE" ] && plancher_rouge=1
+    if [ "$plancher_rouge" -eq 1 ]; then
+        printf '   ✗ Plancher : %d entrée(s) (min %d) · %d « dû » (min %d) · %d unité (min %d)\n' \
+            "$nb_entrees" "$PLANCHER_ENTREES" "$nb_dus" "$PLANCHER_DUS" "$nb_unite" "$PLANCHER_UNITE"
+        printf '   ROUGE — P-06\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   Planchers : %d/%d entrée(s) · %d/%d « dû » · %d/%d unité — atteints des trois côtés\n' \
+        "$nb_entrees" "$PLANCHER_ENTREES" "$nb_dus" "$PLANCHER_DUS" "$nb_unite" "$PLANCHER_UNITE"
+
+    # --- C0 · le guide de style importe les SEIZE composants EXPLICITEMENT --
+    # Sans cette condition, l'analyse reposerait sur une heuristique d'auto-
+    # import et déclarerait mort tout le design system.
+    # ⚠️ ON COMPTE LES CHEMINS IMPORTÉS, PAS LES LIGNES `import`, et le constat
+    # l'a imposé : le seizième composant est importé avec un type nommé, donc
+    # sur TROIS lignes. Un motif ancré sur « ^import … from » en trouvait quinze
+    # et faisait rougir la porte sur un guide parfaitement conforme.
+    local imports_explicites
+    imports_explicites="$(grep -oE "from '~/core/design-system/[A-Za-z]+\.vue'" "$guide" \
+        | LC_ALL=C sort -u | grep -c . || true)"
+    if [ "$imports_explicites" -lt "$COMPOSANTS_CANONIQUES" ]; then
+        printf '   ✗ %-38s %d/%d\n' 'le guide importe explicitement' "$imports_explicites" "$COMPOSANTS_CANONIQUES"
+        printf '     Sans les imports explicites, knip déclarerait mort TOUT le design system.\n'
+        echecs=$((echecs + 1))
+    else
+        printf '   ✓ %-38s %d/%d (ce qui rend l'\''analyse fiable)\n' \
+            'le guide importe explicitement' "$imports_explicites" "$COMPOSANTS_CANONIQUES"
+    fi
+
+    # --- C1 · un « dû » DOIT être sans référence — PREMIER SENS -------------
+    local acquis nb_acquis
+    acquis="$(LC_ALL=C comm -23 <(printf '%s\n' "$dus") <(printf '%s\n' "$sans_ref" | LC_ALL=C sort -u))"
+    nb_acquis="$(printf '%s\n' "$acquis" | grep -c . || true)"
+    if [ "$nb_acquis" -eq 0 ]; then
+        printf '   ✓ %-38s %d/%d (premier sens)\n' '« dû » sans appelant' "$nb_dus" "$nb_dus"
+    else
+        printf '   ✗ %-38s %d/%d (PREMIER SENS — a ACQUIS un appelant)\n' \
+            '« dû » sans appelant' "$((nb_dus - nb_acquis))" "$nb_dus"
+        printf '%s\n' "$acquis" | sed 's/^/     A ACQUIS UN APPELANT : /'
+        printf '     L'\''état passe à « branché » dans le même changement.\n'
+        echecs=$((echecs + 1))
+    fi
+
+    # --- C2 · un « branché » NE DOIT PAS être sans référence — SECOND SENS --
+    # ⚠️ C'EST LE SENS QUI COMPTE LE PLUS, et c'est celui qu'on oublie d'écrire.
+    local perdus nb_perdus
+    perdus="$(LC_ALL=C comm -12 <(printf '%s\n' "$branches") <(printf '%s\n' "$sans_ref" | LC_ALL=C sort -u))"
+    nb_perdus="$(printf '%s\n' "$perdus" | grep -c . || true)"
+    if [ "$nb_perdus" -eq 0 ]; then
+        printf '   ✓ %-38s %d/%d (second sens)\n' '« branché » avec appelant' "$nb_branches" "$nb_branches"
+    else
+        printf '   ✗ %-38s %d/%d (SECOND SENS — a PERDU son dernier appelant)\n' \
+            '« branché » avec appelant' "$((nb_branches - nb_perdus))" "$nb_branches"
+        printf '%s\n' "$perdus" | sed 's/^/     A PERDU SON DERNIER APPELANT : /'
+        echecs=$((echecs + 1))
+    fi
+
+    # --- C3 · aucun export sans référence HORS REGISTRE ---------------------
+    # Une unité hors registre échappe aux deux sens : elle ne peut ni acquérir
+    # ni perdre, puisque personne n'a déclaré ce qu'elle devait être.
+    local hors nb_hors toutes_cles
+    toutes_cles="$(printf '%s\n' "$entrees" | cut -f1 | LC_ALL=C sort -u)"
+    hors="$(LC_ALL=C comm -23 <(printf '%s\n' "$sans_ref" | LC_ALL=C sort -u) <(printf '%s\n' "$toutes_cles"))"
+    nb_hors="$(printf '%s\n' "$hors" | grep -c . || true)"
+    if [ "$nb_hors" -eq 0 ]; then
+        printf '   ✓ %-38s %d/%d\n' 'aucun export hors registre' "$nb_sans_ref" "$nb_sans_ref"
+    else
+        printf '   ✗ %-38s %d/%d\n' 'aucun export hors registre' "$((nb_sans_ref - nb_hors))" "$nb_sans_ref"
+        printf '%s\n' "$hors" | sed 's/^/     HORS REGISTRE : /'
+        echecs=$((echecs + 1))
+    fi
+
+    # --- C4 · tout « exercé par : unité » porte au moins un passage ---------
+    if [ ! -f "$racine/$COUVERTURE_JSON" ]; then
+        printf '   ✗ le rapport de couverture est absent : %s\n' "$COUVERTURE_JSON"
+        printf '     Lancez « pnpm test:couverture » — la porte le fait elle-même en mode complet.\n'
+        echecs=$((echecs + 1))
+    else
+        local exercees non_exercees nb_non_exercees
+        exercees="$(p06_fonctions_exercees "$racine/$COUVERTURE_JSON" | LC_ALL=C sort -u)"
+        non_exercees="$(LC_ALL=C comm -23 <(printf '%s\n' "$unite") <(printf '%s\n' "$exercees"))"
+        nb_non_exercees="$(printf '%s\n' "$non_exercees" | grep -c . || true)"
+        if [ "$nb_non_exercees" -eq 0 ]; then
+            printf '   ✓ %-38s %d/%d (couverture PAR FONCTION)\n' \
+                '« unité » exercé par un test' "$nb_unite" "$nb_unite"
+        else
+            printf '   ✗ %-38s %d/%d (couverture PAR FONCTION)\n' \
+                '« unité » exercé par un test' "$((nb_unite - nb_non_exercees))" "$nb_unite"
+            printf '%s\n' "$non_exercees" | sed 's/^/     ZÉRO PASSAGE : /'
+            echecs=$((echecs + 1))
+        fi
+        printf '   · %d entrée(s) « navigateur » — leur preuve est P-04, dans la même commande\n' \
+            "$((nb_branches - nb_unite))"
+    fi
+
+    if [ "$echecs" -gt 0 ]; then
+        printf '   ROUGE — P-06\n'
+        return "$CODE_ROUGE"
+    fi
+    printf '   VERT\n'
+    return "$CODE_OK"
+}
+
+# =============================================================================
 # Tests négatifs — la preuve qu'une porte SAIT échouer
 # =============================================================================
 #
@@ -2127,6 +2409,148 @@ test_negatif_p04() {
     return "$CODE_OK"
 }
 
+# --- Tests négatifs de P-06 — DEUX, UN PAR SENS ------------------------------
+#
+#   A · premier sens  — un « dû » ACQUIERT un appelant. La mutation change l'état
+#                       déclaré d'une entrée réellement sans appelant : le
+#                       registre annonce alors « branché » ce que knip voit sans
+#                       référence, et c'est exactement l'erreur qu'on commet en
+#                       oubliant de mettre le registre à jour.
+#   B · second sens   — un « branché » PERD son dernier appelant. La mutation
+#                       retire l'import explicite d'un composant du guide de
+#                       style, son entrée restant « branché ».
+#
+# ⚠️ LE NÉGATIF B EST CELUI QUI COMPTE LE PLUS, et il faut dire pourquoi : c'est
+# le versant qu'on oublie d'écrire. SANS LUI, TOUT DÉCLARER « BRANCHÉ » RENDRAIT
+# LE CONTRÔLE MUET — la porte resterait verte pour toujours sur un registre
+# entièrement faux.
+#
+# ⚠️ ET LE TROISIÈME CONSTAT N'EST PAS UNE MUTATION : un « dû » sans appelant NE
+# DOIT PAS faire rougir. C'est ce qui distingue P-06 d'un contrôle « aucun code
+# mort », qui serait rouge dès la première méthode en attente de la phase 3.
+readonly CIBLE_P06_A="app/core/session/useSession.ts#SESSION_VIDE"
+readonly CIBLE_P06_B="app/core/design-system/TuileAction.vue"
+
+# La copie de travail de P-06 : le registre, le guide de style, la couverture, et
+# LE RAPPORT KNIP — c'est ce dernier que les deux mutations altèrent.
+copier_perimetre_p06() {
+    local copie
+    copie="$(mktemp -d)"
+    mkdir -p "$copie/docs" "$copie/app/pages" "$copie/.rapports/couverture"
+    cp "$RACINE/$REGISTRE_POINTS"   "$copie/$REGISTRE_POINTS"
+    cp "$RACINE/app/pages/guide-de-style.vue" "$copie/app/pages/guide-de-style.vue"
+    cp "$RACINE/$COUVERTURE_JSON"   "$copie/$COUVERTURE_JSON"
+    p06_sans_reference > "$copie/knip.txt"
+    copies_de_travail="$copies_de_travail $copie"
+    printf '%s' "$copie"
+}
+
+empreinte_p06() {
+    { cksum < "$RACINE/$REGISTRE_POINTS"
+      cksum < "$RACINE/app/pages/guide-de-style.vue"; } | cksum
+}
+
+# Retire l'import explicite d'un composant du guide de style.
+retirer_import_du_guide() {
+    local fichier="$1" composant="$2" tampon
+    tampon="$(mktemp)"
+    grep -v "from '~/core/design-system/$composant.vue'" "$fichier" > "$tampon"
+    mv "$tampon" "$fichier"
+}
+
+p06_exiger_rouge() {
+    local libelle="$1" racine="$2" objet="$3" marque="$4"
+    local journal
+    journal="$(mktemp)"
+
+    if porte_p06 "$racine" "$racine/knip.txt" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur %s.\n' "$libelle"
+        printf '     P-06 est AVEUGLE dans ce sens : un vert de cette porte ne veut rien dire.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    local manquants=""
+    grep -qF "$objet" "$journal" || manquants="$manquants $objet"
+    grep -qF "$marque" "$journal" || manquants="$manquants « $marque »"
+    if [ -n "$manquants" ]; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER :%s\n' "$manquants"
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|A PERDU|A ACQUIS|HORS REGISTRE' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+    rm -f "$journal"
+    return "$CODE_OK"
+}
+
+test_negatif_p06() {
+    local copie empreinte_avant empreinte_apres statut journal
+
+    printf '\n── TEST NÉGATIF P-06 · DEUX mutations, une par sens (copies de travail)\n'
+
+    empreinte_avant="$(empreinte_p06)"
+
+    if [ ! -f "$RACINE/$COUVERTURE_JSON" ]; then
+        executer_prealable 'couverture (pour P-06)' pnpm test:couverture || return "$CODE_ROUGE"
+    fi
+
+    # ── Le premier temps, et le TROISIÈME CONSTAT ───────────────────────────
+    copie="$(copier_perimetre_p06)"
+    journal="$(mktemp)"
+    if ! porte_p06 "$copie" "$copie/knip.txt" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ P-06 a rougi sur la copie INTACTE : la copie est mal formée.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    local nb_dus
+    nb_dus="$(grep -oE '· [0-9]+ « dû »' "$journal" | grep -oE '[0-9]+' | head -n 1)"
+    rm -f "$journal"
+    if [ -z "$nb_dus" ] || [ "$nb_dus" -eq 0 ]; then
+        printf '   ✗ AUCUNE entrée « dû » : le troisième constat ne prouve rien.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-06 est VERTE sur la copie intacte, AVEC %s entrée(s) « dû » sans appelant —\n' "$nb_dus"
+    printf '   le troisième constat tient : un « dû » sans appelant NE FAIT PAS rougir\n'
+
+    # ── A · premier sens — un « dû » ACQUIERT un appelant ───────────────────
+    # La mutation retire l'entrée de l'ensemble « sans référence » : c'est
+    # EXACTEMENT ce que knip rapporterait le jour où quelqu'un l'appelle, sans
+    # penser à changer son état au registre.
+    printf '\n   A · %s acquiert un appelant, son entrée restant « dû »\n' "$CIBLE_P06_A"
+    copie="$(copier_perimetre_p06)"
+    grep -vF "$CIBLE_P06_A" "$copie/knip.txt" > "$copie/knip.tmp" && mv "$copie/knip.tmp" "$copie/knip.txt"
+    p06_exiger_rouge "un « dû » qui a acquis un appelant" "$copie" "$CIBLE_P06_A" "PREMIER SENS"
+    statut=$?
+    [ "$statut" -eq 0 ] || return "$statut"
+
+    # ── B · second sens — un « branché » PERD son dernier appelant ──────────
+    # ⚠️ LA MUTATION FAIT LES DEUX GESTES QUE LA RÉALITÉ FAIT ENSEMBLE : l'import
+    # explicite disparaît du guide de style, ET knip signale le composant comme
+    # inutilisé. C'est le versant qu'on oublie d'écrire — sans lui, tout déclarer
+    # « branché » rendrait le contrôle muet.
+    printf '\n   B · l'\''import de %s retiré du guide, son entrée restant « branché »\n' "$CIBLE_P06_B"
+    copie="$(copier_perimetre_p06)"
+    retirer_import_du_guide "$copie/app/pages/guide-de-style.vue" "TuileAction"
+    printf '%s\n' "$CIBLE_P06_B" >> "$copie/knip.txt"
+    p06_exiger_rouge "un composant sans import explicite" "$copie" "$CIBLE_P06_B" "SECOND SENS"
+    statut=$?
+    [ "$statut" -eq 0 ] || return "$statut"
+
+    empreinte_apres="$(empreinte_p06)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ LE PÉRIMÈTRE DE P-06 A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '\n   Les DEUX sens rougissent, chacun EN NOMMANT SON OBJET — TEST NÉGATIF VERT\n'
+    printf '   docs/points-entree.md et app/pages/guide-de-style.vue inchangés\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -2259,6 +2683,8 @@ main() {
             portes_passees=$((portes_passees + 1))
             porte_p04 "$RACINE" "$INVENTAIRE_ROUTES" oui || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
+            porte_p06 "$RACINE" || exit "$CODE_ROUGE"
+            portes_passees=$((portes_passees + 1))
             ;;
         prealables)
             controles_prealables || exit "$CODE_ROUGE"
@@ -2274,7 +2700,8 @@ main() {
                 p03) porte_p03 "$RACINE"           || exit "$CODE_ROUGE" ;;
                 p04) porte_p04 "$RACINE" "$INVENTAIRE_ROUTES" oui || exit "$CODE_ROUGE" ;;
                 p05) porte_p05 "$MODELE_REFERENCE" || exit "$CODE_ROUGE" ;;
-                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02, p03, p04 ou p05)" ;;
+                p06) porte_p06 "$RACINE"           || exit "$CODE_ROUGE" ;;
+                *)   erreur_usage "porte inconnue : $porte (attendu : p01, p02, p03, p04, p05 ou p06)" ;;
             esac
             portes_passees=1
             ;;
@@ -2296,6 +2723,10 @@ main() {
                     test_negatif_p04 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
+                p06)
+                    test_negatif_p06 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
                 p05)
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
                     portes_passees=1
@@ -2306,10 +2737,11 @@ main() {
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
                     test_negatif_p03 || exit "$CODE_AVEUGLE"
                     test_negatif_p04 || exit "$CODE_AVEUGLE"
-                    portes_passees=5
+                    test_negatif_p06 || exit "$CODE_AVEUGLE"
+                    portes_passees=6
                     ;;
                 *)
-                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02, p03, p04 ou p05)"
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02, p03, p04, p05 ou p06)"
                     ;;
             esac
             local duree_n=$((SECONDS - debut))

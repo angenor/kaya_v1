@@ -37,10 +37,24 @@ Créé par ce cycle. Une ligne par point d'entrée.
 | Inclus | Exclu, et pourquoi |
 |---|---|
 | méthodes de `PlatformAdapter` et de ses implémentations | **les types et les interfaces** — un type n'a pas d'« appelant », la propriété n'y aurait pas de sens uniforme |
-| méthodes des interfaces de domaine | **les constantes** — même motif |
+| méthodes des interfaces de domaine | ~~**les constantes** — même motif~~ **→ AMENDÉ, voir ci-dessous** |
 | composables exportés | **les fonctions internes** non exportées — elles ne sont la surface de personne |
-| composants du design system | |
+| composants du design system | **`app/core/donnees/jeux/`** — le jeu disparaît au branchement de la phase 3 |
 | gabarits, intergiciels, greffons | |
+
+> ### ⚠️ AMENDÉ À L'IMPLÉMENTATION — **les constantes entrent au périmètre**
+>
+> **Le motif est opposable, et il n'est pas un confort** : `knip` ne distingue pas une constante
+> d'une fonction dans son rapport. Un périmètre qui les exclurait **ne serait pas calculable par la
+> porte** — il faudrait deviner la nature de chaque export en lisant sa déclaration, et la
+> devinette dériverait au premier `export const` écrit autrement, **sans que rien ne le dise**.
+>
+> Les **types**, eux, restent exclus : `knip` les rend dans un champ séparé, donc l'exclusion se
+> calcule au lieu de se supposer. *La règle retenue : ce que la porte ne peut pas calculer, elle ne
+> l'exclut pas.*
+>
+> Conséquence chiffrée : **121 entrées au registre** au lieu de la soixantaine que le contrat
+> laissait attendre — dont **30 « dû »**.
 
 ---
 
@@ -74,8 +88,26 @@ Créé par ce cycle. Une ligne par point d'entrée.
 
 | Constat | Verdict |
 |---|---|
-| Entrée **« branché »** dont la fonction porte **zéro passage** | **ROUGE**, en la nommant |
+| Entrée **« branché · unité »** dont la fonction porte **zéro passage** | **ROUGE**, en la nommant |
+| Entrée **« branché · navigateur »** | **hors couverture** — sa preuve est **P-04**, voir ci-dessous |
 | Entrée **« dû »** non couverte | **normal** — rien ne l'appelle, donc aucun test ne l'exerce |
+
+> ### ⚠️ AMENDÉ À L'IMPLÉMENTATION — le registre déclare **comment** l'entrée est exercée
+>
+> **Le contrat supposait que « exercé » voulait dire « couvert par un test d'unité ». Le constat
+> l'a démenti** : `@vitest/coverage-v8` ne mesure que ce que **Vitest** exécute. Un composant du
+> design system rendu par Chromium **et** par WebKit, dans les deux thèmes, **quatre fois par
+> écran**, y porte **zéro passage**. Appliquer la règle telle qu'écrite aurait rendu la porte rouge
+> sur **les seize composants, les quatre pages et le gabarit** — c'est-à-dire sur tout ce que ce
+> cycle a livré et vérifié à l'écran.
+>
+> Le registre porte donc une colonne **« exercé par »** — `unité`, `navigateur`, ou `—` —, et la
+> porte applique la couverture **à la première seulement**. ⚠️ **Ce n'est pas une échappatoire, et
+> le plancher l'empêche d'en devenir une** : P-06 exige **au moins 8 entrées réellement couvertes
+> par les tests d'unité**. Tout déclarer « navigateur » ferait tomber ce plancher, et la porte
+> rougirait.
+>
+> *La preuve n'a pas disparu : elle est ailleurs, dans une porte qui tourne dans la même commande.*
 
 ---
 
@@ -103,6 +135,21 @@ scripts/verifier.sh --test-negatif p06
 ```
 
 Une seule mutation ne prouverait qu'une moitié — et c'est précisément la moitié manquante qui rendrait la porte muette.
+
+> ### ⚠️ AMENDÉ À L'IMPLÉMENTATION — **la mutation porte sur L'ENTRÉE de la porte**
+>
+> `knip` analyse **le dépôt**, jamais une copie de travail : il n'a pas d'option « analyse ce
+> répertoire-ci comme s'il était la racine » utilisable ici. Ajouter un appelant dans une copie
+> n'aurait donc **rien changé à ce que knip rapporte**, et la mutation serait restée sans effet —
+> un test négatif qui ne mute rien est pire qu'aucun test négatif.
+>
+> `porte_p06` accepte donc un **second argument** : le fichier d'où lire l'ensemble « sans
+> référence ». Les deux mutations écrivent cet ensemble dans la copie de travail — A **retire** une
+> entrée « dû » (ce que knip rapporterait le jour où quelqu'un l'appelle), B **ajoute** le composant
+> (ce que knip rapporterait le jour où son import disparaît) et **retire l'import du guide dans la
+> copie**, pour que les deux gestes que la réalité fait ensemble soient faits ensemble.
+>
+> *La porte confronte deux ensembles ; on lui en donne un faux, et elle doit le voir.*
 
 ### Négatif A — un « dû » qui acquiert un appelant
 

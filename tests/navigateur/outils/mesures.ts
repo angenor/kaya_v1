@@ -47,7 +47,7 @@ export async function hauteur(cible: Locator): Promise<number> {
   return boite?.height ?? 0
 }
 
-export type Rvba = readonly [number, number, number, number]
+type Rvba = readonly [number, number, number, number]
 
 /**
  * Résout une couleur CSS en sRGB + alpha, DANS LE NAVIGATEUR, par un canevas.
@@ -59,7 +59,7 @@ export type Rvba = readonly [number, number, number, number]
  * d'un contraste de 1,21:1 sur un bandeau parfaitement lisible. Le canevas, lui,
  * fait ce que fait le moteur de rendu — c'est la seule référence qui vaille.
  */
-export async function resoudreCouleur(page: Page, couleur: string): Promise<Rvba> {
+async function resoudreCouleur(page: Page, couleur: string): Promise<Rvba> {
   return page.evaluate((valeur) => {
     const canevas = document.createElement('canvas')
     canevas.width = 1
@@ -74,7 +74,7 @@ export async function resoudreCouleur(page: Page, couleur: string): Promise<Rvba
 }
 
 /** Compose une couleur semi-transparente sur son fond. */
-export function composer(avant: Rvba, arriere: Rvba): Rvba {
+function composer(avant: Rvba, arriere: Rvba): Rvba {
   const a = avant[3]
   return [
     avant[0] * a + arriere[0] * (1 - a),
@@ -85,7 +85,7 @@ export function composer(avant: Rvba, arriere: Rvba): Rvba {
 }
 
 /** Luminance relative WCAG. */
-export function luminance([r, v, b]: Rvba): number {
+function luminance([r, v, b]: Rvba): number {
   const canal = (c: number) => {
     const s = c / 255
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
@@ -93,14 +93,14 @@ export function luminance([r, v, b]: Rvba): number {
   return 0.2126 * canal(r) + 0.7152 * canal(v) + 0.0722 * canal(b)
 }
 
-export function contraste(avant: Rvba, arriere: Rvba): number {
+function contraste(avant: Rvba, arriere: Rvba): number {
   const a = luminance(avant)
   const b = luminance(arriere)
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
 }
 
 /** Le fond effectif d'un élément : on remonte tant qu'il est transparent. */
-export async function fondEffectif(page: Page, cible: Locator): Promise<Rvba> {
+async function fondEffectif(page: Page, cible: Locator): Promise<Rvba> {
   const brut = await cible.evaluate((element) => {
     let noeud: Element | null = element
     while (noeud) {
@@ -161,8 +161,10 @@ export interface MesureCible {
  * pas un oubli de factorisation : le corps envoyé au navigateur est sérialisé,
  * donc il ne peut RIEN capturer de la portée du test. Recopier est la seule
  * façon de les exécuter là où sont les éléments. Les versions de ce fichier —
- * `luminance`, `composer`, `contraste` — restent la référence, et le test
- * `mesures-en-page.spec.ts` vérifie que les deux rendent le même nombre.
+ * `luminance`, `composer`, `contraste` — restent la référence, et le cas
+ * « les DEUX mesures de contraste rendent le MÊME nombre » de
+ * `ecrans-atteignables.spec.ts` vérifie que les deux s'accordent, sur un
+ * élément réel, dans le navigateur réel.
  */
 export async function mesurerTextes(page: Page, selecteur: string): Promise<MesureTexte[]> {
   return page.evaluate((sel) => {
@@ -277,7 +279,7 @@ export function seuilAAA(corps: number): number {
  * et lui. Les laisser sortir apprendrait à l'exploitant un vocabulaire qui n'est
  * pas le sien, et qui changera au premier remaniement.
  */
-export const NOMS_ETAT_INTERNES = ['connecté', 'dégradé', 'hors ligne'] as const
+const NOMS_ETAT_INTERNES = ['connecté', 'dégradé', 'hors ligne'] as const
 
 export async function exigerAucunNomDetatInterne(page: Page, ou: string): Promise<void> {
   const html = (await page.content()).toLowerCase()
