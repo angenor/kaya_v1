@@ -157,7 +157,7 @@ function referenceDe(entree: EntreeEcran): string {
     data-ecran="ecrans"
     data-zone="charme"
   >
-    <header class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <div class="flex flex-col gap-1.5">
         <h1 class="font-titre text-titre-m font-semibold text-ink">
           {{ $t('ecrans.titre') }}
@@ -171,7 +171,7 @@ function referenceDe(entree: EntreeEcran): string {
         :options="SECTIONS"
         data-reglage="section"
       />
-    </header>
+    </div>
 
     <!-- ⚠️ LES QUATRE ÉTATS, SUR UNE SURFACE QUI LIT VRAIMENT DES DONNÉES.
          Ils s'obtiennent depuis le panneau Scénarios : latence → squelette,

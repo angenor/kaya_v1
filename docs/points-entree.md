@@ -133,7 +133,7 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/format/montant.ts#formaterMontant` | branché | unité | pages/guide-de-style.vue · tests/unite/montant.spec.ts |
 | `app/core/format/montant.ts#formaterEcart` | branché | unité | pages/guide-de-style.vue · tests/unite/montant.spec.ts |
 | `app/core/format/montant.ts#FINE_INSECABLE` | branché | navigateur | tests/unite/montant.spec.ts |
-| `app/core/format/instant.ts` | dû | — | cycle **F2**, tâche T051 — l'heure et la date de l'en-tête, au fuseau de l'établissement. ⚠️ Elle est écrite AVANT son appelant parce qu'elle **tranche une famille de dépendances pour tout le dépôt** (`Intl` natif, `versions-reference.md` §3.4) : la décision valait d'être posée à part |
+| `app/core/format/instant.ts` | branché | navigateur | `coquille/EnTeteContexte.vue` — l'heure et la date, **au fuseau de l'établissement**. C'est la seule fonction du dépôt qui écrit une heure, et elle ne porte **aucune règle** : exemption « rendu de l'instant perçu » (principe 4) |
 | `app/core/session/routesPubliques.ts#ROUTES_SANS_SESSION` | dû | — | cycle **F2** — la liste que l'intergiciel consulte via `exigeUneSession` ; aucun appelant direct, et c'est voulu : on interroge la RÈGLE, pas la liste |
 | `app/core/session/routesPubliques.ts#ROUTES_SANS_ENTETE` | dû | — | même motif — `porteLEnTete` l'interroge. ⚠️ **Deux listes plutôt qu'une, et la confusion a coûté un test rouge** : les instruments n'exigent aucune session et portent pourtant l'en-tête |
 | `app/core/i18n/useLangue.ts#estLangue` | dû | — | cycle **CPT** — la langue portée par le compte et non par l'appareil |
@@ -175,7 +175,7 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/session/journal.ts#MARQUE_DERNIER_CHEMIN` | dû | — | idem |
 | `app/core/session/useAutorisation.ts#useAutorisation` | branché | navigateur | pages/ecrans.vue · tests/unite/rbac-absence-html.spec.ts |
 | `app/core/session/useSession.ts#useSession` | branché | navigateur | core/session/useAutorisation.ts · middleware/session.global.ts · pages/ecrans.vue |
-| `app/core/session/useSession.ts#SESSION_VIDE` | dû | — | cycle **CPT** — l'écran `R0`, qui remettra la session à vide en passant la main |
+| `app/core/session/useSession.ts#SESSION_VIDE` | branché | navigateur | `coquille/IdentitePersonne.vue` — **« Passer la main »** la repose. ⚠️ Elle est restée « due » depuis le cycle CPT, en attendant l'écran qui rend le poste au suivant : c'est exactement ce que l'état « dû » sert à dire, et le registre l'a porté jusqu'au cycle qui l'a construit |
 | `app/core/stockage/base.ts#ouvrirBase` | dû | — | les cinq fonctions du même fichier, en interne. Exportée pour le cycle qui aura besoin d'un magasin nouveau |
 | `app/core/stockage/base.ts#lire` | branché | navigateur | core/session/useSession.ts · core/scenarios/useScenarios.ts · core/file/useFile.ts |
 | `app/core/stockage/base.ts#ecrire` | branché | navigateur | core/session/useSession.ts · core/scenarios/useScenarios.ts · core/file/useFile.ts |

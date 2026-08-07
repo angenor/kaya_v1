@@ -143,7 +143,18 @@ export default tseslint.config(
       'app/layouts/**/*.vue',
       'app/components/**/*.vue',
       'app/core/design-system/**/*.vue',
+      // ⚠️ ÉTENDU AU CYCLE F2 : les composants de RUBRIQUE de l'accueil. `R1`
+      // est un motif dont onze écrans hériteront — si le premier importait une
+      // simulation, les onze le recopieraient.
+      'app/core/accueil/**/*.vue',
+      'app/core/coquille/**/*.vue',
     ],
+    // ⚠️ `app/pages/scenarios.vue` EST EXEMPTÉ, ET C'EST LE SEUL. L'instrument
+    // ÉCRIT les réglages ; il ne les applique pas. La règle ci-dessous porte sur
+    // la lecture, et c'est elle qui compte : un composant qui LIRAIT
+    // `reglagesCourants()` saurait qu'un scénario existe, donc serait à réécrire
+    // en phase 3 — l'instrument, lui, disparaît avec eux.
+    ignores: ['app/pages/scenarios.vue'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -153,6 +164,17 @@ export default tseslint.config(
               group: ['**/simulation', '**/simulation.ts', '**/donnees/jeux/**'],
               message:
                 "Un composant ne connaît jamais la provenance de ses données : il passe par l'interface de domaine. La simulation DISPARAÎT au branchement de la phase 3 — un import direct serait un composant à réécrire.",
+            },
+            {
+              // FR-048 — ⚠️ LE PENDANT DU PRÉCÉDENT, ET IL MANQUAIT. « Aucun
+              // composant ne sait qu'un scénario existe » : les leviers
+              // s'appliquent DANS la couche de simulation, et nulle part
+              // ailleurs. Un composant qui lirait les réglages produirait un
+              // rendu conditionné par un instrument — c'est-à-dire un rendu
+              // qu'on ne saurait pas reproduire en phase 3.
+              group: ['**/scenarios/reglages', '**/scenarios/reglages.ts'],
+              message:
+                "Aucun composant ne sait qu'un scénario existe. Les leviers s'appliquent dans la couche de simulation, qui DISPARAÎT au branchement — un composant qui les lirait serait à réécrire.",
             },
           ],
         },

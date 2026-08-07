@@ -80,12 +80,59 @@ if (resultatComptes.ok) {
     libelle: compte.identifiant,
   }))
 }
-const resultatEtablissements = await fournisseur().etablissements.listerEtablissements()
-if (resultatEtablissements.ok) {
-  etablissementsDisponibles.value = resultatEtablissements.valeur.map((etablissement) => ({
+/**
+ * ⚠️ **ON NE PROPOSE QUE LES SITES OÙ CE COMPTE A DES DROITS** (FR-047, cycle
+ * F2). Le panneau listait AUPARAVANT tous les établissements du jeu : on
+ * pouvait mettre Adjoua sur « Résidence Test », où elle n'a aucun rôle, et
+ * l'écran répondait par un état vide. **Proposer puis refuser est un grisé
+ * déguisé** — c'est montrer une porte fermée, ce que le principe 8 interdit
+ * partout ailleurs. L'instrument n'y échappe pas : ce qu'il rend possible est
+ * ce qu'un relecteur croira possible.
+ *
+ * ⚠️ ET LA LISTE SUIT LE COMPTE. Changer de compte change les sites proposés ;
+ * si le site courant n'est plus atteignable, on bascule sur le premier de la
+ * nouvelle liste — sinon le panneau garderait un couple que le produit refuse.
+ */
+async function chargerLesEtablissements(compteId: string): Promise<void> {
+  const resultat = await fournisseur().comptes.etablissementsDe(compteId)
+  if (!resultat.ok) return
+  etablissementsDisponibles.value = resultat.valeur.map((etablissement) => ({
     valeur: etablissement.id,
     libelle: etablissement.nom,
   }))
+}
+
+await chargerLesEtablissements(reglages.value.compteActif)
+
+/**
+ * LE TROISIÈME ÉTAT — **la portée « tous »**, choisie ici comme au sélecteur.
+ *
+ * ⚠️ SANS ELLE, LA QUATRIÈME VARIANTE DE `R1` N'EST PAS ATTEIGNABLE DEPUIS
+ * L'INSTRUMENT. Le panneau est ce par quoi un relecteur obtient les quatre
+ * accueils sans recompiler : s'il ne propose que des établissements, la vue
+ * d'ensemble du propriétaire reste une promesse. **Elle n'apparaît qu'à qui a
+ * plusieurs sites** — la proposer sur une seule maison serait une vue
+ * d'ensemble sur rien.
+ */
+const PORTEE_TOUS = '__tous__'
+
+const porteesDisponibles = computed(() =>
+  etablissementsDisponibles.value.length > 1
+    ? [
+        ...etablissementsDisponibles.value,
+        { valeur: PORTEE_TOUS, libelle: t('contexte.tousLesSites', { n: etablissementsDisponibles.value.length }) },
+      ]
+    : etablissementsDisponibles.value,
+)
+
+/**
+ * ⚠️ SOUS LA PORTÉE « TOUS », AUCUNE PERMISSION N'EST PORTÉE — donc aucune
+ * surface qui modifie une caisse n'existe (FR-019). Ce n'est pas une
+ * restriction ajoutée : c'est l'absence de droits, par le même filtrage que
+ * partout ailleurs.
+ */
+async function appliquerPorteeTous(compteId: string): Promise<void> {
+  await definir({ compteId, portee: { type: 'tous' }, permissions: [], posteUnique: null })
 }
 
 /**
@@ -123,14 +170,29 @@ if (
   session.value.compteId !== reglages.value.compteActif ||
   etablissementDe(session.value) !== reglages.value.etablissementActif
 ) {
-  await appliquerContexte(reglages.value.compteActif, reglages.value.etablissementActif)
+  if (reglages.value.etablissementActif === PORTEE_TOUS) {
+    await appliquerPorteeTous(reglages.value.compteActif)
+  } else {
+    await appliquerContexte(reglages.value.compteActif, reglages.value.etablissementActif)
+  }
 }
 
 const compteActif = computed({
   get: () => reglages.value.compteActif,
   set: (valeur: string) => {
     void regler('compteActif', valeur)
-    void appliquerContexte(valeur, reglages.value.etablissementActif)
+    void (async () => {
+      await chargerLesEtablissements(valeur)
+      // Le site courant peut ne plus être atteignable par ce compte : on prend
+      // le premier qu'il peut voir, plutôt que de garder un couple impossible.
+      const courant = etablissementsDisponibles.value.find(
+        (e) => e.valeur === reglages.value.etablissementActif,
+      )
+      const cible = courant?.valeur ?? etablissementsDisponibles.value[0]?.valeur
+      if (cible === undefined) return
+      if (cible !== reglages.value.etablissementActif) await regler('etablissementActif', cible)
+      await appliquerContexte(valeur, cible)
+    })()
   },
 })
 
@@ -138,7 +200,8 @@ const etablissementActif = computed({
   get: () => reglages.value.etablissementActif,
   set: (valeur: string) => {
     void regler('etablissementActif', valeur)
-    void appliquerContexte(reglages.value.compteActif, valeur)
+    if (valeur === PORTEE_TOUS) void appliquerPorteeTous(reglages.value.compteActif)
+    else void appliquerContexte(reglages.value.compteActif, valeur)
   },
 })
 
@@ -216,14 +279,14 @@ const etatTemoin = computed(() => {
     data-ecran="scenarios"
     data-zone="charme"
   >
-    <header class="flex flex-col gap-1.5">
+    <div class="flex flex-col gap-1.5">
       <h1 class="font-titre text-titre-m font-semibold text-ink">
         {{ $t('scenarios.titre') }}
       </h1>
       <p class="max-w-[80ch] text-corps text-ink-2">
         {{ $t('scenarios.intro') }}
       </p>
-    </header>
+    </div>
 
     <!-- Les cinq leviers -->
     <section class="grid gap-5 rounded-xl border border-line bg-surf p-4 md:grid-cols-2">
@@ -267,7 +330,7 @@ const etatTemoin = computed(() => {
       <ChampSaisie
         v-model="etablissementActif"
         etiquette-cle="scenarios.etablissementActif"
-        :options="etablissementsDisponibles"
+        :options="porteesDisponibles"
         data-levier="etablissement"
       />
       <div class="flex items-end gap-3.5 md:col-span-2">

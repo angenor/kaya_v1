@@ -359,6 +359,21 @@
 </style>
 </head>
 
+<!-- ⚠️ CORRIGÉ AU CYCLE F2, SUR CONSTAT, ET DEUX FOIS.
+     (1) LE TÉMOIN D'ENVOI disait « À jour · il y a 1 min ». Le libellé qui fait
+         foi est « Enregistré » (docs/design/lexique.md) — et le composant 10,
+         construit au cycle F1, était DÉJÀ conforme : c'est la maquette qui avait
+         dérivé. « À jour » décrit un état du système ; « Enregistré » dit ce qui
+         compte pour Aminata — son travail est-il en sécurité.
+     (2) LE SECOND SEGMENT de l'en-tête portait un décompte — « 20 chambres »,
+         « 9 tables », « Bar et restaurant ». La grammaire de coquille fixe ce
+         qu'il affirme : LA COMMUNE, TOUJOURS, et le POSTE seulement s'il est
+         unique. Un décompte y prend la place d'un fait d'orientation, et il se
+         lit comme une affirmation sur le parc — le propriétaire de deux maisons
+         lirait « 20 chambres » sur celle qui en a 17. Ces décomptes redescendent
+         dans le CORPS, où ils sont déjà.
+     Une maquette qui ment est pire qu'une maquette absente : le dessin fait foi
+     sur le dessin, la grammaire fait foi sur ce qu'un élément affirme. -->
 <body class="bg-bg text-ink font-texte" data-zone="vitesse">
 
 <!-- Bandeau de repérage — hors produit, retiré au développement. -->
@@ -376,7 +391,7 @@
     <div class="h-11 px-3.5 rounded-xl border border-line bg-tile inline-flex items-center gap-2.5">
       <span class="flex flex-col items-start gap-0.5">
         <span class="font-titre text-corps font-semibold text-ink">Chez Tantie Adjo</span>
-        <span class="text-mini text-ink-3">Abobo · 9 tables</span>
+        <span class="text-mini text-ink-3">Abobo · La salle</span>
       </span>
     </div>
     <span class="flex-1"></span>
@@ -385,7 +400,7 @@
         <span class="absolute inset-0 rounded-pleine bg-succes"></span>
         <span class="absolute inset-0 rounded-pleine bg-succes animate-pulse-reseau"></span>
       </span>
-      <span class="font-titre text-mini font-semibold text-ink-2">À jour · il y a 1 min</span>
+      <span class="font-titre text-mini font-semibold text-ink-2">Enregistré</span>
     </div>
     <div class="flex flex-col items-end gap-0.5">
       <span class="font-mono text-corps text-ink">22 h 10</span>

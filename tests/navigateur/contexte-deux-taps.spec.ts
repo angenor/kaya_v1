@@ -128,6 +128,63 @@ for (const schema of ['light', 'dark'] as const) {
       }
     })
 
+    test('⚠️ LES DEUX FORMES, OBTENUES DEPUIS L’INSTRUMENT (T060, SC-013)', async ({ page }) => {
+      // ⚠️ MESURÉE, PAS CONSTATÉE À L'ŒIL, ET DEUX FOIS PLUTÔT QU'UNE.
+      // `poste-derive.spec.ts` prouve le calcul en unité ; celui-ci prouve que
+      // le RELECTEUR obtient les deux formes **sans recompiler et sans éditer un
+      // fichier** — c'est-à-dire que la démonstration tient. Un test d'unité vert
+      // sur un panneau qui ne propose pas le bon compte ne prouverait rien de ce
+      // qu'on montre.
+      const parLePanneau = async (compteId: string, etablissementId: string) => {
+        await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+        await page.locator('[data-levier="compte"] select').selectOption(compteId)
+        await page.locator('[data-levier="etablissement"] select').selectOption(etablissementId)
+        await expect(page.locator('[data-ecran="scenarios"]')).toContainText(compteId)
+        await page.goto('/', { waitUntil: 'networkidle' })
+        return page.locator('header [data-composant-09] [data-detail]')
+      }
+
+      // Un compte à UN poste → la forme longue.
+      await expect(await parLePanneau('compte-yao', 'tantie-adjo-etablissement')).toHaveText(
+        'Abobo · La salle',
+      )
+      // Un compte à PLUSIEURS → la commune, et rien de plus.
+      await expect(await parLePanneau('compte-adjoua', 'deloria-etablissement')).toHaveText(
+        'Abengourou',
+      )
+    })
+
+    test('le panneau ne propose QUE les sites où le compte a des droits (FR-047)', async ({
+      page,
+    }) => {
+      // ⚠️ PROPOSER PUIS REFUSER EST UN GRISÉ DÉGUISÉ. Le panneau listait tous
+      // les établissements du jeu : on pouvait poser Adjoua sur « Résidence
+      // Test », où elle n'a aucun rôle, et l'écran répondait par un état vide.
+      // L'instrument n'échappe pas au principe 8 — ce qu'il rend possible est ce
+      // qu'un relecteur croira possible.
+      await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+      await page.locator('[data-levier="compte"] select').selectOption('compte-aminata')
+      await expect(page.locator('[data-ecran="scenarios"]')).toContainText('compte-aminata')
+
+      const options = await page
+        .locator('[data-levier="etablissement"] select option')
+        .allTextContents()
+      expect(options, 'Aminata n’a qu’un site : le panneau en propose d’autres').toEqual([
+        'Résidence Hôtel Deloria',
+      ])
+
+      // M. Koffi en a trois, plus la vue d'ensemble — le troisième état.
+      await page.locator('[data-levier="compte"] select').selectOption('compte-koffi')
+      await expect(page.locator('[data-ecran="scenarios"]')).toContainText('compte-koffi')
+      const pourKoffi = await page
+        .locator('[data-levier="etablissement"] select option')
+        .allTextContents()
+      expect(pourKoffi).toHaveLength(4)
+      expect(pourKoffi.at(-1), 'la portée « tous » manque à l’instrument').toContain(
+        'Mes 3 établissements',
+      )
+    })
+
     test('une alerte d’un AUTRE site se voit, et ne bascule RIEN (FR-029)', async ({ page }) => {
       await entrer(page, COMPTES.koffi, '/')
       const avant = await page.locator('header [data-composant-09]').innerText()

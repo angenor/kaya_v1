@@ -112,6 +112,45 @@ import { deloria } from '~/core/donnees/jeux/deloria'
     const regles = await reglesDeclenchees(FAUTIF, 'app/core/donnees/fournisseur.vue')
     expect(regles).not.toContain('no-restricted-imports')
   })
+
+  /**
+   * ⚠️ ÉTENDU AU CYCLE F2 — **le pendant qui manquait** (FR-048).
+   *
+   * La règle interdisait à un composant d'importer une SIMULATION ou un JEU.
+   * Elle laissait passer `app/core/scenarios/reglages.ts`, qui est pourtant la
+   * même faute vue autrement : un composant qui lit les leviers sait qu'un
+   * scénario existe, et son rendu devient conditionné par un instrument — donc
+   * irreproductible le jour où l'instrument disparaît.
+   *
+   * ⚠️ ET C'EST LA MÊME RÈGLE QU'ON ÉTEND, JAMAIS UN SECOND MÉCANISME. Deux
+   * contrôles pour une règle divergent, et c'est le plus faible qu'on croira.
+   */
+  const FAUTIF_SCENARIO = `<script setup lang="ts">
+import { reglagesCourants } from '~/core/scenarios/reglages'
+const horsLigne = reglagesCourants().horsLigne
+</script>
+
+<template>
+  <div>{{ horsLigne }}</div>
+</template>
+`
+
+  it('échoue quand une PAGE lit les réglages de scénario', async () => {
+    const regles = await reglesDeclenchees(FAUTIF_SCENARIO, 'app/pages/fautif-scenario.vue')
+    expect(regles).toContain('no-restricted-imports')
+  })
+
+  it('échoue aussi dans une rubrique de l’accueil — le motif que onze écrans héritent', async () => {
+    const regles = await reglesDeclenchees(FAUTIF_SCENARIO, 'app/core/accueil/FautifSurface.vue')
+    expect(regles).toContain('no-restricted-imports')
+  })
+
+  it("ne dit rien dans le PANNEAU, qui écrit les réglages sans les appliquer", async () => {
+    // L'instrument est le seul écran qui a le droit de les connaître : il les
+    // ÉCRIT. C'est la couche de simulation qui les lit et les applique.
+    const regles = await reglesDeclenchees(FAUTIF_SCENARIO, 'app/pages/scenarios.vue')
+    expect(regles).not.toContain('no-restricted-imports')
+  })
 })
 
 describe('(c) aucune valeur littérale hors des jetons', () => {

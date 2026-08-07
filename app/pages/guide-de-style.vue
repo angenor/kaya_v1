@@ -127,7 +127,7 @@ const themeChoisi = computed({
     data-ecran="guide-de-style"
     :data-zone="zone"
   >
-    <header class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <h1 class="font-titre text-titre-m font-semibold text-ink">
         {{ $t('guideDeStyle.titre') }}
       </h1>
@@ -143,7 +143,7 @@ const themeChoisi = computed({
         etiquette-cle="guideDeStyle.demo.zone"
         data-reglage="zone"
       />
-    </header>
+    </div>
 
     <!-- Le sommaire · composant 08 -->
     <nav

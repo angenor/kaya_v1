@@ -22,13 +22,21 @@ import { exigerAucunNomDetatInterne } from './outils/mesures'
  * par une porte que personne n'emprunte.
  */
 
+/** Le compte de chaque parcours, choisi au panneau. */
+const COMPTES = {
+  adjoua: '+2250700000001',
+  yao: '+2250700000002',
+  aminata: '+2250700000003',
+  koffi: '+2250700000004',
+} as const
+
 /**
  * Les deux établissements que `quickstart.md` nomme, dans son ordre.
  *
- * ⚠️ `actionsAttendues` EST LE CŒUR DU PAS 10. « Résidence Test » n'a que
- * l'hébergement : Adjoua — gérante, caissière, réceptionniste **à Deloria** —
- * n'y a **aucun rôle**, donc aucune action. C'est ce qu'on veut voir : la
- * surface ne se casse pas, elle montre son état vide et propose une sortie.
+ * ⚠️ `actions` EST LE CŒUR DU PAS 10. « Résidence Test » n'a **qu'un service**
+ * et **aucun point de vente** : les deux permissions de M. Koffi y sont
+ * TRANSVERSES, donc elles survivent — et toute surface qui supposerait une
+ * chambre, un article ou une table se casserait ici, au moment le moins cher.
  */
 const ETABLISSEMENTS = [
   // ⚠️ NEUF DEPUIS LE CYCLE F2, ET LE CHANGEMENT EST VOULU. Le rôle `gerant`
@@ -37,12 +45,28 @@ const ETABLISSEMENTS = [
   // Le manque ne se voyait pas tant qu'aucun écran ne composait par permission ;
   // il rendait l'accueil du maquis vide pour Yao, qui en est le gérant. Adjoua
   // cumule désormais les neuf droits du catalogue, donc les neuf actions.
-  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria', actionsAdjoua: 9 },
-  { libelle: 'Résidence Test', court: 'Résidence Test', actionsAdjoua: 0 },
+  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria', compte: COMPTES.adjoua, actions: 9 },
+  /**
+   * ⚠️ **LE PARCOURS DE RÉSIDENCE TEST PASSE PAR M. KOFFI DEPUIS LE CYCLE F2**,
+   * et le changement est celui de l'exigence, pas une commodité de test.
+   *
+   * Il employait Adjoua, qui n'a **aucun rôle** sur ce site : le panneau
+   * proposait le couple, et l'écran répondait par un état vide. FR-047 a fermé
+   * cette porte — **on ne propose que les sites où le compte a des droits**,
+   * parce que proposer puis refuser est un grisé déguisé. Le couple n'est donc
+   * plus atteignable, et le test le serait devenu par une porte que personne
+   * n'emprunte.
+   *
+   * **Ce que le pas prouve n'a pas changé** : « Résidence Test » n'a qu'un
+   * service et aucun point de vente, et M. Koffi y est propriétaire —
+   * `cr-koffi-test`, la seule liaison du jeu qui traverse un tenant, posée pour
+   * cela même. Ses deux permissions sont TRANSVERSES : elles survivent à
+   * l'absence de restauration, ce qui rend l'agnosticité du socle observable au
+   * lieu de la déduire d'un écran vide.
+   */
+  { libelle: 'Résidence Test', court: 'Résidence Test', compte: COMPTES.koffi, actions: 2 },
 ] as const
 
-/** Le compte de chaque parcours, choisi au panneau. */
-const COMPTES = { adjoua: '+2250700000001', aminata: '+2250700000003' } as const
 
 /** Les libellés du lexique — ils font foi, et le test les cite mot pour mot. */
 const LEXIQUE = {
@@ -106,8 +130,14 @@ for (const etablissement of ETABLISSEMENTS) {
     await page.locator('[data-reglage="langue"] [role="radio"]').nth(0).click()
     await expect(page.locator('[data-ecran="ecrans"] h1')).toHaveText('Écrans')
 
-    // ── Le contexte : l'établissement du parcours ───────────────────────────
+    // ── Le contexte : le COMPTE puis l'établissement du parcours ───────────
+    //
+    // ⚠️ LE COMPTE D'ABORD, ET L'ORDRE COMPTE DEPUIS F2. La liste des sites suit
+    // le compte — on ne propose que ceux où il a des droits (FR-047) —, donc
+    // choisir l'établissement avant le compte viserait une option qui n'existe
+    // pas encore.
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: etablissement.compte })
     await page
       .locator('[data-levier="etablissement"] select')
       .selectOption({ label: etablissement.libelle })
@@ -207,12 +237,19 @@ for (const etablissement of ETABLISSEMENTS) {
     // réceptionniste **à Deloria** ; elle n'a **aucun rôle** à Résidence Test,
     // donc aucune action — et la surface montre son état vide au lieu de se
     // casser. C'est le pendant en phase 2 du test d'agnosticité ETB-02c.
-    const etatAttendu = etablissement.actionsAdjoua > 0 ? 'pret' : 'vide'
+    const etatAttendu = etablissement.actions > 0 ? 'pret' : 'vide'
     await expect(
       page.locator(`[data-bloc="actions"][data-etat="${etatAttendu}"]`),
       `${etablissement.court} : la surface des actions n'est pas arrivée à « ${etatAttendu} »`,
     ).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('[data-action]')).toHaveCount(etablissement.actionsAdjoua)
+    // ⚠️ LE DÉCOMPTE PORTE SUR LA **SURFACE INSPECTÉE**, pas sur le document.
+    // Depuis le cycle F2, l'en-tête porte lui aussi un `[data-action]` —
+    // « Passer la main » —, et un compte global en attrapait dix au lieu de
+    // neuf. Le test aurait alors mesuré la coquille en croyant mesurer la
+    // surface des actions.
+    await expect(page.locator('[data-bloc="actions"] [data-action]')).toHaveCount(
+      etablissement.actions,
+    )
 
     // Et la latence redescend, pour que la suite du parcours ne l'attende plus.
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
@@ -239,7 +276,7 @@ test.describe('la surface des actions', () => {
     await page.goto('/_ecrans', { waitUntil: 'networkidle' })
     await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
     await expect(page.locator('[data-bloc="actions"][data-etat="pret"]')).toBeVisible()
-    const chezAdjoua = await page.locator('[data-action]').count()
+    const chezAdjoua = await page.locator('[data-bloc="actions"] [data-action]').count()
     expect(chezAdjoua, 'Adjoua ne voit aucune action : la surface est vide').toBeGreaterThan(1)
     await expect(page.locator('[data-action="caisse.cloture"]')).toBeVisible()
 
@@ -250,7 +287,7 @@ test.describe('la surface des actions', () => {
     await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
     await expect(page.locator('[data-bloc="actions"][data-etat="pret"]')).toBeVisible()
 
-    const chezAminata = await page.locator('[data-action]').count()
+    const chezAminata = await page.locator('[data-bloc="actions"] [data-action]').count()
     expect(chezAminata, "l'écran ne diffère pas entre Adjoua et Aminata").toBeLessThan(chezAdjoua)
 
     // ⚠️ LE CONTRÔLE QUI COMPTE PORTE SUR LE HTML, PAS SUR UN ATTRIBUT.
@@ -267,23 +304,31 @@ test.describe('la surface des actions', () => {
   test('pas 10 · un service absent est absent — le pendant d’ETB-02c', async ({ page }) => {
     // ⚠️ C'EST LE PAS LE PLUS RÉVÉLATEUR DU PARCOURS. Toute surface qui
     // supposerait une chambre, un article, un tarif ou une table se casse ici.
+    //
+    // ⚠️ IL PASSE PAR **YAO ET SES DEUX SITES** DEPUIS LE CYCLE F2, et le cas
+    // est plus fort que le précédent. Il employait Aminata basculée de Deloria
+    // vers « Résidence Test » — un couple que FR-047 rend impossible, puisqu'elle
+    // n'y a aucun rôle. Yao, lui, a des droits sur les DEUX : réceptionniste à
+    // Deloria, gérant et caissier au maquis. **Ses permissions d'hébergement ne
+    // bougent pas** ; ce qui change est le SERVICE — Deloria l'a, le maquis ne
+    // l'a pas. On isole donc exactement la condition qu'on veut prouver.
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
-    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.aminata })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.yao })
     await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
 
     await page.goto('/_ecrans', { waitUntil: 'networkidle' })
     await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
-    await expect(page.locator('[data-action="ventes.commande.prendre"]')).toBeVisible()
+    await expect(page.locator('[data-action="hebergement.sejour.arrivee"]')).toBeVisible()
 
-    // Résidence Test n'a pas de restauration : l'action disparaît.
+    // Le maquis n'a pas d'hébergement : l'action disparaît, à droits INCHANGÉS.
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
-    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Test' })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Chez Tantie Adjo' })
     await page.goto('/_ecrans', { waitUntil: 'networkidle' })
     await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
 
     await expect(page.locator('[data-bloc="actions"]')).toBeVisible()
     expect(
-      (await page.content()).includes('ventes.commande.prendre'),
+      (await page.content()).includes('hebergement.sejour.arrivee'),
       "l'action d'un service inactif est dans le HTML",
     ).toBe(false)
   })
@@ -291,10 +336,16 @@ test.describe('la surface des actions', () => {
   test('pas 11 · le vide propose une porte de sortie, jamais une page blanche', async ({
     page,
   }) => {
-    // Adjoua n'a aucun rôle sur Résidence Test : zéro action, donc l'état vide.
+    // ⚠️ L'ÉTAT VIDE S'OBTIENT PAR LE **LEVIER**, PAS PAR UN COUPLE IMPOSSIBLE.
+    // Il venait d'Adjoua posée sur « Résidence Test », où elle n'a aucun rôle —
+    // couple que FR-047 a fermé. Le levier « jeu vide » le produit mieux : les
+    // modules actifs reviennent vides, donc les surfaces qui en supposent un
+    // tombent, et Aminata n'en a pas d'autre. C'est **l'instrument qui met
+    // l'application dans la condition**, ce à quoi il sert.
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
-    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.adjoua })
-    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Test' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.aminata })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
+    await basculer(page, 'jeu-vide', true)
 
     await page.goto('/_ecrans', { waitUntil: 'networkidle' })
     await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
@@ -304,6 +355,10 @@ test.describe('la surface des actions', () => {
     // ⚠️ UN ÉCRAN VIDE SANS ACTION EST UNE IMPASSE. La phrase dit ce qui
     // apparaîtra, et l'action démarre quelque chose.
     await expect(vide.getByRole('button')).toBeVisible()
+
+    // Le levier redescend : la suite du parcours ne le subit pas.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await basculer(page, 'jeu-vide', false)
   })
 
   test("l'échec réseau et le hors-ligne ne se disent pas de la même façon", async ({ page }) => {

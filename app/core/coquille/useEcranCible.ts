@@ -56,5 +56,21 @@ export function useEcranCible() {
     return { etat: 'aVenir', titre: entree.titre, cycle: entree.cycle }
   }
 
-  return { resoudre }
+  /**
+   * LE RETOUR — **il ramène à l'accueil de l'établissement courant**, jamais à
+   * l'entrée précédente de l'historique (FR-036).
+   *
+   * ⚠️ ET C'EST UNE RÈGLE, PAS UNE COMMODITÉ. L'entrée précédente peut
+   * appartenir à un **autre établissement** — M. Koffi vient de basculer. Un
+   * retour qui suivrait l'historique rouvrirait un site qu'on venait de
+   * quitter, **sans le dire**, et le geste suivant se ferait au mauvais endroit.
+   *
+   * ⚠️ L'ACCUEIL, LUI, N'A PAS DE RETOUR : c'est la racine du produit. Les
+   * écrans de F3 à F7 l'emploieront ; `R1` ne l'appelle pas.
+   */
+  async function revenir(): Promise<void> {
+    await navigateTo('/')
+  }
+
+  return { resoudre, revenir }
 }

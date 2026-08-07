@@ -647,7 +647,32 @@ Les trois symptômes observés n'en faisaient qu'un :
 | **Anti-scintillement** | script en ligne dans `app.head` de `nuxt.config.ts` | En SPA, la coquille est peinte avec `body { background-color }` **avant** que le moindre module ne s'exécute. Même en `enforce: 'pre'`, un plugin arrive après le premier pixel : l'utilisateur en mode sombre verrait un éclair blanc à chaque ouverture. En ligne, jamais un hôte externe — la porte des ressources embarquées reste intacte. |
 | **Reprise de session** | `middleware/01.session.global.ts` | Un middleware global s'exécute avant **chaque** navigation, la première comprise. C'est la seule place qui couvre les six routes sans être recopiée six fois — et la recopie était la faute. |
 | **Coquille** | `layouts/default.vue` | Une racine stable, **un seul `<main>`**. Une page nouvelle en hérite sans rien écrire, et ne peut pas l'oublier. |
-| **Sortie de session** | `layouts/default.vue`, pied de coquille | Même raison que la reprise : dans un écran, chaque écran suivant devrait s'en souvenir. C'est un **pied** et non un en-tête parce que `R1` et `G1` portent déjà deux `<header>` différents et que `G3`/`G4` n'en ont aucun — se poser au-dessus les rouvrirait tous les trois, ce que `derivation.md` refuse. |
+| **Sortie de session** | `app/core/coquille/EnTeteContexte.vue`, monté par `app/layouts/defaut.vue` | Même raison que la reprise : posée dans un écran, chaque écran suivant devrait s'en souvenir. ⚠️ **Elle était au PIED jusqu'au cycle F2 — voir la note ci-dessous, qui dit ce que ce placement protégeait et ce qui l'a remplacé.** |
+
+> ### ⚠️ Le motif du **pied** ne tient plus — conflit constaté et tranché au cycle **F2**
+>
+> **Ce que le placement au pied protégeait.** À l'époque du lot de déconnexion, `EcranAccueil` et
+> `EcranEtablissement` portaient **chacun leur propre `<header>`**, et deux autres écrans n'en
+> avaient aucun. Se poser au-dessus aurait exigé de fondre trois formes d'en-tête différentes —
+> c'est-à-dire de rouvrir trois écrans, ce que `derivation.md` refuse. Le pied était la seule place
+> qui se glissait sous les trois **sans en rejuger aucun**. Le motif était juste, et il l'est resté
+> tant que sa prémisse l'était.
+>
+> **Ce qui l'a remplacé.** Le cycle **F1** a posé un gabarit unique qui porte l'en-tête **pour tous
+> les écrans**, et le cycle **F2** l'a extrait dans `EnTeteContexte.vue`. Il n'y a plus trois formes
+> à fondre : il y en a **une**, définie une fois, et `tests/unite/entete-unique.spec.ts` vérifie que
+> le dépôt n'en contient qu'un seul. La prémisse a disparu ; la conclusion tombe avec elle.
+>
+> **Pourquoi ne pas laisser le pied, alors.** Parce que « Passer la main » se lit **à côté de la
+> personne dont on rend le poste**, et que la maquette le montre là depuis le début : les quatre
+> `R1-accueil*.html` portent le nom, ce que la personne fait, et le geste, groupés en haut à droite.
+> Un pied l'aurait éloigné de son objet — et sur un écran long, hors de vue.
+>
+> **Ce que la correction n'emporte pas.** Les deux autres raisons du même paragraphe restent
+> vraies : la coquille ne porte **ni barre de contexte unifiée**, ni témoin, *avant F1* — les deux
+> sont arrivés depuis, et l'énoncé « prêt n'est pas construit » qui les différait a fait son office.
+> Un conflit constaté n'est **jamais** tranché en silence : c'est cette note, écrite dans le même
+> changement que le déplacement.
 
 **Trois pièges qui coûtent une heure chacun, écrits une fois pour toutes :**
 
@@ -706,21 +731,23 @@ décision qu'on relit ; c'est toute la valeur de la liste.**
 
 #### Ce que la coquille porte, et ce qu'elle ne porte pas
 
-Elle porte, **depuis le lot de déconnexion** : une racine stable, un `<main>` unique, et le pied qui
+Elle porte, **depuis le lot de déconnexion** : une racine stable, un `<main>` unique, et le geste qui
 permet de **quitter son poste** — un bouton discret (composant 03), absent hors session, qui refuse
 si des écritures ne sont pas parties, révoque côté serveur, purge le stockage et renvoie sur `R0`.
+⚠️ **Depuis le cycle F2, ce geste vit dans l'EN-TÊTE**, à côté de la personne dont on rend le
+poste — voir la note du tableau ci-dessus.
 Le libellé passe par `docs/design/lexique.md` : « **passer la main** », jamais « se déconnecter » —
 sur un terminal de comptoir, l'appareil ne bouge pas, c'est la personne qui change, et c'est ce que
 le journal d'audit doit refléter.
 
 Elle ne porte ni barre de contexte unifiée, ni témoin de synchronisation. Ce ne sont pas des oublis :
 
-- `EcranAccueil` et `EcranEtablissement` portent chacun un `<header>` **différent**. Les fondre est
-  un changement d'écran, et `docs/design/derivation.md` est opposable. **C'est la raison pour
-  laquelle la sortie de session est un pied et non un en-tête** : elle se pose sous les trois
-  formes d'écran sans en rouvrir aucune.
-- Le témoin de synchronisation est le **composant 10**, toujours dû à ETB-06. Prêt n'est pas
-  construit (principe X).
+- ~~`EcranAccueil` et `EcranEtablissement` portent chacun un `<header>` **différent**.~~ ⚠️ **PLUS
+  VRAI DEPUIS F1, et c'est ce qui a fait tomber le motif du pied** : le gabarit porte l'en-tête
+  pour tous les écrans, `EnTeteContexte.vue` le définit une fois, et un test refuse le second.
+- ~~Le témoin de synchronisation est le **composant 10**, toujours dû à ETB-06.~~ ⚠️ **CONSTRUIT AU
+  CYCLE F1**, et présent sur chaque écran depuis. L'énoncé « prêt n'est pas construit » a fait son
+  office : il a différé le composant jusqu'au cycle qui pouvait l'exercer, pas au-delà.
 
 ### Ce que ce patron ne démontre PAS
 
