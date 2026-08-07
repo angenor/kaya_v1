@@ -87,7 +87,7 @@ C'est le tableau qui rend sûr le fait de coder directement : chaque écran déc
 
 | Écran | Hérite de | Ce qui change |
 |---|---|---|
-| `R0` Connexion | `G2` | Formulaire minimal ; états d'erreur et vides de `S3` |
+| `R0` Connexion — **route `/connexion`**, construit au cycle **F2** | `G2` | Formulaire minimal ; états d'erreur et vides de `S3`. ⚠️ **Le seul écran du produit SANS en-tête de contexte** (FR-009) : avant l'entrée, il n'y a ni établissement, ni poste, ni personne — un sélecteur vide y serait un mensonge. Il emploie le gabarit `vierge`, qui porte le `<main>` et le bandeau de coquille, et **aucun second `<header>`** |
 | `R2` Vue du jour | `R1` + composant 14 | Grille d'unités au lieu de tuiles |
 | `R3` Arrivée — **terme du lexique, « check-in » est écarté** ; route `/arrivee` | `R4` | Parcours long : plus de champs, même grammaire |
 | `R5` Fiche client et recherche — route `/clients` | `R7` | Liste + fiche, pas de total |

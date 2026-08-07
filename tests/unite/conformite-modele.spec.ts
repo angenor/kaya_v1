@@ -158,9 +158,17 @@ describe('les décomptes du jeu de Deloria', () => {
     expect(deloria.pointsDeVente.find((p) => p.nom === 'Pressing')?.avecTables).toBe(false)
   })
 
-  it('5 personnes, 5 comptes, et les rôles cumulés', () => {
-    expect(deloria.personnes).toHaveLength(5)
-    expect(deloria.comptes).toHaveLength(5)
+  it('6 personnes, 6 comptes dont UN SUSPENDU, et les rôles cumulés', () => {
+    expect(deloria.personnes).toHaveLength(6)
+    expect(deloria.comptes).toHaveLength(6)
+    // ⚠️ LE COMPTE SUSPENDU EXISTE POUR ÊTRE REFUSÉ (FR-003, cycle F2). Sans
+    // lui, la branche « compte non ACTIF » de `identifier` n'était exercée par
+    // rien, et la phrase unique n'était vérifiée que sur deux cas au lieu de
+    // quatre. Il ne porte AUCUN rôle : rien à résoudre, rien à afficher.
+    const nonActifs = deloria.comptes.filter((c) => c.etat !== 'ACTIF')
+    expect(nonActifs.map((c) => c.id)).toEqual(['compte-mariam'])
+    expect(nonActifs[0]?.etat).toBe('SUSPENDU')
+    expect(deloria.compteRoles.filter((r) => r.compteId === 'compte-mariam')).toHaveLength(0)
     const rolesAdjoua = deloria.compteRoles.filter((r) => r.compteId === 'compte-adjoua')
     expect(rolesAdjoua, 'Adjoua porte trois rôles — le cumul est la norme').toHaveLength(3)
     const koffi = deloria.compteRoles.filter((r) => r.compteId === 'compte-koffi')

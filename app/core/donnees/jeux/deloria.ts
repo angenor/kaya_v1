@@ -108,6 +108,11 @@ export const personnes: readonly Personne[] = [
   { id: 'personne-aminata', tenantId: TENANT_DELORIA, nom: 'Traoré', prenoms: 'Aminata', nomNormalise: 'traore aminata', email: null, typePiece: null, numeroPiece: null },
   { id: 'personne-koffi', tenantId: TENANT_DELORIA, nom: 'Koffi', prenoms: null, nomNormalise: 'koffi', email: null, typePiece: null, numeroPiece: null },
   { id: 'personne-editeur', tenantId: TENANT_DELORIA, nom: 'Kaya', prenoms: 'Éditeur', nomNormalise: 'kaya editeur', email: 'admin@kaya.ci', typePiece: null, numeroPiece: null },
+  // ⚠️ AJOUTÉE AU CYCLE F2, ET LE MOTIF EST NOMMÉ. Un compte `SUSPENDU` doit
+  // rendre EXACTEMENT la même phrase qu'un compte inconnu (FR-003) — et sans
+  // compte suspendu au jeu, cette branche n'était exercée par rien. Une règle
+  // que rien n'exerce est une règle qu'on croit tenue.
+  { id: 'personne-mariam', tenantId: TENANT_DELORIA, nom: 'Bamba', prenoms: 'Mariam', nomNormalise: 'bamba mariam', email: null, typePiece: null, numeroPiece: null },
 ]
 
 export const comptes: readonly Compte[] = [
@@ -116,6 +121,17 @@ export const comptes: readonly Compte[] = [
   { id: 'compte-aminata', tenantId: TENANT_DELORIA, personneId: 'personne-aminata', identifiant: '+2250700000003', typeIdentifiant: 'TELEPHONE', etat: 'ACTIF', derniereConnexionLe: null },
   { id: 'compte-koffi', tenantId: TENANT_DELORIA, personneId: 'personne-koffi', identifiant: '+2250700000004', typeIdentifiant: 'TELEPHONE', etat: 'ACTIF', derniereConnexionLe: null },
   { id: 'compte-editeur', tenantId: TENANT_DELORIA, personneId: 'personne-editeur', identifiant: 'admin@kaya.ci', typeIdentifiant: 'EMAIL', etat: 'ACTIF', derniereConnexionLe: null },
+  /**
+   * ⚠️ LE SEUL COMPTE NON `ACTIF` DU JEU, ET IL EXISTE POUR ÊTRE REFUSÉ.
+   *
+   * Mariam a quitté l'établissement ; son compte est suspendu, pas supprimé —
+   * c'est le cas ordinaire, et le journal des actions le suppose. À la
+   * connexion, il rend **la même phrase** qu'un identifiant inconnu : dire
+   * « ce compte est suspendu » confirmerait qu'il existe, et publierait la
+   * liste par la porte de derrière. Il ne porte **aucun rôle** : rien à
+   * résoudre, rien à afficher.
+   */
+  { id: 'compte-mariam', tenantId: TENANT_DELORIA, personneId: 'personne-mariam', identifiant: '+2250700000005', typeIdentifiant: 'TELEPHONE', etat: 'SUSPENDU', derniereConnexionLe: null },
 ]
 
 export const roles: readonly Role[] = [

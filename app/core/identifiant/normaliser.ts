@@ -69,12 +69,19 @@ export function normaliserIdentifiant(saisi: string): IdentifiantNormalise {
     indicatif === null ? undefined : { defaultCallingCode: indicatif },
   )
 
-  // ⚠️ UN NUMÉRO ILLISIBLE RESTE UN TÉLÉPHONE, ET SA VALEUR EST CE QUI A ÉTÉ
+  // ⚠️ UNE SAISIE ILLISIBLE RESTE UN TÉLÉPHONE, ET SA VALEUR EST CE QUI A ÉTÉ
   // TAPÉ. Le rendre `ABSENT` ferait dire « indiquez un numéro ou une adresse » à
   // quelqu'un qui vient précisément d'en indiquer un — la phrase serait fausse
   // et le renverrait à un champ qu'il croit rempli. Il ne correspondra à aucun
   // compte, et c'est la phrase unique d'échec qui répondra, comme pour tout
   // identifiant inconnu.
+  //
+  // ⚠️ ET AUCUNE VALIDATION DE LONGUEUR N'EST FAITE ICI, DÉLIBÉRÉMENT. La
+  // bibliothèque COMPLÈTE un numéro trop court sans le valider — « 12 » devient
+  // « +22512 », constaté en écrivant le test —, et c'est ce qu'on veut :
+  // refuser ici sur la forme dirait « ce numéro n'existe pas », c'est-à-dire
+  // exactement la distinction que FR-003 interdit de publier. La validité est
+  // une affaire du serveur, qui répond la même phrase à tout le monde.
   if (numero === undefined) return { forme: 'TELEPHONE', valeur: propre }
   return { forme: 'TELEPHONE', valeur: numero.number }
 }

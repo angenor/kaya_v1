@@ -39,7 +39,13 @@ withDefaults(
     etiquetteCle: string
     aideCle?: string
     erreurCle?: string
-    type?: 'text' | 'number' | 'tel' | 'email'
+    /**
+     * ⚠️ `password` EST ENTRÉ AU CYCLE F2, AVEC `R0`. Il ne change RIEN au
+     * rendu — même bordure, même hauteur, mêmes états : ce que l'attribut
+     * apporte est le masquage par le moteur et l'offre du gestionnaire de mots
+     * de passe. Le composant, lui, ne conserve, ne compare et ne journalise rien.
+     */
+    type?: 'text' | 'number' | 'tel' | 'email' | 'password'
     /** Le choix fermé partage l'enveloppe : même étiquette, même aide. */
     options?: readonly OptionChoixFerme[]
     desactive?: boolean

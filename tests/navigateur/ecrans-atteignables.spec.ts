@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { entreesConstruites } from '../../app/core/ecrans/index'
+import { exigeUneSession, porteLEnTete } from '../../app/core/session/routesPubliques'
 
+import { entrer } from './outils/entrer'
 import {
   contrasteDe,
   exigerAucunNomDetatInterne,
@@ -119,19 +121,42 @@ for (const schema of ['light', 'dark'] as const) {
     for (const entree of CONSTRUITS) {
       const route = entree.route!
 
+      /**
+       * ⚠️ L'EN-TÊTE N'EST DÛ QU'AUX ÉCRANS ATTEINTS **AVEC UNE SESSION**, et
+       * la liste vient de l'intergiciel lui-même — jamais d'une seconde liste
+       * tenue ici. C'est l'énoncé littéral de FR-025, et la restriction est ce
+       * qui rend FR-009 possible : `R0` est un écran du produit, et avant
+       * l'entrée il n'y a ni établissement, ni poste, ni personne à afficher.
+       * Un « tous » sans réserve rendrait les deux exigences contradictoires,
+       * et c'est la plus faible qui aurait cédé — en silence.
+       */
+      const avecEnTete = porteLEnTete(route)
+
       test(`${route} · rend, pose son thème, tient ses jetons et son contraste`, async ({
         page,
       }) => {
         const erreursConsole = guetterLaConsole(page)
-        await page.goto(route, { waitUntil: 'networkidle' })
+        // Entrer d'abord : depuis F2, toute route du produit sans session
+        // conduit à `R0`. On y va par l'écran, jamais en posant une session
+        // dans le stockage — sinon `R0` pourrait être cassé sans que rien
+        // rougisse. Les instruments, eux, n'exigent aucune session : ils sont
+        // le moyen de choisir un compte en phase 2.
+        if (exigeUneSession(route)) await entrer(page, undefined, route)
+        else await page.goto(route, { waitUntil: 'networkidle' })
 
         // ── La page REND, dans le gabarit qu'elle n'a pas demandé ───────────
         await expect(
           page.locator('[data-ecran]'),
           `${route} ne rend aucun écran — la route est servie et la page est vide`,
         ).toHaveCount(1)
-        await expect(page.locator('header [data-emplacement="etablissement"]')).toBeVisible()
-        await expect(page.locator('header [data-emplacement="temoin"]')).toBeAttached()
+        if (avecEnTete) {
+          await expect(page.locator('header [data-emplacement="etablissement"]')).toBeVisible()
+          await expect(page.locator('header [data-emplacement="temoin"]')).toBeAttached()
+        } else {
+          // L'absence est vérifiée aussi fermement que la présence : un en-tête
+          // qui reviendrait sur `R0` afficherait un contexte inventé.
+          await expect(page.locator('header')).toHaveCount(0)
+        }
         // UN SEUL `<main>` dans le document (FR-032).
         await expect(page.locator('main')).toHaveCount(1)
 
@@ -147,10 +172,12 @@ for (const schema of ['light', 'dark'] as const) {
         expect(fond, `${route} : le fond n'est pas le jeton --color-bg du thème ${nom}`).toBe(
           JETONS.couleur.bg[schema],
         )
-        expect(
-          await styleCalcule(page.locator('header').first(), 'background-color'),
-          `${route} : l'en-tête n'est pas sur le jeton --color-surf`,
-        ).toBe(JETONS.couleur.surf[schema])
+        if (avecEnTete) {
+          expect(
+            await styleCalcule(page.locator('header').first(), 'background-color'),
+            `${route} : l'en-tête n'est pas sur le jeton --color-surf`,
+          ).toBe(JETONS.couleur.surf[schema])
+        }
         expect(
           await page.evaluate(() => getComputedStyle(document.body).fontSize),
           `${route} : le corps du document n'est pas le jeton --text-corps`,

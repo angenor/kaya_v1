@@ -32,6 +32,30 @@ export default {
     horsConnexion: 'No connection',
   },
 
+  // ── R0 · signing in ────────────────────────────────────────────────────────
+  // ⚠️ THE WORDING IS THE LEXICON'S, WORD FOR WORD. `identifiants_invalides`
+  // carries the « one single phrase » note: splitting it would make the list of
+  // existing accounts readable by whoever tries numbers.
+  connexion: {
+    titre: 'Sign in',
+    intro: 'Enter the ID your manager gave you.',
+    identifiant: 'ID',
+    identifiantAide: 'Your phone number or your email address.',
+    motDePasse: 'Password',
+    entrer: 'Sign in',
+    entrerEnCours: 'Checking…',
+    identifiantsInvalides: 'Incorrect ID or password',
+    identifiantAbsent: 'Enter a phone number or an email address.',
+    horsLigne: 'This action requires an internet connection.',
+    horsLigneAlternative:
+      "You will be able to sign in as soon as the connection is back. Anything already saved on this device is not lost.",
+    echecReseau: "It didn't go through. Try again when the connection is back.",
+    resteraConnecte: 'You will stay signed in on this device.',
+    peutRedemander: 'This device may ask you for your ID again.',
+    peutRedemanderAlternative:
+      'You will always be able to sign in again: nothing you have saved is lost.',
+  },
+
   ecrans: {
     titre: 'Screens',
     leProduit: "The product",

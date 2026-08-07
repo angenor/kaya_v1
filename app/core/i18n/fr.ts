@@ -43,6 +43,41 @@ export default {
     horsConnexion: 'Hors connexion',
   },
 
+  // ── R0 · la connexion ──────────────────────────────────────────────────────
+  // ⚠️ LES PHRASES SONT CELLES DU LEXIQUE, MOT POUR MOT. Deux entrées y portent
+  // la mention « une seule phrase » : `identifiants_invalides` et
+  // `identifiant_absent`. La première ne se scinde pas sans rouvrir FR-003 — la
+  // préciser (« ce compte n'existe pas », « compte désactivé ») rendrait la
+  // liste des comptes lisible par qui essaie des numéros.
+  //
+  // ⚠️ ET LE MOT « SESSION » N'APPARAÎT NULLE PART ICI (FR-011). Ce que
+  // l'utilisateur lit dit ce qui se passera sur SON appareil, pas ce qu'un jeton
+  // devient.
+  connexion: {
+    titre: 'Entrer',
+    intro: "Entrez l'identifiant que votre gérant vous a donné.",
+    identifiant: 'Identifiant',
+    identifiantAide: 'Votre numéro de téléphone ou votre adresse e-mail.',
+    motDePasse: 'Mot de passe',
+    entrer: 'Entrer',
+    entrerEnCours: 'Vérification…',
+    identifiantsInvalides: 'Identifiant ou mot de passe incorrect',
+    identifiantAbsent: 'Indiquez un numéro de téléphone ou une adresse e-mail.',
+    // ⚠️ RÉEMPLOI EXACT DE LA FORMULATION DU LEXIQUE pour un refus de classe C.
+    // Inventer une variante propre à cet écran ferait deux phrases pour un même
+    // fait, et l'exploitant apprendrait deux fois la même chose. Le versant
+    // positif, lui, est propre à R0 : on ne « met pas en file » une entrée.
+    horsLigne: 'Cette action nécessite internet.',
+    horsLigneAlternative:
+      "Vous entrerez dès que le réseau revient. Ce qui est déjà enregistré sur cet appareil n'est pas perdu.",
+    echecReseau: "Ça n'est pas parti. Recommencez quand le réseau revient.",
+    // FR-006 et FR-007 : les deux annonces, avant toute saisie.
+    resteraConnecte: 'Vous resterez connectée sur cet appareil.',
+    peutRedemander: 'Cet appareil peut vous redemander votre identifiant.',
+    peutRedemanderAlternative:
+      'Vous pourrez toujours entrer à nouveau : rien de ce que vous avez enregistré ne se perd.',
+  },
+
   // ── Les instruments de développement ───────────────────────────────────────
   // Ce ne sont pas des écrans du produit : ils ne portent pas de code de
   // préfixe et n'entrent pas au décompte des 46.

@@ -45,6 +45,21 @@ export type CodeEchec =
   | 'INTROUVABLE'
   /** Ne devrait JAMAIS s'afficher : sans le droit, l'action est ABSENTE. */
   | 'PERMISSION_ABSENTE'
+  /**
+   * ⚠️ QUATRE CAS, UN SEUL CODE — ET C'EST LA PROPRIÉTÉ, PAS UNE
+   * SIMPLIFICATION. Compte inconnu, mot de passe faux, compte `SUSPENDU`,
+   * compte `REVOQUE` : les distinguer publierait la liste des comptes
+   * existants à qui essaie des numéros. La tentation de préciser sera
+   * permanente ; le lexique porte la mention « une seule phrase », et elle ne
+   * se scinde pas sans rouvrir FR-003.
+   */
+  | 'IDENTIFIANTS_INVALIDES'
+  /**
+   * Le champ identifiant est vide. **Ce n'est pas un échec de connexion** : la
+   * personne doit savoir quoi corriger, et lui servir la phrase ci-dessus la
+   * renverrait vérifier un mot de passe qu'elle n'a pas encore tapé.
+   */
+  | 'IDENTIFIANT_ABSENT'
 
 export function reussite<T>(valeur: T): ResultatDomaine<T> {
   return { ok: true, valeur }

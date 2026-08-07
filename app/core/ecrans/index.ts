@@ -76,7 +76,7 @@ export const ECRANS_PRODUIT: readonly EntreeEcran[] = [
   { code: 'V1', titre: 'Le planning', route: null, cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'docs/design/html/V1-planning.html' },
 
   // ── Les trente-deux dérivés ──────────────────────────────────────────────
-  { code: 'R0', titre: 'Connexion', route: null, cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F2', reference: 'hérite de G2 et S3' },
+  { code: 'R0', titre: 'Connexion', route: '/connexion', cas: 'derive', avancement: 'CONSTRUIT', cycle: null, reference: 'hérite de G2 et S3' },
   { code: 'R2', titre: 'Vue du jour', route: null, cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R1 + composant 14' },
   { code: 'R3', titre: 'Arrivée', route: '/arrivee', cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R4' },
   { code: 'R5', titre: 'Fiche client et recherche', route: '/clients', cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R7' },

@@ -69,16 +69,43 @@ describe('SC-022 · les trois noms d’état internes n’entrent dans aucun cat
   // ce qui décrit le RÉSEAU au lieu de dire ce qui compte pour Aminata : son
   // travail est-il en sécurité ». Le témoin est sur CHAQUE écran du produit —
   // les six cycles suivants auraient hérité des mauvais libellés.
-  const PROSCRITS = ['connecté', 'connectée', 'dégradé', 'dégradée', 'hors ligne', 'offline', 'degraded']
+  /**
+   * ⚠️ CES MOTS-LÀ SONT PROSCRITS **OÙ QU'ILS SOIENT**, phrase comprise. Le
+   * lexique le documente sur un cas réel : « Installée, elle s'ouvre même sans
+   * réseau » disait « hors ligne », et c'est ce contrôle qui l'a attrapé dans
+   * cette phrase même.
+   */
+  const PROSCRITS_PARTOUT = ['dégradé', 'dégradée', 'hors ligne', 'offline', 'degraded']
+
+  /**
+   * ⚠️ « CONNECTÉ » EST PROSCRIT COMME **LIBELLÉ D'ÉTAT**, ET AUTORISÉ COMME
+   * MOT — conflit constaté au cycle F2, tranché par la préséance.
+   *
+   * Le contrôle interdisait le mot partout, y compris dans une phrase. Or le
+   * lexique — qui prime sur tout catalogue et sur ce test — l'emploie deux fois
+   * dans le vocabulaire **visible** : « l'utilisateur voit un **appareil
+   * connecté** » (entrée Session), et « **Vous resterez connectée sur cet
+   * appareil.** » (annonce de persistance de `R0`). Interdire le mot par
+   * inclusion aurait forcé `R0` à écrire autre chose que ce que le lexique lui
+   * prescrit — c'est-à-dire à faire dériver le produit pour satisfaire un test.
+   *
+   * Ce qui est proscrit reste ce qu'il a toujours été : « Connecté » **en tant
+   * qu'état du témoin**, à côté de « Dégradé » et « Hors ligne ». Le contrôle
+   * porte donc sur la valeur ENTIÈRE, ponctuation ôtée.
+   */
+  const PROSCRITS_COMME_LIBELLE = ['connecté', 'connectée', 'connected']
 
   for (const [langue, catalogue] of [
     ['fr', fr],
     ['en', en],
   ] as const) {
     it(`${langue} : zéro occurrence des mots proscrits`, () => {
-      const fautives = valeurs(catalogue as Catalogue).filter((valeur) =>
-        PROSCRITS.some((mot) => valeur.toLowerCase().includes(mot)),
-      )
+      const fautives = valeurs(catalogue as Catalogue).filter((valeur) => {
+        const minuscule = valeur.toLowerCase()
+        if (PROSCRITS_PARTOUT.some((mot) => minuscule.includes(mot))) return true
+        const nue = minuscule.replace(/[.…!?\s]+$/g, '').trim()
+        return PROSCRITS_COMME_LIBELLE.includes(nue)
+      })
       expect(fautives, `valeurs fautives : ${fautives.join(' · ')}`).toEqual([])
     })
   }
