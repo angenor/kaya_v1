@@ -72,6 +72,12 @@
       "verifieLe": "2026-08-07",
       "pourquoiPasLExistant": "localStorage est SYNCHRONE et bloquerait le premier rendu sur l'Android 2 Go d'Aminata ; IndexedDB brut est fondé sur des événements. Aucune dépendance présente n'enveloppe IndexedDB."
     },
+    "libphonenumber-js": {
+      "role": "Normalise l'identifiant saisi à R0 en E.164, avec l'indicatif par défaut LU DE LA CONFIGURATION (sous-ensemble « /min »).",
+      "registre": "https://registry.npmjs.org/libphonenumber-js/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Aucune dépendance présente ne connaît un plan de numérotation — ni Nuxt, ni uuid, ni idb. L'écrire à la main réimplémenterait le plan ivoirien, dont les mobiles sont passés à dix chiffres en 2021, et ne dirait rien du second pays visé (incrément 3). MIT, AUCUNE dépendance, AUCUNE peerDependency — constaté au registre le 2026-08-07. google-libphonenumber (~550 ko, porté par Closure) et awesome-phonenumber (son enveloppe) sont écartés au §3.4 : le paquet livré à l'Android 2 Go d'Aminata n'a pas cette place."
+    },
     "@phosphor-icons/web": {
       "role": "Source des glyphes d'icônes — sous-réglée à la construction, jamais expédiée entière.",
       "registre": "https://registry.npmjs.org/@phosphor-icons/web/latest",
@@ -224,6 +230,7 @@
     "@phosphor-icons/web": "2.1.2",
     "@tailwindcss/vite": "4.3.3",
     "idb": "8.0.3",
+    "libphonenumber-js": "1.13.10",
     "nuxt": "4.5.1",
     "tailwindcss": "4.3.3",
     "uuid": "14.0.1",

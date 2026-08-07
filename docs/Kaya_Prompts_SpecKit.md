@@ -983,7 +983,7 @@ un développeur seul.
 ### Cycle F1 — Fondations de l'application
 
 ```
-/speckit-specify(En cours)
+/speckit-specify
 
 Lis docs/Kaya_Design.md (parties I à III), docs/design/tokens.md,
 docs/design/composants.md, docs/design/mouvement.md, docs/design/styleguide.html,
@@ -1112,7 +1112,7 @@ aussi. Sans le second versant, tout déclarer branché rendrait le contrôle mue
 ### Cycle F2 — Entrée dans l'application : connexion, accueil, contexte
 
 ```
-/speckit-specify
+/speckit-specify(En cours)
 
 Lis docs/user-stories-v1.md CPT-01, CPT-02, CPT-03, ETB-06, et
 docs/design/html/R1-accueil*.html (quatre variantes), plus les lignes R0, A1, S1 de
