@@ -62,8 +62,11 @@ aide() {
 verifier.sh — la commande unique de vérification du dépôt Kaya
 
 USAGE
-    scripts/verifier.sh                      toutes les portes, dans l'ordre,
-                                             arrêt au premier échec
+    scripts/verifier.sh                      les préalables PUIS toutes les
+                                             portes, dans l'ordre, arrêt au
+                                             premier contrôle rouge
+    scripts/verifier.sh --prealables         lint, types, construction, tests
+                                             d'unité — et rien d'autre
     scripts/verifier.sh --porte p01          une porte seule
     scripts/verifier.sh --porte p02
     scripts/verifier.sh --porte p03
@@ -80,6 +83,18 @@ USAGE
     qui ne trouve jamais rien est indistinguable d'une porte qui n'a rien à
     trouver. Le mode opère sur une COPIE DE TRAVAIL et ne touche jamais
     docs/modele-donnees/ — l'empreinte du répertoire le vérifie.
+
+LES PRÉALABLES — avant les portes, parce qu'ils sont les moins chers
+    lint          eslint . — quatre règles opposables, aucune chaîne en dur
+    types         nuxt typecheck
+    construction  nuxt build, AVEC KAYA_PAGE_TEMOIN=1 : sans le drapeau, les
+                  deux pages témoin n'entrent pas au routeur et la suite
+                  cycle-de-vie ÉCHOUE — elle échoue, elle ne se saute pas
+    tests         vitest run
+
+    Les QUATRE SUITES DE NAVIGATEUR ne sont pas ici : elles s'exécutent DANS
+    la porte P-04, qui monte déjà l'application et pilote les deux moteurs.
+    Aucune ne reste hors du script — ce qui compte est dedans, ou n'existe pas.
 
 LES PORTES
     P-01   le modèle de docs/modele-donnees/ s'applique dans l'ordre, sans
@@ -274,6 +289,108 @@ appliquer_modele() {
         printf '   ✗ aucun fichier .sql trouvé dans %s\n' "$repertoire"
         return 1
     fi
+    return 0
+}
+
+# =============================================================================
+# LES PRÉALABLES — lint, types, construction, tests d'unité
+# =============================================================================
+#
+# Principe 13, et c'est la phrase entière : « aucun contrôle n'est lancé à la
+# main EN PLUS du script — ce qui compte est dedans, ou n'existe pas ».
+#
+# Jusqu'ici, quatre commandes se lançaient séparément : `pnpm lint`,
+# `pnpm build`, `pnpm test` et `pnpm test:navigateur`. Elles étaient VERTES — et
+# c'est précisément ce qui rendait l'écart dangereux : un contrôle vert qu'on
+# lance de mémoire est un contrôle qu'on oubliera un mardi, sans que rien ne le
+# dise. Les trois premières entrent ici ; les quatre suites de navigateur
+# entrent DANS LA PORTE P-04, qui monte déjà l'application et pilote les deux
+# moteurs. Aucune ne reste dehors.
+#
+# ⚠️ LA CONSTRUCTION SE FAIT AVEC `KAYA_PAGE_TEMOIN=1`, ET CE N'EST PAS UN
+# RÉGLAGE DE CONFORT. Sans le drapeau, les deux pages témoin n'entrent pas au
+# routeur et `tests/navigateur/cycle-de-vie.spec.ts` ÉCHOUE — il échoue, il ne
+# se saute pas : un test silencieusement absent est un test qu'on croit vert.
+# `app/core/ecrans/index.ts` lit LE MÊME DRAPEAU, donc les deux côtés de P-04 ne
+# peuvent pas diverger.
+#
+# ⚠️ ET `typecheck` A ÉTÉ CONSTATÉ CASSÉ EN L'Y RATTACHANT. Le script était
+# déclaré au manifeste depuis le début du cycle et s'arrêtait en réclamant
+# `vue-tsc`, absente. Un script déclaré qui ne peut pas s'exécuter se lit comme
+# un contrôle existant : c'est exactement le mode de défaillance que ce
+# rattachement ferme. La dépendance est ajoutée et inscrite au §3.2 dans le même
+# changement.
+
+# Les repères de coût de SC-017. Le premier n'arrête rien : il DEMANDE qu'on
+# consigne le franchissement au rapport de cycle, parce qu'un enchaînement qui
+# s'allonge sans que personne l'écrive finit par ne plus être lancé.
+readonly REPERE_A_CONSIGNER=180
+readonly REPERE_MAXIMUM=300
+
+# pnpm porte les quatre préalables. Son absence est un PRÉREQUIS manquant, pas
+# une porte rouge : il n'y a rien à diagnostiquer dans le dépôt.
+exiger_pnpm() {
+    if ! command -v pnpm >/dev/null 2>&1; then
+        printf 'PRÉREQUIS MANQUANT : pnpm est introuvable — les préalables ne peuvent pas être lancés.\n' >&2
+        exit "$CODE_PREREQUIS"
+    fi
+    if [ ! -d "$RACINE/node_modules" ]; then
+        printf 'PRÉREQUIS MANQUANT : node_modules/ est absent — lancez « pnpm install --frozen-lockfile ».\n' >&2
+        exit "$CODE_PREREQUIS"
+    fi
+}
+
+# Exécute un préalable, imprime sa durée, et EN CAS D'ÉCHEC IMPRIME SA SORTIE.
+# Un contrôle qui échoue sans dire pourquoi envoie chercher pendant vingt
+# minutes — le même motif qui fait nommer l'objet fautif dans chaque porte.
+executer_prealable() {
+    local libelle="$1"
+    shift
+    local journal debut
+    journal="$(mktemp)"
+    debut=$SECONDS
+
+    if (cd "$RACINE" && "$@") > "$journal" 2>&1; then
+        printf '   ✓ %-26s %3d s\n' "$libelle" "$((SECONDS - debut))"
+        rm -f "$journal"
+        return 0
+    fi
+
+    printf '   ✗ %-26s %3d s\n' "$libelle" "$((SECONDS - debut))"
+    printf '     COMMANDE : %s\n' "$*"
+    tail -n 40 "$journal" | sed 's/^/     | /'
+    rm -f "$journal"
+    return "$CODE_ROUGE"
+}
+
+# La construction n'a lieu QU'UNE FOIS, comme la base de P-01 : la porte P-04
+# la réutilise plutôt que de reconstruire. C'est aussi ce qui permet à
+# « --porte p04 » de fonctionner seul — la porte construit alors elle-même.
+build_fait=0
+
+construire_application() {
+    executer_prealable 'construction (témoin)' env KAYA_PAGE_TEMOIN=1 pnpm build || return "$CODE_ROUGE"
+    build_fait=1
+    return 0
+}
+
+assurer_build() {
+    [ "$build_fait" -eq 1 ] && return 0
+    construire_application
+}
+
+controles_prealables() {
+    printf '\n── LES PRÉALABLES · lint, types, construction, tests d'\''unité\n'
+    exiger_pnpm
+    printf '   Périmètre : eslint . · nuxt typecheck · nuxt build (KAYA_PAGE_TEMOIN=1) · vitest run\n'
+    printf '   Les quatre suites de navigateur sont dans P-04, jamais hors du script\n'
+
+    executer_prealable 'lint'                pnpm lint || return "$CODE_ROUGE"
+    executer_prealable 'types'               pnpm typecheck || return "$CODE_ROUGE"
+    construire_application                   || return "$CODE_ROUGE"
+    executer_prealable "tests d'unité"       pnpm test || return "$CODE_ROUGE"
+
+    printf '   VERT\n'
     return 0
 }
 
@@ -1561,6 +1678,26 @@ rendre_verdict() {
     return 1
 }
 
+# Le coût de l'enchaînement, dit à voix haute (SC-017).
+#
+# ⚠️ CE N'EST PAS UNE PORTE, ET CE NE DOIT PAS EN DEVENIR UNE. Faire rougir le
+# script parce qu'il a mis quatre minutes punirait le cycle qui ajoute un
+# contrôle utile, et l'on retirerait le contrôle plutôt que la lenteur. Le
+# franchissement des trois minutes DEMANDE une ligne au rapport de cycle ; le
+# franchissement des cinq minutes dit que le déclencheur du serveur d'intégration
+# de la phase 3 est atteint. Les deux se constatent, aucun n'arrête.
+annoncer_duree() {
+    local duree="$1"
+    if [ "$duree" -ge "$REPERE_MAXIMUM" ]; then
+        printf '⚠️  %d s — le repère de %d s est FRANCHI. C'\''est le déclencheur écrit du\n' \
+            "$duree" "$REPERE_MAXIMUM"
+        printf '    passage au serveur d'\''intégration, en phase 3. À consigner au rapport de cycle.\n'
+    elif [ "$duree" -ge "$REPERE_A_CONSIGNER" ]; then
+        printf '⚠️  %d s — au-delà du repère de %d s. À CONSIGNER au rapport de cycle (SC-017).\n' \
+            "$duree" "$REPERE_A_CONSIGNER"
+    fi
+}
+
 # =============================================================================
 # Enchaînement
 # =============================================================================
@@ -1573,6 +1710,10 @@ main() {
             --aide|-h|--help)
                 aide
                 exit "$CODE_OK"
+                ;;
+            --prealables)
+                mode="prealables"
+                shift
                 ;;
             --porte)
                 [ $# -ge 2 ] || erreur_usage "--porte attend un nom de porte (p01, p02, p03 ou p05)"
@@ -1608,6 +1749,12 @@ main() {
             # Arrêt au PREMIER contrôle rouge : P-02 ne s'exécute pas si P-01
             # a échoué. Inspecter des classes sur un modèle qui ne s'applique
             # pas donnerait un second message d'erreur sans second diagnostic.
+            #
+            # Les préalables VIENNENT AVANT LES PORTES, et l'ordre a un motif :
+            # ils sont les moins chers et les plus souvent rouges. Monter une
+            # base PostgreSQL pour découvrir ensuite que le lint échoue coûte
+            # huit secondes à chaque fois, et l'on finit par sauter le script.
+            controles_prealables || exit "$CODE_ROUGE"
             porte_p01 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
             porte_p02 "$MODELE_REFERENCE" || exit "$CODE_ROUGE"
@@ -1616,6 +1763,13 @@ main() {
             portes_passees=$((portes_passees + 1))
             porte_p03 "$RACINE" || exit "$CODE_ROUGE"
             portes_passees=$((portes_passees + 1))
+            ;;
+        prealables)
+            controles_prealables || exit "$CODE_ROUGE"
+            local duree_p=$((SECONDS - debut))
+            printf '\nPRÉALABLES VERTS — %d s\n' "$duree_p"
+            annoncer_duree "$duree_p"
+            exit "$CODE_OK"
             ;;
         porte)
             case "$porte" in
@@ -1674,8 +1828,7 @@ main() {
     local mot="portes"
     [ "$portes_passees" -le 1 ] && mot="porte"
     printf '\nTOUT VERT — %d %s — %d s\n' "$portes_passees" "$mot" "$duree"
-    # Le repère de coût est DEUX MINUTES (SC-008). Au-delà, on cesse de lancer un
-    # script — c'est le déclencheur documenté du passage au serveur, en phase 3.
+    annoncer_duree "$duree"
     exit "$CODE_OK"
 }
 

@@ -138,6 +138,12 @@
       "verifieLe": "2026-08-04",
       "reprise": "docs/versions-reference.md §3.2"
     },
+    "vue-tsc": {
+      "role": "Rend le script « typecheck » RÉEL — nuxt typecheck l'appelle, et sans lui la commande déclarée échoue en réclamant son installation.",
+      "registre": "https://registry.npmjs.org/vue-tsc/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "typescript seul ne lit pas les blocs template d'un composant monofichier : tsc compile le script et ignore le reste. vue-tsc est l'enveloppe que nuxt typecheck attend nommément. peerDependencies.typescript vaut >=5.0.0, satisfaite par 5.9.3."
+    },
     "knip": {
       "role": "Première propriété de la porte P-06 — les exports sans référence, en rapport JSON.",
       "registre": "https://registry.npmjs.org/knip/latest",
@@ -236,6 +242,7 @@
     "typescript-eslint": "8.65.0",
     "vitest": "4.1.10",
     "vue-eslint-parser": "10.4.1",
+    "vue-tsc": "3.3.9",
     "yaml-eslint-parser": "2.1.0"
   }
 }

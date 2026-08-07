@@ -58,6 +58,32 @@ rouge.** Pas dix scripts qu'on lance de mémoire, dont on oublie le troisième.
 
 **Prérequis : `docker` et le greffon `compose`** pour P-01, P-02 et P-05 ; **rien** pour P-03.
 
+Elle enchaîne, dans cet ordre :
+
+```
+lint → types → construction → tests d'unité → P-01 → P-02 → P-05 → P-03
+```
+
+### Les préalables — avant les portes, parce qu'ils sont les moins chers
+
+```sh
+scripts/verifier.sh --prealables   # les quatre, et rien d'autre
+```
+
+| Préalable | Ce qu'il lance | Ce qu'il refuse |
+|---|---|---|
+| **lint** | `eslint .` | les quatre règles opposables, et **aucune chaîne visible en dur** |
+| **types** | `nuxt typecheck` | un type faux que la construction ne regarde pas |
+| **construction** | `nuxt build`, **avec `KAYA_PAGE_TEMOIN=1`** | une application qui ne se construit pas |
+| **tests d'unité** | `vitest run` | 128 cas |
+
+> ⚠️ **Le drapeau `KAYA_PAGE_TEMOIN=1` n'est pas un réglage de confort.** Sans lui, les deux pages
+> témoin n'entrent pas au routeur et la suite `cycle-de-vie` **échoue** — elle échoue, elle ne se
+> saute pas. *Un test silencieusement absent est un test qu'on croit vert.*
+
+**Les quatre suites de navigateur ne sont pas ici** : elles s'exécutent **dans la porte P-04**, qui
+monte déjà l'application et pilote les deux moteurs. *Ce qui compte est dedans, ou n'existe pas.*
+
 ### Ce que chaque porte vérifie
 
 | Porte | Ce qu'elle prouve | Conteneur ? |
@@ -117,16 +143,17 @@ prouvé P-01 une seconde fois.
 
 ---
 
-## Les autres contrôles
+## Les contrôles, un par un
 
-Ils sont **appelés par la commande unique** dès la phase 13 du cycle F1 ; d'ici là on les lance
-séparément, et le rapport de cycle le dit.
+**Ils sont tous appelés par la commande unique** — ces formes-ci servent à travailler, jamais à
+valider. *Valider, c'est `scripts/verifier.sh`.*
 
 ```sh
 pnpm lint                # les quatre règles opposables + aucune chaîne visible en dur
+pnpm typecheck           # nuxt typecheck (vue-tsc)
 pnpm build               # la construction, avec la coquille PWA
 pnpm test                # les tests d'unité
-pnpm test:navigateur     # Chromium ET WebKit, clair ET sombre
+pnpm test:navigateur     # Chromium ET WebKit, clair ET sombre — dans P-04
 ```
 
 ### Les quatre règles opposables du lint

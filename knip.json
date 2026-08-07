@@ -20,6 +20,7 @@
     "@fontsource-variable/chivo-mono",
     "@phosphor-icons/web",
     "jiti",
+    "vue-tsc",
     "jsonc-eslint-parser",
     "yaml-eslint-parser",
     "vue-eslint-parser"
