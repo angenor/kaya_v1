@@ -409,3 +409,57 @@ endroit où un cycle de phase 3 les rencontrera vraiment.
 
 **Verdict : conforme.** Toute provision du modèle a sa table, aucune n'a de logique, et **aucune ne
 pourra en recevoir sans qu'un `GRANT` change** — ce qui se voit dans un diff, et se discute.
+
+---
+
+## T023 · Le registre est-il honoré tel quel ?
+
+**Date** : 2026-08-07 · **Méthode** : `git diff` du registre entre la fin du cycle D1 et la fin du
+cycle D2, ligne à ligne.
+
+### Ce que le cycle D2 a changé au registre — quatre lignes, et pas une de plus
+
+| Ligne | Nature |
+|---|---|
+| `- \| Liaison article de catalogue → article de stock \| **C** \| C2 \| STK-01 \|` | **remplacée** |
+| `+ \| \`article_stock_catalogue\` — liaison … \| **C** \| C2 \| STK-01 \|` | **nommage** — classe, branche et story **identiques** |
+| `+ \| \`ligne_inventaire\` — quantité comptée et écart … \| **B** \| B3 \| STK-03 \|` | **entité nouvelle** |
+| `+` deux lignes au journal §13 | **traçabilité du nommage** |
+
+**Aucune classe n'a changé. Aucune branche n'a changé. Aucune ligne des §6, §7 ou §8 n'a été
+réécrite.** Les classes ont été décidées à froid, et ce cycle les honore telles quelles (FR-037).
+
+> **La seule suppression du diff n'est pas une suppression de classe** : c'est la même ligne, à
+> laquelle un nom a été donné. `C · C2 · STK-01` d'un côté comme de l'autre.
+
+### Les deux décisions ouvertes ne sont pas tranchées, et c'est la décision
+
+| # | Question | Classe qui s'applique jusqu'à l'arbitrage | Qui tranche, et quand |
+|---|---|---|---|
+| **O-02** | `mouvement_stock` en A ou en B ? | **B** — la plus stricte des deux | Le **pilote**, S4, avant la tranche T5 |
+| **O-03** | Crate d'accueil de la surface QR | `jeton_table` reste dans `ventes` | Le **cycle du crate QR**, avant QRC-01 (tranche T4) |
+
+**Deux conséquences ont été écrites pour que l'arbitrage ne coûte rien le jour venu** :
+
+- **O-02** : `mouvement_stock` porte `SELECT, INSERT` seuls. **Ce privilège reste valide si la classe
+  passe en A** — un privilège plus strict que la classe ne devient jamais faux. L'arbitrage ne
+  demandera donc **aucune migration**, seulement une ligne au registre.
+- **O-03** : l'arbitrage porte sur le **crate**, pas sur le schéma. `ventes.jeton_table` restera où
+  elle est quel que soit le crate qui la sert — **aucune migration de données** non plus.
+
+> **Pourquoi ne pas les trancher ici aurait pu passer pour de la paresse, et ne l'est pas.** O-02
+> demande au pilote si le stock sert à *détecter le vol* ou à *réapprovisionner* — une question de
+> terrain, pas de modèle. O-03 demande où loger un besoin transverse à deux verticales — une
+> question du cycle qui écrira ce crate. Les trancher aujourd'hui, c'est demander au développeur
+> d'arbitrer à la place de ceux qui savent.
+
+### Le journal §13 ne dit que ce qu'il doit dire
+
+Le registre l'exige : *« ce journal enregistre des **décisions de classe et de nommage**, pas
+l'avancement d'un chantier »*, et n'y ont pas leur place *« les décomptes de tables, les numéros de
+tâche, l'état d'avancement »*. **Contrôle** : aucune occurrence d'un numéro de tâche, d'un décompte
+de tables ou d'un état d'avancement dans le §13 — les deux seules occurrences des mots interdits
+sont **la règle elle-même**.
+
+**Verdict : conforme.** Le modèle se lit et se tient ; la règle de tenue écrite au cycle D1 couvre
+désormais les quinze fichiers.
