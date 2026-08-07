@@ -1435,6 +1435,113 @@ test_negatif_p05() {
     return "$CODE_OK"
 }
 
+# --- Test négatif de P-03 ---------------------------------------------------
+#
+# MUTATION : dans une COPIE DE TRAVAIL de package.json, la version de
+# @nuxtjs/i18n passe de 10.6.0 à ^10.6.0.
+#
+# POURQUOI CE PAQUET ET PAS UN AUTRE : @nuxtjs/i18n est une dépendance DÉJÀ
+# INSCRITE au §3.2 et RÉELLEMENT INSTALLÉE. La mutation rejoue donc l'erreur
+# ordinaire — un `^` laissé par un outil ou par une habitude — sur un objet
+# réel, pas sur un paquet de laboratoire.
+readonly CIBLE_P03_PAQUET="@nuxtjs/i18n"
+readonly CIBLE_P03_AVANT="10.6.0"
+readonly CIBLE_P03_APRES="^10.6.0"
+
+# Empreinte de TOUT CE QUE P-03 INSPECTE. Elle prouve le point 3 du contrat de
+# porte — « ne modifie pas ce qu'elle inspecte » — au lieu de le promettre.
+empreinte_p03() {
+    { cksum < "$RACINE/package.json"
+      cksum < "$RACINE/pnpm-lock.yaml"
+      cksum < "$RACINE/.nvmrc"
+      cksum < "$RACINE/compose.yml"
+      cksum < "$RACINE/docs/versions-reference.md"; } | cksum
+}
+
+# Copie les cinq fichiers du périmètre dans une racine de travail. Rien d'autre
+# n'est copié : la porte n'inspecte rien d'autre, et copier le dépôt entier
+# rendrait le test lent sans le rendre plus vrai.
+copier_perimetre_p03() {
+    local copie
+    copie="$(mktemp -d)"
+    mkdir -p "$copie/docs"
+    cp "$RACINE/package.json"                "$copie/package.json"
+    cp "$RACINE/pnpm-lock.yaml"              "$copie/pnpm-lock.yaml"
+    cp "$RACINE/.nvmrc"                      "$copie/.nvmrc"
+    cp "$RACINE/compose.yml"                 "$copie/compose.yml"
+    cp "$RACINE/docs/versions-reference.md"  "$copie/docs/versions-reference.md"
+    copies_de_travail="$copies_de_travail $copie"
+    printf '%s' "$copie"
+}
+
+# La mutation passe par node plutôt que par sed : elle doit produire un JSON
+# VALIDE, sinon la porte échouerait sur « package.json illisible » et l'on
+# croirait avoir prouvé C1 alors qu'on aurait prouvé qu'un fichier cassé casse.
+introduire_intervalle() {
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const chemin = process.argv[1];
+      const p = JSON.parse(fs.readFileSync(chemin, "utf8"));
+      p.dependencies[process.argv[2]] = process.argv[3];
+      fs.writeFileSync(chemin, JSON.stringify(p, null, 2) + "\n");
+    ' "$1" "$CIBLE_P03_PAQUET" "$CIBLE_P03_APRES"
+}
+
+test_negatif_p03() {
+    local copie journal empreinte_avant empreinte_apres
+
+    printf '\n── TEST NÉGATIF P-03 · %s passe de %s à %s (copie de travail)\n' \
+        "$CIBLE_P03_PAQUET" "$CIBLE_P03_AVANT" "$CIBLE_P03_APRES"
+
+    empreinte_avant="$(empreinte_p03)"
+    copie="$(copier_perimetre_p03)"
+    journal="$copie/.sortie-porte"
+
+    # Premier temps : la porte DOIT être verte sur la copie intacte. Sans ce
+    # constat, une copie mal formée ferait rougir la porte pour une autre raison
+    # et l'on croirait avoir prouvé C1.
+    if ! porte_p03 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ P-03 a rougi sur la copie INTACTE : la copie est mal formée.\n'
+        printf '     Le test aurait prouvé qu'\''une copie cassée casse, pas que C1 mord.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-03 est VERTE sur la copie intacte — l'\''échec qui suit vient bien de la mutation\n'
+
+    introduire_intervalle "$copie/package.json"
+
+    if porte_p03 "$copie" > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur une version en intervalle.\n'
+        printf '     P-03 est AVEUGLE : un vert de cette porte ne veut rien dire.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    # Échouer ne suffit pas : il faut avoir NOMMÉ le paquet ET la valeur. Un
+    # échec qui ne nomme pas son objet envoie chercher pendant vingt minutes.
+    local objet manquants=""
+    for objet in "$CIBLE_P03_PAQUET" "$CIBLE_P03_APRES"; do
+        grep -qF "$objet" "$journal" || manquants="$manquants $objet"
+    done
+    if [ -n "$manquants" ]; then
+        sed 's/^/   | /' "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER :%s\n' "$manquants"
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|FAUTIF' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+
+    empreinte_apres="$(empreinte_p03)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ LE PÉRIMÈTRE DE P-03 A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '   La porte a échoué comme attendu, EN NOMMANT LE PAQUET ET LA VALEUR — TEST NÉGATIF VERT\n'
+    printf '   package.json, pnpm-lock.yaml, .nvmrc, compose.yml et versions-reference.md inchangés\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -1530,6 +1637,10 @@ main() {
                     test_negatif_p02 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
+                p03)
+                    test_negatif_p03 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
                 p05)
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
                     portes_passees=1
@@ -1538,10 +1649,11 @@ main() {
                     test_negatif_p01 || exit "$CODE_AVEUGLE"
                     test_negatif_p02 || exit "$CODE_AVEUGLE"
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
-                    portes_passees=3
+                    test_negatif_p03 || exit "$CODE_AVEUGLE"
+                    portes_passees=4
                     ;;
                 *)
-                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02 ou p05)"
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02, p03 ou p05)"
                     ;;
             esac
             local duree_n=$((SECONDS - debut))
