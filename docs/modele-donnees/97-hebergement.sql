@@ -789,6 +789,8 @@ COMMENT ON COLUMN hebergement.sejour.client_id IS
     'NULLABLE — la vente à un client extérieur (SEJ-05) ne crée pas toujours de fiche. L''exiger ferait créer des fiches vides.';
 COMMENT ON COLUMN hebergement.sejour.unite_id IS
     'Unité COURANTE. Un changement d''unité en cours de séjour crée DEUX occupations et ne réécrit aucun historique (SEJ-04).';
+COMMENT ON COLUMN hebergement.sejour.reservation_id IS
+    'Réservation honorée par ce séjour (RSV-05). Clé étrangère INTERNE au schéma, posée par ALTER à la fin du fichier — hebergement.reservation est déclarée après cette table. Voir fk_sejour_reservation.';
 
 ALTER TABLE hebergement.sejour ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hebergement.sejour FORCE  ROW LEVEL SECURITY;
@@ -976,8 +978,32 @@ CREATE TABLE hebergement.ligne_sejour (
     CONSTRAINT ck_ligne_sejour_quantite_positive CHECK (quantite > 0)
 );
 
+-- ----------------------------------------------------------------------------
+-- LES DEUX SAGAS QUI ATTERRISSENT SUR CETTE TABLE
+--
+-- Les commentaires ci-dessous énoncent les TROIS MÊMES CHOSES pour chacune :
+-- que c'est une saga à compensation explicite et jamais une transaction ; que le
+-- CAS ORPHELIN — la note est déjà arrêtée — est LE CHEMIN NOMINAL et non
+-- l'exception ; que la compensation atterrit dans
+-- synchronisation.reconciliation_orpheline, CRÉÉE AU CYCLE D1, et qu'AUCUNE
+-- TABLE DE RÉCONCILIATION NOUVELLE N'EST CRÉÉE PAR CE CYCLE.
+--
+-- Le motif d'écrire cela ici plutôt qu'ailleurs : sans ces commentaires, le
+-- cycle qui relira le fichier prendra l'absence de REFERENCES pour un oubli et
+-- l'ajoutera — de bonne foi, en croyant réparer. C'est ce que la porte P-05 rend
+-- désormais impossible ; c'est ce que ces commentaires rendent COMPRÉHENSIBLE.
+-- Contrat complet :
+-- specs/002-modele-donnees-verticales/contracts/sagas-inter-modules.md
+-- ----------------------------------------------------------------------------
+
+COMMENT ON COLUMN hebergement.ligne_sejour.ligne_commande_id IS
+    'SAGA ventes → hebergement, PREMIÈRE DES DEUX. Rattachement NU vers ventes.ligne_commande, SANS REFERENCES ET JAMAIS AVEC — c''est une SAGA À COMPENSATION EXPLICITE, jamais une transaction : aucune transaction ne couvre deux modules. LE CAS ORPHELIN EST LE CHEMIN NOMINAL, pas l''exception : une consommation prise hors ligne arrive régulièrement sur une note DÉJÀ ARRÊTÉE et un document fiscal DÉJÀ CERTIFIÉ ; avec une clé étrangère, l''insertion ÉCHOUERAIT EN BASE au lieu de partir en réconciliation. La compensation est l''écriture d''une ligne dans synchronisation.reconciliation_orpheline, CRÉÉE AU CYCLE D1 — AUCUNE TABLE DE RÉCONCILIATION NOUVELLE n''est créée : il n''y en a qu''une, et deux files seraient deux écrans, deux traitements, et un jour une file que plus personne ne relève. Trois interdits : jamais de rejet silencieux, jamais d''ajout d''office sur une note close, jamais de rejeu automatique — la résolution est HUMAINE. Idempotence par uq_ligne_sejour_ligne_commande : on INSÈRE ET ON TRAITE LE CONFLIT 23505, on ne lit jamais avant d''écrire. Contrat : contracts/sagas-inter-modules.md';
+
+COMMENT ON COLUMN hebergement.ligne_sejour.bon_depot_id IS
+    'TRACE, CÔTÉ NOTE, DE LA SECONDE SAGA — pressing → hebergement, portée par pressing.bon_depot.sejour_id. Rattachement NU vers pressing.bon_depot, SANS REFERENCES ET JAMAIS AVEC : deux verticales, une saga à compensation explicite, jamais une transaction. LE CAS ORPHELIN EST ICI PLUS FRÉQUENT QU''AILLEURS, ET C''EST STRUCTUREL — un bon de pressing a un DÉLAI (dépôt, traitement, retrait) et le client peut partir entre les deux : UN BON DONT LE SÉJOUR EST CLOS EST UN CAS COURANT, pas une anomalie. Même compensation : synchronisation.reconciliation_orpheline du cycle D1, AUCUNE TABLE NOUVELLE. Idempotence par uq_ligne_sejour_bon_depot, même mécanique. ⚠️ Le consommateur ne dépend PAS du crate pressing : il consomme un ÉVÉNEMENT OUTBOX dénormalisé dont le type est déclaré AU SOCLE — une verticale ne dépend jamais d''une autre verticale. Contrat : contracts/sagas-inter-modules.md';
+
 COMMENT ON COLUMN hebergement.ligne_sejour.sejour_origine_id IS
-    'Transfert de charges (SEJ-03) : la ligne vit sur la note qui PAIE et garde la trace du séjour qui a CONSOMMÉ. Clé étrangère interne au schéma — normale et souhaitable.';
+    'Transfert de charges (SEJ-03) : la ligne vit sur la note qui PAIE et garde la trace du séjour qui a CONSOMMÉ. Clé étrangère interne au schéma — normale et souhaitable. CE N''EST PAS UNE SAGA : les deux séjours vivent dans le même module.';
 
 ALTER TABLE hebergement.ligne_sejour ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hebergement.ligne_sejour FORCE  ROW LEVEL SECURITY;
@@ -1287,6 +1313,33 @@ CREATE INDEX ix_reservation_etab_statut
 
 -- Sert : les réservations d'un client (RSV-01)
 CREATE INDEX ix_reservation_client ON hebergement.reservation (client_id);
+
+
+-- ----------------------------------------------------------------------------
+-- LA SEULE CONTRAINTE DE CE MODÈLE POSÉE PAR `ALTER`, ET LE MOTIF EST ÉCRIT
+--
+-- `hebergement.sejour.reservation_id` désigne la réservation qu'un séjour
+-- honore (RSV-05). C'est une clé étrangère INTERNE AU SCHÉMA — normale et
+-- souhaitable —, mais `sejour` est déclarée AVANT `reservation` : la narration
+-- du fichier suit le cycle de vie du produit (référentiel, disponibilité,
+-- séjour, réservation), et `reservation` référence elle-même `client`,
+-- `categorie`, `unite`, `formule` et `occupation`, qui viennent tous plus haut.
+--
+-- ⚠️ POURQUOI CET `ALTER` EST SANS DANGER, ALORS QUE LE PIÈGE (b) DE
+-- `00-conventions.sql` EN INTERDIT UN AUTRE. Le piège porte sur les CONTRAINTES
+-- D'EXCLUSION ajoutées après coup, qui échouent sur les données existantes. Ici,
+-- deux différences décisives : c'est une clé étrangère, et la table est VIDE au
+-- moment de l'application — le modèle s'applique sur une base vierge, ce que la
+-- porte P-01 vérifie. La contrainte est donc validée sur zéro ligne, comme si
+-- elle avait été posée à la création.
+--
+-- ⚠️ ET POURQUOI ELLE NE RELÈVE PAS DE P-05 : `sejour` et `reservation` sont
+-- dans LE MÊME SCHÉMA. P-05 refuse les clés étrangères ENTRE DEUX SCHÉMAS ; à
+-- l'intérieur d'un schéma, elles sont exactement ce qu'on veut.
+-- ----------------------------------------------------------------------------
+ALTER TABLE hebergement.sejour
+    ADD CONSTRAINT fk_sejour_reservation FOREIGN KEY (reservation_id)
+        REFERENCES hebergement.reservation (id);
 
 
 -- ============================================================================

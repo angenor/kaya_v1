@@ -160,6 +160,24 @@ COMMENT ON COLUMN pressing.bon_depot.etablissement_id IS
     'Rattachement inter-modules vers etablissements.etablissement — nu, sans REFERENCES. Présent pour que uq_bon_depot_numero porte sur la MÊME PORTÉE que le compteur numerotation_retrait.';
 COMMENT ON COLUMN pressing.bon_depot.personne_id IS
     'Rattachement inter-modules vers comptes.personne — nu, sans REFERENCES. JAMAIS vers hebergement.client : une verticale ne dépend pas d''une autre verticale, et un pressing seul est un établissement valide. NULLABLE — le client de passage n''a pas toujours de fiche.';
+
+-- ----------------------------------------------------------------------------
+-- LA SECONDE SAGA DU MODÈLE
+--
+-- Le commentaire ci-dessous énonce les TROIS MÊMES CHOSES que celui de
+-- hebergement.ligne_sejour.ligne_commande_id : saga à compensation explicite et
+-- jamais transaction ; CAS ORPHELIN = CHEMIN NOMINAL ; compensation dans
+-- synchronisation.reconciliation_orpheline, CRÉÉE AU CYCLE D1, sans qu'aucune
+-- table de réconciliation nouvelle ne soit créée.
+--
+-- Sans lui, le cycle qui relira ce fichier prendra l'absence de REFERENCES pour
+-- un oubli et l'ajoutera de bonne foi. P-05 le refuse ; ce commentaire dit
+-- pourquoi. Contrat :
+-- specs/002-modele-donnees-verticales/contracts/sagas-inter-modules.md
+-- ----------------------------------------------------------------------------
+
+COMMENT ON COLUMN pressing.bon_depot.sejour_id IS
+    'SAGA pressing → hebergement, SECONDE DES DEUX. Rattachement NU vers hebergement.sejour, SANS REFERENCES ET JAMAIS AVEC — deux verticales, donc une SAGA À COMPENSATION EXPLICITE, jamais une transaction : la constitution (principe 2) interdit qu''une transaction couvre deux modules. LE CAS ORPHELIN EST LE CHEMIN NOMINAL, et il est ici PLUS FRÉQUENT QU''AILLEURS parce que c''est structurel : un bon a un DÉLAI — dépôt, traitement, retrait — et le client peut partir entre le dépôt et le retrait. UN BON DONT LE SÉJOUR EST CLOS EST UN CAS COURANT, pas une anomalie ; le bon existe, la pièce existe, le montant existe, et c''est la réconciliation qui décide qui paie. Avec une clé étrangère, le report échouerait EN BASE au lieu de partir en réconciliation. La compensation est l''écriture d''une ligne dans synchronisation.reconciliation_orpheline, CRÉÉE AU CYCLE D1 — AUCUNE TABLE DE RÉCONCILIATION NOUVELLE n''est créée par ce cycle. Trois interdits : jamais de rejet silencieux, jamais d''ajout d''office sur une note close, jamais de rejeu automatique — la résolution est HUMAINE. Idempotence du report par hebergement.uq_ligne_sejour_bon_depot. ⚠️ Le consommateur ne dépend PAS du crate hebergement, ni hebergement du crate pressing : le rattachement passe par un ÉVÉNEMENT OUTBOX dénormalisé dont le type est déclaré AU SOCLE, et un test structurel de phase 3 doit échouer si l''un des deux manifestes déclare l''autre. Contrat : contracts/sagas-inter-modules.md';
 COMMENT ON COLUMN pressing.bon_depot.moment_reglement IS
     'AU_DEPOT | AU_RETRAIT — RÉSOLU À LA CRÉATION DU BON, PUIS FIGÉ. Changer la clé de configuration ne déplace pas l''exigibilité d''un bon déjà pris ; une lecture différée au retrait ferait l''inverse, silencieusement.';
 COMMENT ON COLUMN pressing.bon_depot.etat IS
