@@ -1192,6 +1192,283 @@ CREATE INDEX ix_taxe_sejour_constat_date
     ON hebergement.taxe_sejour_constat (constate_le);
 
 
+-- ############################################################################
+-- 4 · RÉSERVATION
+--
+-- ⚠️ NI LA POLITIQUE D'ANNULATION, NI LE DÉLAI D'EXPIRATION D'UNE PROVISOIRE
+-- N'ONT DE TABLE ICI, ET CE N'EST PAS UN OUBLI. Ce sont des CLÉS DU CATALOGUE
+-- de configuration, de portée établissement (RSV-01, RSV-03) : « une provisoire
+-- expire au bout de 48 h », « on facture 50 % en cas de no-show » sont des
+-- valeurs paramétrées, pas des entités. Leur donner une table ici les
+-- dupliquerait avec le catalogue du cycle D1, et deux vérités sur le même délai
+-- finissent par diverger — celle qu'on lit n'étant jamais celle qu'on modifie.
+-- ############################################################################
+
+
+-- ============================================================================
+-- hebergement.reservation — une unité promise, pas encore occupée
+-- CLASSE B · branche B3 — ressource unique sur un intervalle
+-- Story : RSV-01, RSV-04
+--
+-- `categorie_id` EST OBLIGATOIRE, `unite_id` NE L'EST PAS : on réserve d'abord
+-- une CATÉGORIE — « une chambre standard » — et l'unité précise est attribuée
+-- plus tard, parfois à l'arrivée. Exiger l'unité dès la réservation figerait
+-- l'affectation des semaines à l'avance et interdirait toute optimisation de
+-- plan de chambres.
+--
+-- `occupation_id` EST NULLABLE POUR LA MÊME RAISON : tant qu'aucune unité n'est
+-- désignée, il n'y a rien à bloquer. Dès qu'elle l'est, une occupation de motif
+-- RESERVATION est créée, ET LA CONVERSION EN SÉJOUR CONSERVE LA MÊME LIGNE en
+-- changeant son motif — jamais une seconde, qui se chevaucherait avec la
+-- première (contrat disponibilite.md §4).
+--
+-- `expire_le` PORTE LA VALEUR RÉSOLUE, pas le délai : le paramètre peut changer,
+-- l'échéance d'une réservation déjà prise, non. Même raisonnement que
+-- `moment_reglement` sur le bon de dépôt.
+-- ============================================================================
+CREATE TABLE hebergement.reservation (
+    id                UUID CONSTRAINT pk_reservation PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    -- Rattachement inter-modules vers etablissements.etablissement — NU.
+    etablissement_id  UUID        NOT NULL,
+    client_id         UUID        NOT NULL,
+    categorie_id      UUID        NOT NULL,
+    unite_id          UUID            NULL,
+    formule_id        UUID        NOT NULL,
+    occupation_id     UUID            NULL,
+    statut            TEXT        NOT NULL,
+    expire_le         TIMESTAMPTZ     NULL,
+    annulee_le        TIMESTAMPTZ     NULL,
+    motif_annulation  TEXT            NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_reservation_client FOREIGN KEY (client_id)
+        REFERENCES hebergement.client (id),
+    CONSTRAINT fk_reservation_categorie FOREIGN KEY (categorie_id)
+        REFERENCES hebergement.categorie (id),
+    CONSTRAINT fk_reservation_unite FOREIGN KEY (unite_id)
+        REFERENCES hebergement.unite (id),
+    CONSTRAINT fk_reservation_formule FOREIGN KEY (formule_id)
+        REFERENCES hebergement.formule (id),
+    CONSTRAINT fk_reservation_occupation FOREIGN KEY (occupation_id)
+        REFERENCES hebergement.occupation (id),
+    CONSTRAINT ck_reservation_statut CHECK (statut IN (
+        'PROVISOIRE', 'CONFIRMEE', 'HONOREE', 'ANNULEE', 'NO_SHOW', 'EXPIREE'))
+);
+
+COMMENT ON COLUMN hebergement.reservation.etablissement_id IS
+    'Rattachement inter-modules vers etablissements.etablissement — nu, sans REFERENCES.';
+COMMENT ON COLUMN hebergement.reservation.unite_id IS
+    'NULLABLE — on réserve une CATÉGORIE, l''unité est attribuée plus tard. L''exiger figerait le plan de chambres des semaines à l''avance.';
+COMMENT ON COLUMN hebergement.reservation.occupation_id IS
+    'NULLABLE tant qu''aucune unité n''est désignée. La conversion en séjour CONSERVE LA MÊME occupation en changeant son motif — jamais une seconde, qui se chevaucherait avec la première.';
+COMMENT ON COLUMN hebergement.reservation.expire_le IS
+    'VALEUR RÉSOLUE de l''échéance, jamais le délai. La clé de catalogue peut changer ; l''échéance d''une réservation déjà prise, non.';
+
+ALTER TABLE hebergement.reservation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.reservation FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.reservation
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.reservation
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.reservation TO kaya_app;
+
+-- Sert : les réservations à honorer d'un établissement, et les provisoires à
+-- expirer — la tâche périodique part de là (RSV-01)
+CREATE INDEX ix_reservation_etab_statut
+    ON hebergement.reservation (etablissement_id, statut, expire_le);
+
+-- Sert : les réservations d'un client (RSV-01)
+CREATE INDEX ix_reservation_client ON hebergement.reservation (client_id);
+
+
+-- ============================================================================
+-- hebergement.arrhes — ce qui a été versé d'avance, et ce qu'il en advient
+-- CLASSE B · branche B3 — espèces, virement : effet monétaire constaté sans
+--                          tiers en ligne
+-- CLASSE D · branche D1 — Mobile Money, carte : un agrégateur tranche
+-- Story : RSV-03
+--
+-- DEUX CLASSES SUR UNE TABLE, ET C'EST LE MODE DE RÈGLEMENT QUI DÉCIDE — même
+-- règle qu'à `caisse.encaissement` au socle (registre §7.4). Mais LE MODE N'EST
+-- PAS UNE COLONNE D'ICI : l'encaissement lui-même vit dans `caisse`, et cette
+-- table ne porte que L'IMPUTATION — ce qui a été versé, sur quelle réservation,
+-- et ce qu'il en advient au check-in ou à l'annulation. La classe se lit donc
+-- sur `caisse.encaissement.mode`, à travers `encaissement_id`.
+--
+-- ⚠️ Conséquence assumée : `ck_encaissement_mode` est au socle, et RIEN ICI NE
+-- RÉPLIQUE L'ÉNUMÉRATION DES MODES. La répliquer donnerait deux listes à tenir,
+-- et la seconde serait celle qu'on oublierait de mettre à jour.
+--
+-- `impute_le` et `restitue_le` sont les DEUX SORTIES possibles : les arrhes sont
+-- imputées sur la note au check-in, ou restituées à l'annulation — selon la
+-- politique, qui est une clé de catalogue. Les deux colonnes nulles veulent dire
+-- « versées, en attente ».
+-- ============================================================================
+CREATE TABLE hebergement.arrhes (
+    id                UUID CONSTRAINT pk_arrhes PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    reservation_id    UUID           NOT NULL,
+    -- Rattachement inter-modules vers caisse.encaissement — NU.
+    -- ⚠️ C'EST CETTE COLONNE QUI PORTE LA CLASSE : le mode de règlement vit
+    -- là-bas, et c'est lui qui décide si l'opération est B ou D.
+    encaissement_id   UUID               NULL,
+    montant           montant_mineur NOT NULL,
+    code_devise       code_devise    NOT NULL,
+    impute_le         TIMESTAMPTZ        NULL,
+    restitue_le       TIMESTAMPTZ        NULL,
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_arrhes_reservation FOREIGN KEY (reservation_id)
+        REFERENCES hebergement.reservation (id),
+    CONSTRAINT ck_arrhes_montant_positif CHECK (montant > 0),
+    -- Des arrhes ne peuvent pas être à la fois imputées et restituées : ce
+    -- serait les compter deux fois, une au crédit du séjour et une au débit de
+    -- la caisse.
+    CONSTRAINT ck_arrhes_sortie_unique CHECK (
+        impute_le IS NULL OR restitue_le IS NULL)
+);
+
+COMMENT ON COLUMN hebergement.arrhes.encaissement_id IS
+    'Rattachement inter-modules vers caisse.encaissement — nu, sans REFERENCES. C''EST CETTE COLONNE QUI PORTE LA CLASSE : le mode de règlement vit au socle et décide si l''opération est B (espèces, virement) ou D (Mobile Money, carte).';
+
+ALTER TABLE hebergement.arrhes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.arrhes FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.arrhes
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.arrhes
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- UPDATE sert les deux sorties — imputation au check-in, restitution à
+-- l'annulation — et la transition d'état des modes D.
+GRANT SELECT, INSERT, UPDATE ON hebergement.arrhes TO kaya_app;
+
+-- Sert : les arrhes à imputer au check-in, et celles à restituer à l'annulation
+-- (RSV-03, RSV-05)
+CREATE INDEX ix_arrhes_reservation ON hebergement.arrhes (reservation_id);
+
+
+-- ############################################################################
+-- 5 · MAINTENANCE
+-- ############################################################################
+
+
+-- ============================================================================
+-- hebergement.incident_maintenance — « le climatiseur de la 12 ne marche plus »
+-- CLASSE A · branche A4 — explicitement A au cadrage §11.3
+-- Story : registre §7.5, HEB-06
+--
+-- APPEND-ONLY, et c'est ce qui la rend atteignable hors ligne : une femme de
+-- chambre signale un incident depuis un couloir sans réseau, et deux
+-- signalements du même problème ne se contredisent pas — ils font deux lignes,
+-- que la réception rapproche.
+--
+-- ⚠️ SIGNALER UN INCIDENT NE MET PAS L'UNITÉ HORS SERVICE. La mise hors service
+-- est une OCCUPATION de motif MAINTENANCE, qui est de classe B — parce qu'elle
+-- retire une ressource de la disponibilité, et qu'on ne retire pas une ressource
+-- hors ligne. Les deux opérations sont distinctes, et les confondre rendrait le
+-- signalement B, donc impossible depuis le couloir.
+-- ============================================================================
+CREATE TABLE hebergement.incident_maintenance (
+    id                     UUID CONSTRAINT pk_incident_maintenance PRIMARY KEY,
+    tenant_id              UUID        NOT NULL,
+    unite_id               UUID        NOT NULL,
+    -- Rattachement inter-modules vers comptes.compte — NU.
+    signale_par_compte_id  UUID            NULL,
+    description            TEXT        NOT NULL,
+    gravite                TEXT        NOT NULL,
+    signale_le             TIMESTAMPTZ NOT NULL,
+    horodatage_client      TIMESTAMPTZ     NULL,
+    cree_le                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_incident_maintenance_unite FOREIGN KEY (unite_id)
+        REFERENCES hebergement.unite (id),
+    CONSTRAINT ck_incident_gravite CHECK (gravite IN (
+        'MINEURE', 'MAJEURE', 'BLOQUANTE'))
+);
+
+COMMENT ON TABLE hebergement.incident_maintenance IS
+    'Signalement APPEND-ONLY, atteignable hors ligne. Signaler ne met PAS l''unité hors service : la mise hors service est une occupation de motif MAINTENANCE, de classe B.';
+COMMENT ON COLUMN hebergement.incident_maintenance.signale_par_compte_id IS
+    'Rattachement inter-modules vers comptes.compte — nu, sans REFERENCES.';
+
+ALTER TABLE hebergement.incident_maintenance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.incident_maintenance FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.incident_maintenance
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.incident_maintenance
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT ON hebergement.incident_maintenance TO kaya_app;
+
+-- Sert : les incidents récents d'une unité — l'écran de gouvernante et la
+-- décision de mise hors service (HEB-06)
+CREATE INDEX ix_incident_maintenance_unite_date
+    ON hebergement.incident_maintenance (unite_id, signale_le DESC);
+
+
+-- ============================================================================
+-- hebergement.intervention — ce qui a été fait, et quand
+-- CLASSE A · branche A4 — explicitement A au cadrage §11.3
+-- Story : registre §7.5, HEB-06
+--
+-- APPEND-ONLY : plusieurs interventions sur un même incident sont le cas normal
+-- — on constate, on commande la pièce, on répare. Un état d'incident mis à jour
+-- effacerait cette suite ; des comptes rendus ajoutés la conservent.
+--
+-- `occupation_id` RELIE L'INTERVENTION À LA MISE HORS SERVICE QUI L'ACCOMPAGNE,
+-- quand il y en a une — et il est NULLABLE parce qu'il n'y en a pas toujours :
+-- on change une ampoule sans bloquer la chambre. C'est une clé étrangère
+-- INTERNE au schéma, donc normale et souhaitable.
+-- ============================================================================
+CREATE TABLE hebergement.intervention (
+    id                      UUID CONSTRAINT pk_intervention PRIMARY KEY,
+    tenant_id               UUID        NOT NULL,
+    incident_maintenance_id UUID        NOT NULL,
+    occupation_id           UUID            NULL,
+    compte_rendu            TEXT        NOT NULL,
+    intervenant             TEXT            NULL,
+    realisee_le             TIMESTAMPTZ NOT NULL,
+    horodatage_client       TIMESTAMPTZ     NULL,
+    cree_le                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_intervention_incident FOREIGN KEY (incident_maintenance_id)
+        REFERENCES hebergement.incident_maintenance (id),
+    CONSTRAINT fk_intervention_occupation FOREIGN KEY (occupation_id)
+        REFERENCES hebergement.occupation (id)
+);
+
+COMMENT ON COLUMN hebergement.intervention.occupation_id IS
+    'Relie l''intervention à la mise hors service qui l''accompagne, QUAND IL Y EN A UNE — on change une ampoule sans bloquer la chambre. Clé étrangère INTERNE au schéma : normale et souhaitable.';
+COMMENT ON COLUMN hebergement.intervention.intervenant IS
+    'LIBELLÉ LIBRE, jamais un identifiant de compte : l''intervenant est le plus souvent un artisan extérieur, qui n''a pas de compte dans le produit.';
+
+ALTER TABLE hebergement.intervention ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.intervention FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.intervention
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.intervention
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT ON hebergement.intervention TO kaya_app;
+
+-- Sert : les comptes rendus d'un incident, dans l'ordre où ils sont arrivés
+-- (HEB-06)
+CREATE INDEX ix_intervention_incident
+    ON hebergement.intervention (incident_maintenance_id, realisee_le);
+
+
 -- ============================================================================
 -- FIN — 97-hebergement.sql
 -- ============================================================================
