@@ -463,6 +463,162 @@ CREATE INDEX ix_calendrier_tarifaire_formule_date
     ON hebergement.calendrier_tarifaire (formule_id, date_effet DESC, priorite DESC);
 
 
+-- ############################################################################
+-- 2 · DISPONIBILITÉ — le cœur du produit, et sa seule décision irréversible
+-- ############################################################################
+
+
+-- ============================================================================
+-- hebergement.occupation — qui occupe quelle unité, de quand à quand
+-- CLASSE B · branche B3 — ressource unique sur un intervalle
+-- Story : HEB-02, HEB-06
+--
+-- ============================================================================
+-- C'EST LA TABLE LA PLUS STRUCTURANTE DU PRODUIT, ET LA SEULE DÉCISION DE CE
+-- MODÈLE QU'ON NE POURRA PLUS DÉFAIRE. Trois propriétés en font le tour.
+-- ============================================================================
+--
+-- (1) UN tstzrange, JAMAIS UNE PAIRE DE COLONNES DE DATE.
+--     Le marché pratique massivement le passage horaire et la demi-journée
+--     (cadrage §5.1). Une paire de dates rendrait le produit inapte à son
+--     marché principal, et le rattraper coûterait la migration de TOUTES les
+--     occupations. Les bornes sont [début, fin) — fermée à gauche, ouverte à
+--     droite : une occupation qui finit à 18h00 et une qui commence à 18h00 NE
+--     SE CHEVAUCHENT PAS, ce qui permet d'exprimer « jusqu'à midi » sans se
+--     demander si midi est inclus.
+--
+-- (2) DEUX PÉRIODES, UNE SEULE CONTRAINTE.
+--     `periode` est ce que le client occupe et CE QUI SE FACTURE.
+--     `periode_indisponibilite` l'englobe AVEC le temps de remise en état, et
+--     c'est ELLE que la contrainte d'exclusion protège.
+--     UNE PÉRIODE UNIQUE FORCE UN CHOIX, ET LES DEUX SONT FAUX : soit on
+--     facture le ménage au client, soit on attribue une unité encore sale. Une
+--     période plus une colonne de durée ne marcherait pas non plus — le calcul
+--     de chevauchement devrait reconstruire l'intervalle réel à chaque requête,
+--     et la contrainte ne pourrait plus le protéger : on serait revenu à un
+--     verrou applicatif.
+--
+-- (3) LA CONTRAINTE EST PARTIELLE — `WHERE (statut <> 'ANNULEE')`.
+--     Sans cette clause, TOUTE ANNULATION RENDRAIT L'UNITÉ DÉFINITIVEMENT
+--     INLOUABLE sur son intervalle — alors qu'annulation, no-show et départ
+--     anticipé sont TROIS CHEMINS NOMINAUX du produit. C'est le cas qu'on
+--     oublie de tester, et c'est le plus coûteux.
+--
+-- ⚠️ LA CONTRAINTE D'EXCLUSION SE POSE À LA CRÉATION DE LA TABLE, JAMAIS PAR
+-- ALTER. Sur une table peuplée, elle échoue sur les données existantes — piège
+-- (b) consigné par le cycle D1 dans 00-conventions.sql, ET CE FICHIER EST LE
+-- PREMIER À LE RENCONTRER POUR DE VRAI. Corollaire : la forme retenue doit être
+-- la bonne AUJOURD'HUI, parce qu'une migration de phase 3 ne pourra plus la
+-- durcir — ni ajouter un motif au WHERE, ni changer les bornes.
+--
+-- `unite_id WITH =` EXIGE L'EXTENSION btree_gist : un UUID ne s'indexe pas en
+-- GiST sans elle. Elle est posée par 00-conventions.sql depuis le cycle D1,
+-- EXPLICITEMENT POUR CE JOUR.
+--
+-- CE QUE LA BASE GARANTIT ICI, ET QU'AUCUN SERVICE NE REFAIT :
+--   — aucun chevauchement d'indisponibilités sur une même unité, y compris
+--     entre deux processus concurrents, y compris sous forte charge ;
+--   — le temps de remise en état est respecté ;
+--   — la période facturée est incluse dans l'indisponibilité ;
+--   — une occupation annulée ne réserve plus rien.
+-- Ce n'est PAS un verrou applicatif : un verrou se contourne par un second
+-- processus, un rejeu de file après coupure ; une contrainte d'exclusion est
+-- évaluée par le moteur pour TOUTE transaction sans exception.
+--
+-- ⚠️ RÈGLE DE SERVICE OPPOSABLE À LA PHASE 3 : AUCUN `SELECT` DE VÉRIFICATION
+-- PRÉALABLE NE TIENT LIEU DE GARANTIE. Lire « l'unité est libre » puis insérer
+-- est un intervalle de temps pendant lequel elle cesse de l'être. LA FORME
+-- CORRECTE EST D'INSÉRER ET DE TRAITER LE REJET — code 23P01,
+-- exclusion_violation. Contrat complet :
+-- specs/002-modele-donnees-verticales/contracts/disponibilite.md
+--
+-- LA MISE HORS SERVICE D'UNE UNITÉ EST UNE OCCUPATION DE MOTIF MAINTENANCE, et
+-- non une colonne de `unite` : un seul mécanisme de disponibilité, jamais deux.
+-- Elle bénéficie ainsi GRATUITEMENT de la contrainte.
+-- ============================================================================
+CREATE TABLE hebergement.occupation (
+    id                      UUID CONSTRAINT pk_occupation PRIMARY KEY,
+    tenant_id               UUID        NOT NULL,
+    unite_id                UUID        NOT NULL,
+    motif                   TEXT        NOT NULL,
+    -- Ce que le client occupe, ET CE QUI SE FACTURE.
+    periode                 TSTZRANGE   NOT NULL,
+    -- L'occupation PLUS le temps de remise en état. C'est ELLE que la contrainte
+    -- d'exclusion protège.
+    periode_indisponibilite TSTZRANGE   NOT NULL,
+    statut                  TEXT        NOT NULL,
+    -- Ce qui a créé l'occupation : un séjour, une réservation, une intervention.
+    -- Colonnes NUES et INTERNES au schéma — nues parce que la cible varie, et
+    -- qu'une clé étrangère polymorphe n'existe pas.
+    origine_type            TEXT            NULL,
+    origine_id              UUID            NULL,
+    horodatage_client       TIMESTAMPTZ     NULL,
+    cree_le                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_occupation_unite FOREIGN KEY (unite_id)
+        REFERENCES hebergement.unite (id),
+    -- BLOCAGE couvre la fermeture saisonnière et le retrait volontaire ;
+    -- MAINTENANCE, la panne. Les distinguer sert le rapport d'exploitation :
+    -- une unité fermée pour la saison n'est pas une unité en panne.
+    CONSTRAINT ck_occupation_motif CHECK (motif IN (
+        'SEJOUR', 'RESERVATION', 'MAINTENANCE', 'BLOCAGE')),
+    CONSTRAINT ck_occupation_statut CHECK (statut IN (
+        'ACTIVE', 'TERMINEE', 'ANNULEE')),
+    -- La période facturée est INCLUSE dans l'indisponibilité. `@>` accepte
+    -- l'égalité — une occupation sans remise en état est licite.
+    -- ⚠️ Ce CHECK n'est PAS une porte de vérification, et il n'a pas à en être
+    -- une : c'est une contrainte de la base, donc déjà garantie à chaque
+    -- écriture. Une porte qui vérifierait qu'elle existe vérifierait un fichier,
+    -- pas un comportement.
+    CONSTRAINT ck_occupation_periode_incluse
+        CHECK (periode_indisponibilite @> periode),
+    -- ========================================================================
+    -- LA CONTRAINTE. Tout le reste du fichier existe pour elle.
+    -- ========================================================================
+    CONSTRAINT ex_occupation_unite_periode
+        EXCLUDE USING gist (unite_id WITH =, periode_indisponibilite WITH &&)
+        WHERE (statut <> 'ANNULEE')
+);
+
+COMMENT ON COLUMN hebergement.occupation.periode IS
+    'Ce que le client occupe et CE QUI SE FACTURE. Bornes [début, fin) — 18h00→18h00 ne se chevauchent pas.';
+COMMENT ON COLUMN hebergement.occupation.periode_indisponibilite IS
+    'periode + temps de remise en état. C''est ELLE que ex_occupation_unite_periode protège. Posée par le domain à periode.fin + temps_remise_en_etat.duree_minutes — la base ne peut pas le garantir, la contrainte devrait joindre trois tables à chaque écriture.';
+COMMENT ON COLUMN hebergement.occupation.motif IS
+    'SEJOUR | RESERVATION | MAINTENANCE | BLOCAGE. LA MISE HORS SERVICE EST UNE OCCUPATION, jamais une colonne de unite — un seul mécanisme de disponibilité.';
+COMMENT ON COLUMN hebergement.occupation.origine_id IS
+    'Rattachement interne au schéma vers sejour, reservation ou intervention — nu, la cible variant selon origine_type.';
+COMMENT ON COLUMN hebergement.occupation.horodatage_client IS
+    'INDICATIF. AUCUN calcul de durée de passage ne s''y appuie — il s''appuie sur l''horodatage d''autorité, et c''est exactement là que l''écart coûterait de l''argent réel (cadrage §11.4).';
+
+ALTER TABLE hebergement.occupation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.occupation FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.occupation
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.occupation
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- UPDATE est accordé pour les quatre écritures qui touchent la disponibilité :
+-- prolongation, départ anticipé, conversion d'une réservation en séjour, et
+-- passage du statut à ANNULEE. Aucune n'est une réécriture d'historique — le
+-- changement d'unité en cours de séjour crée DEUX LIGNES, il n'en modifie pas
+-- une (contrat disponibilite.md §4).
+GRANT SELECT, INSERT, UPDATE ON hebergement.occupation TO kaya_app;
+
+-- ⚠️ AUCUN INDEX POUR LE CHEVAUCHEMENT. Une contrainte EXCLUDE est adossée à un
+-- index GiST, et cet index sert déjà « cette unité est-elle libre entre T1 et
+-- T2 ? ». En créer un second ferait payer chaque écriture deux fois pour la
+-- même recherche. La recherche par catégorie, elle, est servie par
+-- ix_unite_categorie, posé plus haut.
+
+-- Sert : retrouver l'occupation d'un séjour ou d'une réservation — la
+-- prolongation, l'annulation et la conversion partent de là (SEJ-04, RSV-04)
+CREATE INDEX ix_occupation_origine
+    ON hebergement.occupation (origine_type, origine_id);
+
+
 -- ============================================================================
 -- FIN — 97-hebergement.sql
 -- ============================================================================
