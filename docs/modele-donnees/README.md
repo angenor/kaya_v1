@@ -105,6 +105,7 @@ la base ; `public`, qui n'accueille que ces objets partagés, est hors périmèt
 - `comptabilite`
 - `stocks`
 - `hebergement`
+- `pressing`
 
 ---
 
