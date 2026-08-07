@@ -156,6 +156,25 @@ export default {
             if (node.parent.type !== 'VDocumentFragment') return
             const racines = racinesDuGabarit(node)
             if (racines.length === 0) return
+
+            // ⚠️ LA CONDITION SE SIGNALE AVANT LE DÉCOMPTE, et l'ordre a été
+            // corrigé après l'avoir constaté : un `v-if`/`v-else` de premier
+            // niveau donne DEUX racines, donc la règle rendait « le gabarit a 2
+            // racines » — vrai, et à côté de la vraie cause. Le développeur
+            // aurait enveloppé les deux branches sans comprendre que le défaut
+            // était le démontage.
+            for (const racine of racines) {
+              const condition = directiveDeCondition(racine)
+              if (condition) {
+                context.report({
+                  node: racine.startTag,
+                  messageId: 'conditionnelle',
+                  data: { objet: condition },
+                })
+                return
+              }
+            }
+
             if (racines.length > 1) {
               context.report({
                 node: racines[1],
@@ -164,18 +183,8 @@ export default {
               })
               return
             }
-            const racine = racines[0]
-            if (racine.type !== 'VElement') {
-              context.report({ node: racine, messageId: 'pasUnElement' })
-              return
-            }
-            const condition = directiveDeCondition(racine)
-            if (condition) {
-              context.report({
-                node: racine.startTag,
-                messageId: 'conditionnelle',
-                data: { objet: condition },
-              })
+            if (racines[0].type !== 'VElement') {
+              context.report({ node: racines[0], messageId: 'pasUnElement' })
             }
           },
         })
