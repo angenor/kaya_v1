@@ -268,9 +268,10 @@ saisie et B à l'annulation après envoi. Le registre classe **l'opération**, e
 |---|---|---|---|
 | `article_stock` — création, `seuil_alerte`, `unite_mesure` | **C** | C2 — référentiel | STK-01 |
 | `point_de_stock` — cave, cuisine, bar | **C** | C2 — référentiel | STK-01 |
-| Liaison article de catalogue → article de stock | **C** | C2 — référentiel | STK-01 |
+| `article_stock_catalogue` — liaison article de catalogue → article de stock | **C** | C2 — référentiel | STK-01 |
 | `mouvement_stock` — entrée, sortie sur vente, ajustement, transfert, casse | **B** ⚠️ | B3 — décrément d'une quantité partagée | STK-02, §11.3 |
 | `inventaire` — saisie, écart | **B** | B3 — effet sur les quantités | STK-03 |
+| `ligne_inventaire` — quantité comptée et écart, une ligne par article compté | **B** | B3 — porte l'écart de l'inventaire, effet sur les quantités | STK-03 |
 | `alerte_seuil` — déclenchement, notification | **A** | A4 — explicitement A au cadrage §11.3 | STK-04 |
 | Consultation du stock hors ligne | **A** | A4 — lecture, **toujours affichée comme indicative** | STK-02 |
 
@@ -613,3 +614,5 @@ numéros de tâche, l'état d'avancement.
 | D1 | 2026-08-06 | **L'attestation d'intégrité N'A PAS de table** (§5.2). Son résultat est **l'état courant** de l'appareil enrôlé — deux colonnes sur `appareil_enrole` —, et CPT-06 ne demande aucun historique. Une table d'historique qu'on ne relit jamais est une table qu'on purge un jour sans savoir ce qu'on perd. Décision réversible : le jour où un historique est demandé, la table naîtra avec sa classe. |
 | D1 | 2026-08-06 | **L'ouverture de tiroir-caisse N'A PAS de table** (§5.3). C'est une **entrée du journal d'audit**, famille `ouverture_tiroir`, que la taxonomie liste explicitement (CPT-04). Lui donner une table propre créerait un second journal — et deux journaux se contredisent le jour où l'un des deux n'est plus écrit. |
 | D1 | 2026-08-06 | **La sélection d'établissement actif N'A PAS de table** (§5.1). C'est une **préférence locale du terminal**, hors base : elle n'a ni à voyager, ni à survivre à un changement d'appareil. |
+| D2 | 2026-08-07 | **`ligne_inventaire`** (§6.1, **B · B3**) — le registre décrivait « `inventaire` — saisie, écart » sans nommer la table qui porte la saisie ligne à ligne. Nom retenu contre `comptage_article` et `ligne_comptage` : **`comptage` est déjà pris au socle** par `caisse.comptage`, et la porte P-02 compare sur le **nom nu**, jamais sur `schema.table` — deux homonymes dans deux schémas passeraient avec une seule déclaration au registre, et l'un des deux serait non déclaré sans que rien ne le dise. Le nom devait donc être libre à l'échelle du modèle entier, pas seulement à celle de son schéma. |
+| D2 | 2026-08-07 | **`article_stock_catalogue`** (§6.1, **C · C2**) — le registre décrivait « Liaison article de catalogue → article de stock » sans nommer la table. Nom retenu contre `liaison_article_stock` : la table **est** le catalogue de stock d'un article vendu, et un nom qui commence par « liaison » range une table par sa mécanique plutôt que par ce qu'elle porte. **Cette ligne n'était pas prévue** : le plan du cycle annonçait `ligne_inventaire` comme la seule entité à nommer, et l'écriture du fichier a montré qu'il y en avait deux — la seconde décrite en toutes lettres, mais sans nom. |
