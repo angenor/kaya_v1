@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // Configuration Nuxt — application à page unique, sans rendu serveur.
 //
 // « Une seule application Nuxt 4 en SPA pour tous les rôles métier »
@@ -14,4 +16,13 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
 
   future: { compatibilityVersion: 4 },
+
+  // theme.css est la COPIE CONFORME de docs/design/theme.css — jamais éditée
+  // ici. Il porte `@import "tailwindcss"`, donc il est le point d'entrée du
+  // noyau Tailwind autant que celui des jetons.
+  css: ['~/assets/css/theme.css'],
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
 })
