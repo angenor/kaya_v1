@@ -21,11 +21,21 @@ import { exigerAucunNomDetatInterne } from './outils/mesures'
  * par une porte que personne n'emprunte.
  */
 
-/** Les deux établissements que `quickstart.md` nomme, dans son ordre. */
+/**
+ * Les deux établissements que `quickstart.md` nomme, dans son ordre.
+ *
+ * ⚠️ `actionsAttendues` EST LE CŒUR DU PAS 10. « Résidence Test » n'a que
+ * l'hébergement : Adjoua — gérante, caissière, réceptionniste **à Deloria** —
+ * n'y a **aucun rôle**, donc aucune action. C'est ce qu'on veut voir : la
+ * surface ne se casse pas, elle montre son état vide et propose une sortie.
+ */
 const ETABLISSEMENTS = [
-  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria' },
-  { libelle: 'Résidence Test', court: 'Résidence Test' },
+  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria', actionsAdjoua: 8 },
+  { libelle: 'Résidence Test', court: 'Résidence Test', actionsAdjoua: 0 },
 ] as const
+
+/** Le compte de chaque parcours, choisi au panneau. */
+const COMPTES = { adjoua: '+2250700000001', aminata: '+2250700000003' } as const
 
 /** Les libellés du lexique — ils font foi, et le test les cite mot pour mot. */
 const LEXIQUE = {
@@ -140,5 +150,172 @@ for (const etablissement of ETABLISSEMENTS) {
     await latence.fill(String(SEUIL_DEGRADE_MS + 1000))
     await latence.blur()
     await expect(temoin(page).first()).toContainText(LEXIQUE.connexionFaible)
+
+    // ── Pas 12 (suite) · la latence produit un SQUELETTE, jamais une roue ────
+    // ⚠️ LE SQUELETTE EST À LA FORME DU CONTENU À VENIR. La roue est réservée à
+    // une attente réseau INDÉTERMINÉE, et une lecture qui répond n'en est pas
+    // une : elle sait ce qu'elle va rendre, donc elle peut le dessiner.
+    await page.goto('/_ecrans', { waitUntil: 'domcontentloaded' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    await expect(page.locator('[data-bloc="actions"][data-etat="chargement"]')).toBeVisible()
+    await expect(page.locator('[data-bloc="actions"] [data-squelette]')).toBeVisible()
+    await expect(page.locator('[data-bloc="actions"] [data-squelette="roue"]')).toHaveCount(0)
+    // ⚠️ L'ÉTAT D'ARRIVÉE N'EST PAS LE MÊME SUR LES DEUX ÉTABLISSEMENTS, ET
+    // C'EST LE PAS 10 QUI SE LIT ICI. Adjoua est gérante, caissière et
+    // réceptionniste **à Deloria** ; elle n'a **aucun rôle** à Résidence Test,
+    // donc aucune action — et la surface montre son état vide au lieu de se
+    // casser. C'est le pendant en phase 2 du test d'agnosticité ETB-02c.
+    const etatAttendu = etablissement.actionsAdjoua > 0 ? 'pret' : 'vide'
+    await expect(
+      page.locator(`[data-bloc="actions"][data-etat="${etatAttendu}"]`),
+      `${etablissement.court} : la surface des actions n'est pas arrivée à « ${etatAttendu} »`,
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('[data-action]')).toHaveCount(etablissement.actionsAdjoua)
+
+    // Et la latence redescend, pour que la suite du parcours ne l'attende plus.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="latence"] input').fill('0')
+    await page.locator('[data-levier="latence"] input').blur()
   })
 }
+
+/**
+ * LES PAS 9, 10, 11 ET 13 — **la surface qui diffère selon qui regarde**.
+ *
+ * ⚠️ CE SONT LES PAS QUE `rapport-de-cycle.md` DÉCLARAIT NON LIVRÉS, et ils sont
+ * groupés ici parce qu'ils portent tous sur la MÊME surface : la troisième
+ * section de `/_ecrans`, la seule de ce cycle qui lise des données de domaine.
+ */
+test.describe('la surface des actions', () => {
+  test('pas 9 · une action interdite est ABSENTE du HTML — ni grisée, ni disabled', async ({
+    page,
+  }) => {
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.adjoua })
+
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    await expect(page.locator('[data-bloc="actions"][data-etat="pret"]')).toBeVisible()
+    const chezAdjoua = await page.locator('[data-action]').count()
+    expect(chezAdjoua, 'Adjoua ne voit aucune action : la surface est vide').toBeGreaterThan(1)
+    await expect(page.locator('[data-action="caisse.cloture"]')).toBeVisible()
+
+    // On passe à Aminata — serveuse, et rien d'autre.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.aminata })
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    await expect(page.locator('[data-bloc="actions"][data-etat="pret"]')).toBeVisible()
+
+    const chezAminata = await page.locator('[data-action]').count()
+    expect(chezAminata, "l'écran ne diffère pas entre Adjoua et Aminata").toBeLessThan(chezAdjoua)
+
+    // ⚠️ LE CONTRÔLE QUI COMPTE PORTE SUR LE HTML, PAS SUR UN ATTRIBUT.
+    const html = await page.content()
+    expect(
+      html.includes('caisse.cloture'),
+      "« Clôturer la caisse » est dans le HTML alors qu'Aminata n'y a pas droit",
+    ).toBe(false)
+    // Et rien n'a été grisé à la place d'un retrait.
+    const grises = await page.locator('[data-bloc="actions"] [disabled], [data-bloc="actions"] [aria-disabled]').count()
+    expect(grises, 'une action est grisée au lieu d’être absente').toBe(0)
+  })
+
+  test('pas 10 · un service absent est absent — le pendant d’ETB-02c', async ({ page }) => {
+    // ⚠️ C'EST LE PAS LE PLUS RÉVÉLATEUR DU PARCOURS. Toute surface qui
+    // supposerait une chambre, un article, un tarif ou une table se casse ici.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.aminata })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
+
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    await expect(page.locator('[data-action="ventes.commande.prendre"]')).toBeVisible()
+
+    // Résidence Test n'a pas de restauration : l'action disparaît.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Test' })
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+
+    await expect(page.locator('[data-bloc="actions"]')).toBeVisible()
+    expect(
+      (await page.content()).includes('ventes.commande.prendre'),
+      "l'action d'un service inactif est dans le HTML",
+    ).toBe(false)
+  })
+
+  test('pas 11 · le vide propose une porte de sortie, jamais une page blanche', async ({
+    page,
+  }) => {
+    // Adjoua n'a aucun rôle sur Résidence Test : zéro action, donc l'état vide.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.adjoua })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Test' })
+
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+
+    const vide = page.locator('[data-bloc="actions"][data-etat="vide"] [data-composant-11]')
+    await expect(vide).toBeVisible()
+    // ⚠️ UN ÉCRAN VIDE SANS ACTION EST UNE IMPASSE. La phrase dit ce qui
+    // apparaîtra, et l'action démarre quelque chose.
+    await expect(vide.getByRole('button')).toBeVisible()
+  })
+
+  test("l'échec réseau et le hors-ligne ne se disent pas de la même façon", async ({ page }) => {
+    // ⚠️ LES CONFONDRE FERAIT PROPOSER « RÉESSAYER » À QUELQU'UN QUI N'A PAS DE
+    // RÉSEAU. Le premier est une panne qu'on réessaie ; le second est un fait
+    // sur lequel l'utilisateur peut agir — attendre, se déplacer.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.adjoua })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
+    await basculer(page, 'echec-reseau', true)
+
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    const erreur = page.locator('[data-bloc="actions"][data-etat="erreur"]')
+    await expect(erreur).toBeVisible()
+    await expect(erreur.getByRole('button')).toBeVisible()
+
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await basculer(page, 'echec-reseau', false)
+    await basculer(page, 'hors-ligne', true)
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+
+    const horsLigne = page.locator('[data-bloc="actions"][data-etat="horsLigne"]')
+    await expect(horsLigne).toBeVisible()
+    // Le hors-ligne ne propose PAS de réessayer, et il porte son versant positif.
+    await expect(horsLigne.getByRole('button')).toHaveCount(0)
+    await exigerAucunNomDetatInterne(page, '/_ecrans hors ligne')
+  })
+
+  test('pas 13 · une capacité absente le dit AVANT, et propose l’alternative', async ({ page }) => {
+    // ⚠️ SUR WEBKIT LA PHRASE S'AFFICHE, SUR CHROMIUM NON — et c'est un FAIT à
+    // afficher, pas un bogue à corriger. WebUSB et Web Bluetooth sont absents de
+    // Safari ; Capacitor les fera disparaître.
+    await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+    await page.locator('[data-levier="compte"] select').selectOption({ label: COMPTES.adjoua })
+    await page.locator('[data-levier="etablissement"] select').selectOption({ label: 'Résidence Hôtel Deloria' })
+
+    await page.goto('/_ecrans', { waitUntil: 'networkidle' })
+    await page.locator('[data-reglage="section"] [role="radio"]').nth(2).click()
+    await expect(page.locator('[data-bloc="actions"][data-etat="pret"]')).toBeVisible()
+
+    const annonce = page.locator('[data-capacite-absente]')
+    if (test.info().project.name === 'webkit') {
+      await expect(annonce).toBeVisible()
+      await expect(annonce).toContainText("l'imprimante de la réception")
+      // ⚠️ L'ACTION N'EST PAS RETIRÉE : encaisser reste possible sans
+      // imprimante, c'est le TICKET qui part ailleurs.
+      await expect(page.locator('[data-action="caisse.encaisser"]')).toBeVisible()
+      // Et une seule annonce : jamais deux bandeaux empilés.
+      await expect(annonce).toHaveCount(1)
+    } else {
+      await expect(annonce).toHaveCount(0)
+      await expect(page.locator('[data-action="caisse.encaisser"]')).toBeVisible()
+    }
+  })
+})

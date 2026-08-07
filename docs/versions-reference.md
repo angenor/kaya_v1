@@ -243,6 +243,7 @@ entrent dans le lockfile et la porte **P-03** les couvre.
 | `eslint-plugin-vue` | **10.10.0** | Règles Vue |
 | `typescript-eslint` | **8.65.0** | Règles TypeScript |
 | `@tailwindcss/vite` | **4.3.3** | Greffon Vite de Tailwind 4 — aligné sur `tailwindcss` |
+| `vue` | **3.5.41** ⚠️ | **Pair EXIGÉ de `@vue/test-utils`**, et non déclaré jusqu'au 2026-08-07 : le montage d'un composant hors Nuxt échouait sur « Failed to resolve import "vue" ». Vue arrive transitivement avec Nuxt, mais **pnpm ne le lie pas à la racine** — et une dépendance transitive n'est pas une dépendance déclarée. ⚠️ **Version ALIGNÉE SUR CELLE DE NUXT 4.5.1**, relevée dans le lockfile, **et non la dernière stable** : deux copies de Vue dans un même arbre casseraient l'identité des composants. **Condition de levée** : la montée de Nuxt, qui décidera de la valeur · `https://registry.npmjs.org/vue/latest`, **2026-08-07** |
 | `@vue/test-utils` | **2.4.11** | Montage de composants Vue en test — **SC-005** : aucun service inactif dans le HTML rendu |
 | `happy-dom` | **20.11.1** | Environnement DOM de Vitest, requis par le montage ci-dessus |
 | `@vitejs/plugin-vue` | **6.0.8** | Compile les composants monofichiers pour Vitest **hors Nuxt** — sans lui, `@vue/test-utils` ne peut monter aucun `.vue` |

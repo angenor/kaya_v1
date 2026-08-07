@@ -53,6 +53,29 @@ export default {
     construit: "Construit",
     pasCommence: "Pas commencé",
     decompte: "{construits} écran(s) construit(s) sur {total}. Les instruments de développement ne comptent pas.",
+    lesActions: "Les actions",
+    actionsHorsLigne: "Cet appareil n'a pas de réseau.",
+    actionsHorsLigneAlternative: "Ce qui est déjà à l'écran reste utilisable, et vos saisies partiront au retour du réseau.",
+    actionsErreur: "La liste des actions n'a pas pu être chargée.",
+    actionsErreurAlternative: "Rien n'est perdu : l'écran se remplira au prochain essai.",
+    reessayer: "Réessayer",
+    actionsVide: "Aucune action ici pour ce compte. Choisissez un autre compte ou un autre établissement.",
+    actionsVideAction: "Ouvrir les scénarios",
+    capaciteAbsente: "Une action de cet écran demande quelque chose que cet appareil ne sait pas faire.",
+  },
+  // ── Les gestes, dans les mots de l'exploitant ──────────────────────────────
+  // ⚠️ JAMAIS LE LIBELLÉ DE LA TABLE. « Arrêter la note et enregistrer le
+  // départ » est la définition du droit ; « Encaisser le départ » est le geste.
+  actions: {
+    passageOuvrir: "Commencer un passage",
+    arrivee: "Enregistrer une arrivée",
+    depart: "Encaisser le départ",
+    encaisser: "Encaisser",
+    cloture: "Clôturer la caisse",
+    commandePrendre: "Prendre une commande",
+    commandeRemise: "Appliquer une remise",
+    pilotage: "Consulter les chiffres",
+    etablissement: "Régler l'établissement",
   },
   guideDeStyle: {
     titre: 'Guide de style',

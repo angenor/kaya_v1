@@ -114,6 +114,12 @@
       "verifieLe": "2026-08-07",
       "pourquoiPasLExistant": "vitest seul exécute les tests sans dire ce qu'ils ont touché. Le rapport v8 distingue « ce fichier est testé » de « cette méthode est appelée par un test ». Le pair @vitest/browser est marqué OPTIONNEL (constaté sur le registre le 2026-08-07) : rien à ajouter."
     },
+    "vue": {
+      "role": "Pair EXIGÉ de @vue/test-utils, et non déclaré jusqu'ici — le montage d'un composant hors Nuxt ne résolvait pas « vue ».",
+      "registre": "https://registry.npmjs.org/vue/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Vue arrive transitivement avec Nuxt, mais pnpm ne le lie pas à la racine : « Failed to resolve import vue » dès qu'un test l'importe. Une dépendance transitive n'est pas une dépendance déclarée. Version ALIGNÉE SUR CELLE DE NUXT 4.5.1 — 3.5.41, relevée dans le lockfile — et non la dernière stable : deux copies de Vue dans un même arbre casseraient l'identité des composants."
+    },
     "@vue/test-utils": {
       "role": "Montage de composants Vue en test — l'absence d'une action du HTML rendu.",
       "registre": "https://registry.npmjs.org/@vue/test-utils/latest",
@@ -241,6 +247,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",
     "vitest": "4.1.10",
+    "vue": "3.5.41",
     "vue-eslint-parser": "10.4.1",
     "vue-tsc": "3.3.9",
     "yaml-eslint-parser": "2.1.0"

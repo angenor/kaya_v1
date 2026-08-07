@@ -102,6 +102,22 @@ async function appliquerContexte(compteId: string, etablissementId: string): Pro
   })
 }
 
+/**
+ * ⚠️ LE CONTEXTE SE RÉSOUT AU CHARGEMENT, PAS SEULEMENT AU CHANGEMENT — ET CE
+ * N'EST PAS UNE PRÉCAUTION. Sur un appareil neuf, les réglages portent déjà un
+ * compte et un établissement, alors que la SESSION est vide : les permissions
+ * n'étaient donc résolues QUE si l'on changeait le sélecteur. La surface des
+ * actions montrait son état vide à une gérante qui a huit droits, et le panneau
+ * affichait son nom pendant ce temps. **Constaté en déroulant le pas 9 du
+ * quickstart** — aucun test de composant ne l'aurait vu.
+ */
+if (
+  session.value.compteId !== reglages.value.compteActif ||
+  session.value.etablissementId !== reglages.value.etablissementActif
+) {
+  await appliquerContexte(reglages.value.compteActif, reglages.value.etablissementActif)
+}
+
 const compteActif = computed({
   get: () => reglages.value.compteActif,
   set: (valeur: string) => {

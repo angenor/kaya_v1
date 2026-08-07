@@ -41,11 +41,16 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
  * composant 10, qui les traduit en libellés du lexique et n'en rend AUCUN dans
  * le HTML.
  */
-const { reglages, reprendre: reprendreScenarios } = useScenarios()
+// ⚠️ LES RÉGLAGES SONT DÉJÀ REPRIS QUAND CE GABARIT REND. C'est le greffon
+// `scenarios.client.ts` qui s'en charge, AVANT le montage : les reprendre ici, à
+// `onNuxtReady`, les rendait disponibles APRÈS le `setup()` des pages — donc
+// après leur première lecture de données, qui partait alors avec les réglages
+// initiaux. La file, elle, n'est lue par aucun `setup()` : `onNuxtReady` suffit,
+// et lui épargne une attente sur le chemin du premier écran.
+const { reglages } = useScenarios()
 const { enAttente, reprendre: reprendreFile } = useFile()
 
 onNuxtReady(() => {
-  void reprendreScenarios()
   void reprendreFile()
 })
 

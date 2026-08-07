@@ -33,11 +33,19 @@
 
 .ph.ph-caret-down::before { content: "\e136"; }
 .ph.ph-cash-register::before { content: "\ed80"; }
+.ph.ph-chart-line::before { content: "\e154"; }
 .ph.ph-check-circle::before { content: "\e184"; }
 .ph.ph-door-open::before { content: "\e7e6"; }
+.ph.ph-fork-knife::before { content: "\e262"; }
 .ph.ph-funnel::before { content: "\e266"; }
+.ph.ph-gear::before { content: "\e270"; }
 .ph.ph-info::before { content: "\e2ce"; }
+.ph.ph-lock-simple::before { content: "\e308"; }
 .ph.ph-magnifying-glass::before { content: "\e30c"; }
+.ph.ph-money::before { content: "\e588"; }
+.ph.ph-percent::before { content: "\e3b6"; }
+.ph.ph-sign-in::before { content: "\e428"; }
+.ph.ph-sign-out::before { content: "\e42a"; }
 .ph.ph-sliders-horizontal::before { content: "\e434"; }
 .ph.ph-user-plus::before { content: "\e4d0"; }
 .ph.ph-warning::before { content: "\e4e0"; }
