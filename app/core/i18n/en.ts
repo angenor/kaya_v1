@@ -114,6 +114,87 @@ export default {
     },
   },
   scenarios: {
-    titre: 'Scenarios',
+    titre: "Scenarios",
+    accroche: "Scenarios",
+    intro: "Put the app under difficult conditions — slow network, no network, empty data — without rebuilding. These settings live on this device and survive a reload.",
+    latence: "Network latency",
+    latenceAide: "In milliseconds. Past the threshold, the indicator shows “Weak connection”.",
+    echecReseau: "Network failure",
+    horsLigne: "No connection",
+    jeuVide: "Empty dataset",
+    compteActif: "Active account",
+    etablissementActif: "Active establishment",
+    actif: "On",
+    inactif: "Off",
+    essaiEcriture: "Write attempt",
+    essaiEcritureAide: "Produces a write and hands it to the queue. Without it, nothing in this cycle would exercise the refusal.",
+    classe: "Operation type",
+    lancer: "Run the attempt",
+    remettre: "Reset all",
+    fileTitre: "Pending send",
+    fileVide: "No pending write. Writes produced here will appear in this list.",
+    capacites: "What this device cannot do",
+    capacitesAucune: "This device can do everything the product asks for.",
+  },
+  file: {
+    refusHorsLigne: "This action requires an internet connection.",
+    refusHorsLigneAlternative: "Record it when the connection is back — nothing you entered is lost.",
+    acceptee: "Saved on this device.",
+  },
+  capacites: {
+    impression: {
+      motif: "Thermal printing",
+      alternative: "this device cannot print directly — the receipt goes to the front desk printer",
+    },
+    tiroir: {
+      motif: "Cash drawer",
+      alternative: "The drawer opens from the front desk printer.",
+    },
+    scan: {
+      motif: "Code scanning",
+      alternative: "Enter the code by hand.",
+    },
+    camera: {
+      motif: "Camera",
+      alternative: "Take the photo with the phone and transfer it.",
+    },
+    ocr: {
+      motif: "Automatic ID reading",
+      alternative: "Enter the details by hand.",
+    },
+    stockageSecurise: {
+      motif: "Protected storage",
+      alternative: "This device will have to sign in again more often.",
+    },
+    stockageDurable: {
+      motif: "Durable storage",
+      alternative: "This device may have to sign in again.",
+    },
+    notifications: {
+      motif: "Alerts",
+      alternative: "Without installing, this device will not receive alerts. Install the app from the share menu.",
+    },
+    geolocalisation: {
+      motif: "Location",
+      alternative: "The manager will be told another way.",
+    },
+    etatReseau: {
+      motif: "Connection measurement",
+      alternative: "This device can say whether it is connected, not how fast.",
+    },
+    fichiers: {
+      motif: "File saving",
+      alternative: "The document is sent by email.",
+    },
+    attestation: {
+      motif: "Device verification",
+      alternative: "There is no alternative on the web, and that is accepted: security rests on the server, never on a promise from this device.",
+    },
+  },
+  essai: {
+    noteInterne: "Internal note",
+    encaissement: "Payment",
+    reglage: "Establishment setting",
+    impots: "Tax office submission",
   },
 } as const

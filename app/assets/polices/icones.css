@@ -38,6 +38,7 @@
 .ph.ph-funnel::before { content: "\e266"; }
 .ph.ph-info::before { content: "\e2ce"; }
 .ph.ph-magnifying-glass::before { content: "\e30c"; }
+.ph.ph-sliders-horizontal::before { content: "\e434"; }
 .ph.ph-user-plus::before { content: "\e4d0"; }
 .ph.ph-warning::before { content: "\e4e0"; }
 .ph.ph-warning-circle::before { content: "\e4e2"; }

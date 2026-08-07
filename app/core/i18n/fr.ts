@@ -132,6 +132,87 @@ export default {
     },
   },
   scenarios: {
-    titre: 'Scénarios',
+    titre: "Scénarios",
+    accroche: "Scénarios",
+    intro: "Placer l'application dans les conditions difficiles — réseau lent, réseau absent, données vides — sans recompiler. Ces réglages vivent sur cet appareil et survivent au rechargement.",
+    latence: "Latence du réseau",
+    latenceAide: "En millisecondes. Au-delà du seuil, le témoin passe à « Connexion faible ».",
+    echecReseau: "Échec réseau",
+    horsLigne: "Hors connexion",
+    jeuVide: "Jeu vide",
+    compteActif: "Compte actif",
+    etablissementActif: "Établissement actif",
+    actif: "Actif",
+    inactif: "Inactif",
+    essaiEcriture: "Essai d'écriture",
+    essaiEcritureAide: "Produit une écriture et la donne à la file. Sans lui, rien dans ce cycle n'exercerait le refus.",
+    classe: "Type d'opération",
+    lancer: "Lancer l'essai",
+    remettre: "Tout remettre",
+    fileTitre: "En attente d'envoi",
+    fileVide: "Aucune écriture en attente. Les écritures produites ici apparaîtront dans cette liste.",
+    capacites: "Ce que cet appareil ne sait pas faire",
+    capacitesAucune: "Cet appareil sait tout faire de ce que le produit demande.",
+  },
+  file: {
+    refusHorsLigne: "Cette action nécessite internet.",
+    refusHorsLigneAlternative: "Enregistrez-la au retour du réseau : rien de ce que vous avez saisi n’est perdu.",
+    acceptee: "Enregistré sur cet appareil.",
+  },
+  capacites: {
+    impression: {
+      motif: "Impression thermique",
+      alternative: "cet appareil ne peut pas imprimer directement — le ticket part sur l'imprimante de la réception",
+    },
+    tiroir: {
+      motif: "Ouverture du tiroir-caisse",
+      alternative: "Le tiroir s'ouvre depuis l'imprimante de la réception.",
+    },
+    scan: {
+      motif: "Lecture de code",
+      alternative: "Saisissez le code à la main.",
+    },
+    camera: {
+      motif: "Appareil photo",
+      alternative: "Prenez la photo avec le téléphone et transférez-la.",
+    },
+    ocr: {
+      motif: "Lecture automatique d'une pièce",
+      alternative: "Saisissez les informations à la main.",
+    },
+    stockageSecurise: {
+      motif: "Stockage protégé",
+      alternative: "Cet appareil devra se reconnecter plus souvent.",
+    },
+    stockageDurable: {
+      motif: "Stockage durable",
+      alternative: "Cet appareil peut être amené à se reconnecter.",
+    },
+    notifications: {
+      motif: "Alertes",
+      alternative: "Sans installation, cet appareil ne recevra pas les alertes. Installez l'application depuis le menu de partage.",
+    },
+    geolocalisation: {
+      motif: "Position",
+      alternative: "Le gérant sera prévenu autrement.",
+    },
+    etatReseau: {
+      motif: "Mesure de la connexion",
+      alternative: "Cet appareil sait dire s'il a du réseau, pas à quelle vitesse il répond.",
+    },
+    fichiers: {
+      motif: "Enregistrement de fichier",
+      alternative: "Le document part par courriel.",
+    },
+    attestation: {
+      motif: "Vérification de l'appareil",
+      alternative: "Il n'y a pas d'alternative sur le web, et c'est assumé : la sécurité repose sur le serveur, jamais sur une promesse de cet appareil.",
+    },
+  },
+  essai: {
+    noteInterne: "Note interne",
+    encaissement: "Encaissement",
+    reglage: "Réglage d'établissement",
+    impots: "Envoi aux impôts",
   },
 } as const

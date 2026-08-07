@@ -21,8 +21,39 @@
  * verrait avant la démonstration.
  */
 import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
+import { CLE_SEUIL_LATENCE_DEGRADEE, lireParametreEntier } from '~/core/configuration/configuration'
+import { useFile } from '~/core/file/useFile'
+import { useScenarios } from '~/core/scenarios/useScenarios'
+import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import SelecteurEtablissement from '~/core/design-system/SelecteurEtablissement.vue'
 import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vue'
+
+/**
+ * LE TÉMOIN DIT LA VÉRITÉ, ET IL LA TIENT DE LA FILE.
+ *
+ * ⚠️ LE SEUIL QUI SÉPARE « Enregistré » DE « Connexion faible » EST UNE **CLÉ DE
+ * CONFIGURATION**, jamais une constante — `sync.latence_degradee_seuil_ms`, de
+ * valeur initiale 3 000 ms. La 3G d'Abengourou et la fibre d'Abidjan ne
+ * demandent pas le même réglage.
+ *
+ * ⚠️ ET LES TROIS NOMS D'ÉTAT NE SORTENT PAS D'ICI : ils entrent dans le
+ * composant 10, qui les traduit en libellés du lexique et n'en rend AUCUN dans
+ * le HTML.
+ */
+const { reglages, reprendre: reprendreScenarios } = useScenarios()
+const { enAttente, reprendre: reprendreFile } = useFile()
+
+onNuxtReady(() => {
+  void reprendreScenarios()
+  void reprendreFile()
+})
+
+const seuilDegrade = lireParametreEntier(CLE_SEUIL_LATENCE_DEGRADEE, 3000)
+const etatReseau = computed(() => {
+  if (reglages.value.horsLigne) return 'horsLigne' as const
+  if (reglages.value.latenceMs >= seuilDegrade) return 'degrade' as const
+  return 'connecte' as const
+})
 </script>
 
 <template>
@@ -49,9 +80,11 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
         data-emplacement="temoin"
         class="flex items-center"
       >
-        <!-- Le décompte réel et l'état du réseau lui viennent de la file,
-             à T041. Il rend ici l'état nominal — « Enregistré ». -->
-        <TemoinSynchronisation compact />
+        <TemoinSynchronisation
+          :etat="etatReseau"
+          :en-attente="enAttente"
+          compact
+        />
       </div>
 
       <!-- Les deux réglages de la coquille : le thème et la langue. Ce ne sont
@@ -62,6 +95,20 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
         class="flex items-center gap-1.5 border-l border-line pl-3.5"
       >
         <ReglagesCoquille />
+        <!-- ⚠️ L'ACCROCHE DU PANNEAU SCÉNARIOS EST PERMANENTE, ET SANS ELLE ON
+             NE BASCULE PAS EN COURS DE PARCOURS. C'est un INSTRUMENT : il porte
+             le trait bas de sa route, et un exploitant ne le voit jamais — mais
+             il doit être atteignable depuis n'importe quel écran, sinon on
+             quitte le parcours pour le régler et on perd ce qu'on testait. -->
+        <NuxtLink
+          to="/_scenarios"
+          data-accroche="scenarios"
+        >
+          <BoutonDiscret
+            icone="ph-sliders-horizontal"
+            :libelle-cle="undefined"
+          />
+        </NuxtLink>
       </div>
     </header>
 
