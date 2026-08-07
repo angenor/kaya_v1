@@ -31,6 +31,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.ph.ph-bed::before { content: "\e0cc"; }
+.ph.ph-beer-bottle::before { content: "\e7b0"; }
 .ph.ph-caret-down::before { content: "\e136"; }
 .ph.ph-cash-register::before { content: "\ed80"; }
 .ph.ph-chart-line::before { content: "\e154"; }
@@ -44,9 +46,11 @@
 .ph.ph-magnifying-glass::before { content: "\e30c"; }
 .ph.ph-money::before { content: "\e588"; }
 .ph.ph-percent::before { content: "\e3b6"; }
+.ph.ph-projector-screen::before { content: "\e658"; }
 .ph.ph-sign-in::before { content: "\e428"; }
 .ph.ph-sign-out::before { content: "\e42a"; }
 .ph.ph-sliders-horizontal::before { content: "\e434"; }
+.ph.ph-t-shirt::before { content: "\e670"; }
 .ph.ph-user-plus::before { content: "\e4d0"; }
 .ph.ph-warning::before { content: "\e4e0"; }
 .ph.ph-warning-circle::before { content: "\e4e2"; }

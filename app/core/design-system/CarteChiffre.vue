@@ -23,6 +23,14 @@ withDefaults(
     /** L'écart, déjà formaté. Le signe décide de la forme et du ton. */
     delta?: string
     deltaPositif?: boolean
+    /**
+     * ⚠️ LA COMPARAISON QUI N'EST PAS UN ÉCART — « 3 arrivées attendues cet
+     * après-midi », « la plus ancienne depuis 1 h 05 ». Les maquettes en
+     * portent autant que de deltas, et lui donner le triangle du delta
+     * signalerait une variation là où il n'y en a aucune : un repère de
+     * direction sur une phrase qui n'en indique pas apprend à ne plus le lire.
+     */
+    note?: string
     /** Le contrefort Banco : un seul côté porte 4 px de couleur. */
     contrefort?: boolean
     enChargement?: boolean
@@ -31,6 +39,7 @@ withDefaults(
     valeur: undefined,
     delta: undefined,
     deltaPositif: true,
+    note: undefined,
     contrefort: false,
     enChargement: false,
   },
@@ -76,5 +85,11 @@ withDefaults(
       />
       {{ delta }}
     </span>
+
+    <span
+      v-if="note && !enChargement"
+      class="text-mini text-ink-3"
+      data-note
+    >{{ note }}</span>
   </div>
 </template>

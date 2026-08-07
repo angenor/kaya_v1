@@ -322,7 +322,7 @@ const themeChoisi = computed({
         <TuileAction
           libelle-cle="guideDeStyle.demo.encaissement"
           icone="ph-cash-register"
-          motif-indisponible-cle="guideDeStyle.demo.roleServeuse"
+          compacte
         />
         <TuileAction
           libelle-cle="guideDeStyle.demo.filtrer"

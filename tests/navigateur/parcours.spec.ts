@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { ECRANS_PRODUIT, INSTRUMENTS } from '../../app/core/ecrans/index'
 
+import { entrer } from './outils/entrer'
 import { exigerAucunNomDetatInterne } from './outils/mesures'
 
 /**
@@ -30,7 +31,13 @@ import { exigerAucunNomDetatInterne } from './outils/mesures'
  * surface ne se casse pas, elle montre son état vide et propose une sortie.
  */
 const ETABLISSEMENTS = [
-  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria', actionsAdjoua: 8 },
+  // ⚠️ NEUF DEPUIS LE CYCLE F2, ET LE CHANGEMENT EST VOULU. Le rôle `gerant`
+  // portait « appliquer une remise » sans porter « prendre une commande » —
+  // c'est-à-dire le droit de corriger une commande sans celui d'en ouvrir une.
+  // Le manque ne se voyait pas tant qu'aucun écran ne composait par permission ;
+  // il rendait l'accueil du maquis vide pour Yao, qui en est le gérant. Adjoua
+  // cumule désormais les neuf droits du catalogue, donc les neuf actions.
+  { libelle: 'Résidence Hôtel Deloria', court: 'Deloria', actionsAdjoua: 9 },
   { libelle: 'Résidence Test', court: 'Résidence Test', actionsAdjoua: 0 },
 ] as const
 
@@ -60,9 +67,15 @@ async function basculer(page: Page, levier: string, actif: boolean): Promise<voi
 
 for (const etablissement of ETABLISSEMENTS) {
   test(`parcours de bout en bout · ${etablissement.court}`, async ({ page }) => {
-    // ── Pas 1 · la racine mène à l'index ────────────────────────────────────
+    // ── Pas 1 · la racine SERT L'ACCUEIL, et l'exige d'être entré ──────────
+    //
+    // ⚠️ CE PAS A CHANGÉ AU CYCLE F2, ET LE CHANGEMENT EST LE LIVRABLE. `/`
+    // redirigeait vers l'index des écrans avec la mention « F2 y posera R1 » :
+    // c'est fait. La racine est désormais une route du produit, donc protégée —
+    // sans session, elle conduit à `R0`, en retenant l'adresse demandée.
     await page.goto('/', { waitUntil: 'networkidle' })
-    await expect(page).toHaveURL(/\/_ecrans$/)
+    await expect(page).toHaveURL(/\/connexion\?vers=/)
+    await entrer(page, undefined, '/_ecrans')
     await expect(page.locator('[data-ecran="ecrans"]')).toBeVisible()
 
     // ── Pas 2 · l'index porte deux sections, 46 et 3 ────────────────────────

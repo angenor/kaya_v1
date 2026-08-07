@@ -1,3 +1,5 @@
+import { simulationAccueil } from '~/core/donnees/accueil/simulation'
+import type { DonneesAccueil } from '~/core/donnees/accueil/interface'
 import { simulationComptes } from '~/core/donnees/comptes/simulation'
 import type { DonneesComptes } from '~/core/donnees/comptes/interface'
 import { simulationEtablissements } from '~/core/donnees/etablissements/simulation'
@@ -24,6 +26,8 @@ export interface Fournisseur {
   readonly comptes: DonneesComptes
   readonly hebergement: DonneesHebergement
   readonly ventes: DonneesVentes
+  /** ★ Ajouté au cycle F2 — les cinq rubriques de `R1`, une source chacune. */
+  readonly accueil: DonneesAccueil
 }
 
 const FOURNISSEUR_SIMULE: Fournisseur = {
@@ -31,6 +35,7 @@ const FOURNISSEUR_SIMULE: Fournisseur = {
   comptes: simulationComptes,
   hebergement: simulationHebergement,
   ventes: simulationVentes,
+  accueil: simulationAccueil,
 }
 
 /**

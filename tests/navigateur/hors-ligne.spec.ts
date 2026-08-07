@@ -1,5 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 
+import { entrer } from './outils/entrer'
+
 /**
  * US1 · **L'APPLICATION S'OUVRE HORS LIGNE, DÈS LE PREMIER ÉCRAN** — et les deux
  * autres propriétés de la coquille : l'installation et la version nouvelle.
@@ -91,7 +93,11 @@ test.describe('la coquille hors ligne', () => {
       test.info().project.name !== COUPURE_OBSERVABLE,
       'Playwright ne laisse pas une navigation hors ligne atteindre le service worker sur WebKit',
     )
-    await page.goto('/', { waitUntil: 'networkidle' })
+    // ⚠️ DEPUIS F2, LA RACINE EST `R1` ET EXIGE UNE SESSION : sans elle, on
+    // atterrirait sur `R0`, ce qui ne dit rien de la coquille. La suite de la
+    // coquille inspecte le SERVICE WORKER, pas l'écran — et l'un comme l'autre
+    // s'installent sur n'importe quelle route servie.
+    await entrer(page, undefined, '/')
     await attendreLaCoquille(page)
 
     await couperLeReseau(context)
@@ -127,7 +133,11 @@ test.describe('la coquille hors ligne', () => {
       test.info().project.name !== COUPURE_OBSERVABLE,
       'même limite d’outillage : la navigation n’atteint pas le service worker sur WebKit',
     )
-    await page.goto('/', { waitUntil: 'networkidle' })
+    // ⚠️ DEPUIS F2, LA RACINE EST `R1` ET EXIGE UNE SESSION : sans elle, on
+    // atterrirait sur `R0`, ce qui ne dit rien de la coquille. La suite de la
+    // coquille inspecte le SERVICE WORKER, pas l'écran — et l'un comme l'autre
+    // s'installent sur n'importe quelle route servie.
+    await entrer(page, undefined, '/')
     await attendreLaCoquille(page)
 
     await couperLeReseau(context)
@@ -147,7 +157,11 @@ test.describe('la coquille hors ligne', () => {
     // précache. Si cette ligne disparaissait, le service worker précacherait le
     // JavaScript et le CSS d'une page qu'il ne saurait pas servir, et rien
     // d'autre ne le dirait.
-    await page.goto('/', { waitUntil: 'networkidle' })
+    // ⚠️ DEPUIS F2, LA RACINE EST `R1` ET EXIGE UNE SESSION : sans elle, on
+    // atterrirait sur `R0`, ce qui ne dit rien de la coquille. La suite de la
+    // coquille inspecte le SERVICE WORKER, pas l'écran — et l'un comme l'autre
+    // s'installent sur n'importe quelle route servie.
+    await entrer(page, undefined, '/')
     await attendreLaCoquille(page)
 
     const precache = await page.evaluate(async () => {

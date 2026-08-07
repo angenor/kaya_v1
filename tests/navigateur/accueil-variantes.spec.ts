@@ -1,0 +1,208 @@
+import { expect, test, type Page } from '@playwright/test'
+
+import { nomDuTheme } from './outils/mesures'
+
+/**
+ * **LES QUATRE ACCUEILS MAQUETTÉS**, obtenus par le contexte et **jamais par une
+ * branche de code** — FR-017, SC-003, SC-004, SC-014.
+ *
+ * ⚠️ C'EST LE TEST DE VÉRITÉ DU CYCLE. Si une variante exigeait un
+ * `if (variante === 'maquis')`, l'accueil d'un maquis serait un hôtel amputé —
+ * et les onze écrans qui héritent du motif hériteraient de la branche. Ce que la
+ * suite vérifie n'est donc pas « l'écran s'affiche » mais « **l'écran est le
+ * bon, sans reste** » : aucune section vide, aucun libellé d'un service absent,
+ * aucun élément inerte.
+ *
+ * ⚠️ ET LE CONTEXTE SE CHOISIT COMME UN RELECTEUR LE FERAIT — au panneau
+ * Scénarios, en désignant un compte et un site. Poser une session dans le
+ * stockage irait plus vite et prouverait moins.
+ *
+ * Quatre passages : Chromium × WebKit, clair × sombre.
+ */
+
+const DELORIA = 'deloria-etablissement'
+const MAQUIS = 'tantie-adjo-etablissement'
+
+/** Les quatre variantes, telles que `quickstart.md` §2.2 les nomme. */
+const VARIANTES = [
+  {
+    nom: 'générique · Adjoua × Deloria',
+    compteId: 'compte-adjoua',
+    etablissement: DELORIA,
+    titre: 'À faire maintenant',
+    doitVoir: ['Chambre 204', 'Vos activités', 'Hébergement', 'Pressing', "Aujourd'hui"],
+    neDoitPasVoir: [],
+    activites: 5,
+  },
+  {
+    nom: 'serveuse · Aminata × Deloria',
+    compteId: 'compte-aminata',
+    etablissement: DELORIA,
+    titre: 'Votre service',
+    doitVoir: ['Vos tables', 'Total de vos tables'],
+    // ⚠️ AUCUNE ACTION D'ENCAISSEMENT, AUCUN CHIFFRE D'HÔTEL. Aminata a UNE
+    // permission ; tout le reste est absent du document, pas atténué.
+    neDoitPasVoir: ['Recette depuis', 'Chambres occupées', 'Clôturer', 'Encaisser le départ'],
+    activites: 3,
+  },
+  {
+    nom: 'maquis · Yao × Chez Tantie Adjo',
+    compteId: 'compte-yao',
+    etablissement: MAQUIS,
+    titre: 'Votre service',
+    doitVoir: ['6 tables occupées sur 9', 'Comptoir', 'ardoises', 'Encaissé ce soir'],
+    // ⚠️ LE CŒUR DE SC-003 : ni en texte, ni en attribut, ni sous un élément
+    // masqué. Un seul de ces mots et l'écran est un hôtel amputé.
+    neDoitPasVoir: ['Hébergement', 'Pressing', 'Salle de réunion', 'Vos activités'],
+    activites: 0,
+  },
+  {
+    nom: 'propriétaire · M. Koffi × Deloria',
+    compteId: 'compte-koffi',
+    etablissement: DELORIA,
+    titre: 'La seule chose qui vous attend',
+    doitVoir: ['Caisse d’hier soir', "Aujourd'hui"],
+    // ⚠️ FR-019 : AUCUNE SURFACE QUI **MODIFIE** UNE CAISSE. La nuance est
+    // celle de l'exigence, pas une indulgence : « Reste à encaisser » est un
+    // CHIFFRE qu'un propriétaire a le droit de lire, et l'interdire ici aurait
+    // fait rougir le test sur la consultation qu'il vient précisément d'obtenir.
+    // Ce qui doit être absent, ce sont les GESTES.
+    neDoitPasVoir: ['Clôturer la caisse', 'Vérifier', 'Ouvrir une table', 'Ajouter une commande', 'Encaisser le départ'],
+    activites: 0,
+  },
+] as const
+
+/** Choisit compte et établissement au panneau Scénarios — comme un relecteur. */
+async function poserLeContexte(
+  page: Page,
+  compteId: string,
+  etablissementId: string,
+): Promise<void> {
+  await page.goto('/_scenarios', { waitUntil: 'networkidle' })
+  await page.locator('[data-levier="compte"] select').selectOption(compteId)
+  await page.locator('[data-levier="etablissement"] select').selectOption(etablissementId)
+
+  // ⚠️ ON ATTEND QUE LE CONTEXTE SOIT RÉSOLU AVANT DE NAVIGUER, ET CE N'EST PAS
+  // UNE PRÉCAUTION D'ÉCRITURE. `appliquerContexte` résout les permissions et
+  // persiste en IndexedDB — deux opérations asynchrones. Naviguer pendant qu'un
+  // module se charge fait échouer l'import sur **WebKit** (« Importing a module
+  // script failed »), et le test rougissait alors sur un artefact de course,
+  // jamais sur un défaut du produit. Le panneau affiche le compte résolu : on
+  // attend qu'il le dise.
+  await expect(page.locator('[data-ecran="scenarios"]')).toContainText(compteId)
+
+  await page.goto('/', { waitUntil: 'networkidle' })
+  await expect(page.locator('[data-ecran="R1"]')).toBeVisible()
+  // La composition est asynchrone : on attend qu'aucune rubrique ne soit plus
+  // en chargement, plutôt qu'un délai fixe qui rougirait selon la machine.
+  await expect(page.locator('[data-rubrique][data-etat="chargement"]')).toHaveCount(0)
+}
+
+for (const schema of ['light', 'dark'] as const) {
+  const theme = nomDuTheme(schema)
+
+  test.describe(`R1 · thème ${theme}`, () => {
+    test.use({ colorScheme: schema })
+
+    for (const variante of VARIANTES) {
+      test(`${variante.nom}`, async ({ page }) => {
+        const erreurs: string[] = []
+        page.on('pageerror', (e) => erreurs.push(String(e)))
+        page.on('console', (m) => {
+          if (m.type() === 'error') erreurs.push(m.text())
+        })
+
+        await poserLeContexte(page, variante.compteId, variante.etablissement)
+
+        // ── L'action principale nomme ce qui attend MAINTENANT ────────────
+        await expect(page.locator('[data-rubrique="tete"] h1')).toHaveText(variante.titre)
+
+        // ⚠️ COMPARAISON SANS CASSE : les étiquettes de carte sont rendues en
+        // `uppercase` par le jeton de typographie, et `innerText` rend ce que
+        // l'œil voit. Comparer à la casse ferait rougir un test sur une règle
+        // de style — c'est-à-dire pour rien.
+        const document_ = (await page.locator('[data-ecran="R1"]').innerText()).toLowerCase()
+        for (const attendu of variante.doitVoir) {
+          expect(document_, `« ${attendu} » manque à l'accueil ${variante.nom}`).toContain(
+            attendu.toLowerCase(),
+          )
+        }
+
+        // ── L'ABSENCE, sur le document rendu ──────────────────────────────
+        // Le HTML complet, pas seulement le texte : un libellé caché en CSS ou
+        // glissé dans un attribut compterait tout autant.
+        const html = (await page.locator('[data-ecran="R1"]').innerHTML()).toLowerCase()
+        for (const proscrit of variante.neDoitPasVoir) {
+          expect(
+            html.includes(proscrit.toLowerCase()),
+            `« ${proscrit} » atteint l'accueil ${variante.nom} — ni en texte, ni en attribut, ni masqué`,
+          ).toBe(false)
+        }
+
+        // ── « Vos activités » disparaît AVEC SON TITRE ────────────────────
+        const activites = page.locator('[data-surface="activite"] > *')
+        await expect(activites).toHaveCount(variante.activites)
+        if (variante.activites === 0) {
+          await expect(
+            page.locator('[data-rubrique="activite"]'),
+            'la rubrique vide a laissé son titre — un intitulé orphelin',
+          ).toHaveCount(0)
+        }
+
+        // ── ABSENT, JAMAIS GRISÉ (SC-004) ────────────────────────────────
+        // ⚠️ LE CONTRÔLE PORTE SUR LE DOCUMENT RENDU. Aucun élément de
+        // l'accueil ne porte `disabled` : une action non permise n'est pas
+        // éteinte, elle n'existe pas.
+        await expect(
+          page.locator('[data-ecran="R1"] [disabled]'),
+          "un élément de l'accueil est désactivé — l'absence doit être totale",
+        ).toHaveCount(0)
+        await expect(page.locator('[data-ecran="R1"] [aria-disabled="true"]')).toHaveCount(0)
+
+        // ── Aucune section vide ───────────────────────────────────────────
+        await expect(
+          page.locator('[data-rubrique][data-etat="absente"]'),
+          'une rubrique absente est rendue — elle devrait disparaître',
+        ).toHaveCount(0)
+
+        expect(erreurs, `la console a parlé — ${erreurs.join(' · ')}`).toEqual([])
+      })
+    }
+
+    test('le pas 1 du quickstart · `/` sans session mène à la connexion', async ({ page }) => {
+      // ⚠️ REPRIS ICI DEPUIS `connexion.spec.ts`, ET C'EST SA PLACE : tant que la
+      // racine redirigeait, le pas ne pouvait pas se vérifier sur `/`. Depuis
+      // que `R1` la sert, `/` est une route du produit comme une autre.
+      //
+      // ⚠️ AUCUNE SESSION N'EST POSÉE ICI, ET C'EST CE QUI REND LE TEST JUSTE :
+      // Playwright ouvre un contexte NEUF par test — stockage vierge, comme un
+      // appareil qu'on déballe. Une version antérieure vidait IndexedDB à la
+      // main après avoir ouvert le panneau ; sur WebKit, la suppression restait
+      // bloquée par la connexion ouverte, et le test rougissait sur son propre
+      // ménage.
+      await page.goto('/', { waitUntil: 'networkidle' })
+      await expect(page).toHaveURL(/\/connexion\?vers=/)
+      await expect(page.locator('[data-ecran="R0"]')).toBeVisible()
+    })
+
+    test('une porte qui ne mène pas encore · l’appui DIT l’écran et le cycle', async ({ page }) => {
+      // ⚠️ LA SURFACE GARDE L'APPARENCE EXACTE D'UNE SURFACE ABOUTIE (SC-014) :
+      // ni atténuation, ni badge, ni `disabled`. Ce qui manque est de NOTRE
+      // côté, et le dire est honnête ; un badge « bientôt » réintroduirait le
+      // grisé par la porte de derrière.
+      await poserLeContexte(page, 'compte-adjoua', DELORIA)
+
+      const action = page.locator('[data-rubrique="tete"] [data-action="principale"]')
+      await expect(action).toBeVisible()
+      await expect(action).not.toHaveAttribute('disabled', /.*/)
+      await expect(action).not.toHaveClass(/opacity|attenu/)
+
+      await action.click()
+      const mention = page.locator('[data-mention]')
+      await expect(mention).toBeVisible()
+      // Elle nomme l'écran et le cycle — tous deux LUS À L'INDEX.
+      await expect(mention).toContainText('La note et le départ')
+      await expect(mention).toContainText('F3')
+    })
+  })
+}

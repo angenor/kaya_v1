@@ -63,7 +63,7 @@ export interface EntreeEcran {
  */
 export const ECRANS_PRODUIT: readonly EntreeEcran[] = [
   // ── Les onze maquettés ───────────────────────────────────────────────────
-  { code: 'R1', titre: "L'accueil", route: null, cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F2', reference: 'docs/design/html/R1-accueil.html' },
+  { code: 'R1', titre: "L'accueil", route: '/', cas: 'maquette', avancement: 'CONSTRUIT', cycle: null, reference: 'docs/design/html/R1-accueil.html' },
   { code: 'R4', titre: 'Le passage', route: '/passage', cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'docs/design/html/R4-passage.html' },
   { code: 'R7', titre: 'La note et le départ', route: '/depart', cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'docs/design/html/R7-note-depart.html' },
   { code: 'C4', titre: 'La clôture de caisse', route: null, cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F5', reference: 'docs/design/html/C4-cloture.html' },
@@ -132,13 +132,16 @@ export const INSTRUMENTS: readonly EntreeEcran[] = [
 ]
 
 /**
- * LA RACINE — une redirection, pour ce cycle seulement.
- * Elle est déclarée pour que P-04 la trouve à l'index : une route servie et non
- * déclarée fait rougir la porte, et c'est bien ce qu'on veut.
+ * LES ROUTES TECHNIQUES — **vide depuis le cycle F2**, et c'est un progrès.
+ *
+ * ⚠️ ELLE PORTAIT `/`, DÉCLARÉE COMME UNE REDIRECTION VERS `/_ecrans` avec la
+ * mention « F2 y posera R1 ». C'est fait : la racine **sert** l'accueil, et `/`
+ * a rejoint les 46 écrans du produit sous le code `R1`. Le tableau reste
+ * déclaré plutôt que supprimé : la porte P-04 lit `toutesLesEntrees()`, et un
+ * cycle qui aurait besoin d'une route technique la mettrait ici plutôt que de
+ * la glisser au produit.
  */
-export const ROUTES_TECHNIQUES: readonly EntreeEcran[] = [
-  { code: null, titre: 'ecrans.titre', route: '/', cas: 'instrument', avancement: 'CONSTRUIT', reference: 'redirection vers /_ecrans — F2 y posera R1', cycle: null },
-]
+export const ROUTES_TECHNIQUES: readonly EntreeEcran[] = []
 
 /**
  * LE DRAPEAU DE LA PAGE TÉMOIN, LU **DES DEUX CÔTÉS**.

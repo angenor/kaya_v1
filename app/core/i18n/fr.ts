@@ -78,6 +78,76 @@ export default {
       'Vous pourrez toujours entrer à nouveau : rien de ce que vous avez enregistré ne se perd.',
   },
 
+  // ── R1 · l'accueil ─────────────────────────────────────────────────────────
+  // ⚠️ LES TITRES DE RUBRIQUE SONT CEUX DES QUATRE MAQUETTES. Ils ne se
+  // choisissent pas par variante : c'est la SURFACE retenue qui décide lequel
+  // s'affiche, et il n'y a donc qu'un catalogue.
+  accueil: {
+    titre: "L'accueil",
+    tete: {
+      aFaireMaintenant: 'À faire maintenant',
+      votreService: 'Votre service',
+      laSeuleChose: 'La seule chose qui vous attend',
+    },
+    suite: {
+      titre: "Ensuite, dans l'ordre de l'heure",
+      vosTables: 'Vos tables',
+      vosEtablissements: 'Vos établissements, aujourd’hui',
+    },
+    aRegler: { titre: 'À régler' },
+    activites: { titre: 'Vos activités' },
+    chiffres: { titre: "Aujourd'hui", votreService: 'Votre service' },
+    // Les six états de la pastille, dits dans les mots de l'exploitant — jamais
+    // le nom interne de l'état (SC-022).
+    etat: {
+      aJour: 'À jour',
+      enCours: 'En cours',
+      libre: 'Libre',
+      aRegler: 'À régler',
+      sansReseau: 'Sans réseau',
+      enAttente: 'En attente',
+    },
+    action: {
+      encaisserDepart: 'Encaisser le départ',
+      voirDeparts: 'Voir les départs du jour',
+      ajouterCommande: 'Ajouter une commande',
+      ouvrirTable: 'Ouvrir une table',
+      voirArdoises: 'Voir les ardoises',
+      demanderExplication: "Demander l'explication",
+      voirCaisse: "Voir la caisse d'hier",
+      transmettre: 'Transmettre',
+      verifier: 'Vérifier',
+      commander: 'Commander',
+      noterCommande: 'Noter la commande',
+      voir: 'Voir',
+    },
+    chiffre: {
+      recetteDepuisOuverture: "Recette depuis l'ouverture",
+      chambresOccupees: 'Chambres occupées',
+      resteAEncaisser: 'Reste à encaisser',
+      encaisseCeSoir: 'Encaissé ce soir',
+      ardoisesEnCours: 'Ardoises en cours',
+      platLePlusVendu: 'Plat le plus vendu',
+      vosTablesOuvertes: 'Vos tables ouvertes',
+      totalDeVosTables: 'Total de vos tables',
+      commandesServies: 'Commandes servies',
+    },
+    // ⚠️ CE QUI MANQUE EST DE NOTRE CÔTÉ, ET LE DIRE EST HONNÊTE. La surface
+    // garde l'apparence exacte d'une surface aboutie ; c'est l'appui qui parle.
+    aVenir: '« {ecran} » n’est pas encore construit.',
+    aVenirCycle: 'Cet écran arrive au cycle {cycle}.',
+    horsLigne: "Cet appareil n'a pas de réseau.",
+    horsLigneAlternative:
+      "Ce qui est déjà à l'écran reste utilisable, et vos saisies partiront au retour du réseau.",
+    erreur: "Cette partie de l'écran n'a pas pu être chargée.",
+    erreurAlternative: "Le reste de l'écran est à jour. Rien n'est perdu.",
+    reessayer: 'Réessayer',
+    teteVide: 'Rien ne vous attend pour le moment. Ce qui arrive s’affichera ici.',
+    suiteVide: 'Rien de prévu pour la suite. Les arrivées et les tables ouvertes apparaîtront ici.',
+    aReglerVide: 'Rien à régler. Tout est transmis et la caisse est juste.',
+    chiffresVide: "Aucun chiffre pour l'instant. Ils se rempliront dès la première vente.",
+  },
+
   // ── Les instruments de développement ───────────────────────────────────────
   // Ce ne sont pas des écrans du produit : ils ne portent pas de code de
   // préfixe et n'entrent pas au décompte des 46.
@@ -163,7 +233,6 @@ export default {
       recetteDuJour: "Recette du jour",
       chambresLibres: "Chambres libres",
       deuxArrivees: "2 arrivées attendues",
-      roleServeuse: "Rôle serveuse",
       noteArretee: "La note est arrêtée : plus rien ne peut s'y ajouter",
       consommationSupprimee: "Consommation supprimée",
       envoiReussi: "Les impôts ont validé cette facture",

@@ -193,7 +193,12 @@ export const permissions: readonly Permission[] = [
  * peuple pas la table, il en porte la projection nécessaire au calcul d'union.
  */
 export const permissionsParRole: Readonly<Record<string, readonly string[]>> = {
-  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
+  // ⚠️ `ventes.commande.prendre` AJOUTÉ AU CYCLE F2, SUR CONSTAT. Le rôle
+  // portait « appliquer une remise » sans porter « prendre une commande » —
+  // c'est-à-dire le droit de corriger une commande sans celui d'en ouvrir une.
+  // Le manque ne se voyait pas tant qu'aucun écran ne composait par permission ;
+  // il rendait l'accueil du maquis vide pour Yao, qui en est le GÉRANT.
+  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.prendre', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
   caissier: ['caisse.encaisser', 'caisse.cloture'],
   receptionniste: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart'],
   serveur: ['ventes.commande.prendre'],

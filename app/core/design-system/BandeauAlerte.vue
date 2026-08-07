@@ -21,14 +21,32 @@ import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 withDefaults(
   defineProps<{
     /** La phrase au passé — clé i18n. */
-    messageCle: string
+    messageCle?: string
+    /**
+     * ⚠️ UNE PHRASE **DÉJÀ RÉSOLUE**, pour ce que le catalogue ne porte pas :
+     * un fait venu des données — « 6 factures pas encore transmises ». Ce n'est
+     * pas une entorse à « aucune chaîne visible en dur » : la règle vise les
+     * chaînes ÉCRITES DANS LE CODE, et une donnée n'en est pas une. L'un ou
+     * l'autre, jamais les deux.
+     */
+    message?: string
     /** Ce qui reste possible. Obligatoire dès qu'on refuse quelque chose. */
     alternativeCle?: string
+    /** Le versant positif, déjà résolu. Même motif que `message`. */
+    alternative?: string
     ton?: 'info' | 'succes' | 'alerte' | 'danger'
     actionCle?: string
     pleineLargeur?: boolean
   }>(),
-  { alternativeCle: undefined, ton: 'info', actionCle: undefined, pleineLargeur: false },
+  {
+    messageCle: undefined,
+    message: undefined,
+    alternativeCle: undefined,
+    alternative: undefined,
+    ton: 'info',
+    actionCle: undefined,
+    pleineLargeur: false,
+  },
 )
 
 defineEmits<{ agir: [] }>()
@@ -71,11 +89,11 @@ const TONS = {
       <span
         class="text-corps font-semibold"
         :class="TONS[ton].encre"
-      >{{ $t(messageCle) }}</span>
+      >{{ messageCle ? $t(messageCle) : message }}</span>
       <span
-        v-if="alternativeCle"
+        v-if="alternativeCle || alternative"
         class="text-mini text-ink-2"
-      >{{ $t(alternativeCle) }}</span>
+      >{{ alternativeCle ? $t(alternativeCle) : alternative }}</span>
     </span>
     <BoutonDiscret
       v-if="actionCle"

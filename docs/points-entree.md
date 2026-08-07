@@ -76,9 +76,9 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | Point d'entrée | État | Exercé par | Qui l'appelle / qui l'attend |
 |---|---|---|---|
 | `app/app.vue` | branché | navigateur | Nuxt — racine de l’application |
-| `app/core/configuration/configuration.ts#lireParametre` | dû | — | cycle **G1** — le paramètre de configuration lu en clair, hors du cas entier |
+| `app/core/configuration/configuration.ts#lireParametre` | branché | unité | `identifiant/normaliser.ts` — l'indicatif téléphonique par défaut est une CHAÎNE, pas un entier : c'est le premier appelant du cas général, et il est arrivé au cycle **F2** |
 | `app/core/configuration/configuration.ts#lireParametreEntier` | branché | navigateur | layouts/defaut.vue |
-| `app/core/configuration/configuration.ts#surchargerParametre` | dû | — | cycle **G1** — l'écran de réglage d'établissement, qui écrit ce que ce cycle ne fait que lire |
+| `app/core/configuration/configuration.ts#surchargerParametre` | branché | unité | `tests/unite/identifiant-normalisation.spec.ts` — ⚠️ **son seul appelant est un test, et c'est légitime** : le test prouve que l'indicatif VIENT de la configuration en le changeant, ce qu'un `+225` écrit en dur ne permettrait pas. L'écran de réglage reste dû au cycle **G1** |
 | `app/core/configuration/configuration.ts#clesConnues` | dû | — | cycle **E5** — le registre des paramètres, qui les énumère |
 | `app/core/configuration/configuration.ts#CLE_SEUIL_LATENCE_DEGRADEE` | branché | navigateur | layouts/defaut.vue |
 | `app/core/coquille/BandeauCoquille.vue` | branché | navigateur | layouts/defaut.vue |
@@ -118,7 +118,7 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/donnees/simulationCommune.ts#lireSimule` | branché | navigateur | core/donnees/comptes/simulation.ts · core/donnees/etablissements/simulation.ts · core/donnees/hebergement/simulation.ts |
 | `app/core/donnees/simulationCommune.ts#lireUnSimule` | branché | navigateur | core/donnees/comptes/simulation.ts · core/donnees/etablissements/simulation.ts |
 | `app/core/donnees/ventes/simulation.ts#simulationVentes` | branché | navigateur | core/donnees/fournisseur.ts |
-| `app/core/ecrans/index.ts#toutesLesEntrees` | dû | — | **la porte P-04**, qui l'appelle SOUS NODE et non depuis un module de l'application — `knip` ne voit donc aucune référence, et il a raison |
+| `app/core/ecrans/index.ts#toutesLesEntrees` | branché | unité | `coquille/useEcranCible.ts` — la résolution d'un code d'écran vers sa route ou sa mention. Elle est **aussi** appelée par la porte P-04 sous Node, ce que `knip` ne voit pas ; depuis le cycle **F2**, elle a un appelant dans l'application |
 | `app/core/ecrans/index.ts#entreesConstruites` | branché | navigateur | tests/navigateur/ecrans-atteignables.spec.ts |
 | `app/core/ecrans/index.ts#ECRANS_PRODUIT` | branché | navigateur | pages/ecrans.vue · tests/navigateur/parcours.spec.ts |
 | `app/core/ecrans/index.ts#INSTRUMENTS` | branché | navigateur | pages/ecrans.vue · tests/navigateur/parcours.spec.ts |
@@ -133,6 +133,9 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/format/montant.ts#formaterMontant` | branché | unité | pages/guide-de-style.vue · tests/unite/montant.spec.ts |
 | `app/core/format/montant.ts#formaterEcart` | branché | unité | pages/guide-de-style.vue · tests/unite/montant.spec.ts |
 | `app/core/format/montant.ts#FINE_INSECABLE` | branché | navigateur | tests/unite/montant.spec.ts |
+| `app/core/format/instant.ts` | dû | — | cycle **F2**, tâche T051 — l'heure et la date de l'en-tête, au fuseau de l'établissement. ⚠️ Elle est écrite AVANT son appelant parce qu'elle **tranche une famille de dépendances pour tout le dépôt** (`Intl` natif, `versions-reference.md` §3.4) : la décision valait d'être posée à part |
+| `app/core/session/routesPubliques.ts#ROUTES_SANS_SESSION` | dû | — | cycle **F2** — la liste que l'intergiciel consulte via `exigeUneSession` ; aucun appelant direct, et c'est voulu : on interroge la RÈGLE, pas la liste |
+| `app/core/session/routesPubliques.ts#ROUTES_SANS_ENTETE` | dû | — | même motif — `porteLEnTete` l'interroge. ⚠️ **Deux listes plutôt qu'une, et la confusion a coûté un test rouge** : les instruments n'exigent aucune session et portent pourtant l'en-tête |
 | `app/core/i18n/useLangue.ts#estLangue` | dû | — | cycle **CPT** — la langue portée par le compte et non par l'appareil |
 | `app/core/i18n/useLangue.ts#languePersistee` | branché | navigateur | plugins/langue.client.ts |
 | `app/core/i18n/useLangue.ts#persisterLangue` | branché | navigateur | core/coquille/ReglagesCoquille.vue |
