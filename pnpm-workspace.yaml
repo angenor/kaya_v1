@@ -1,0 +1,12 @@
+# Réponse explicite à la question que pnpm 11 pose à l'installation.
+#
+# esbuild : AUTORISÉ. Son script de post-installation relie le binaire natif de
+# la plateforme, que Vite emploie pour transformer le TypeScript. Le laisser
+# ignoré rend l'installation dépendante d'un chemin de repli — donc non
+# reproductible d'un poste à l'autre, ce que la règle 3 du §1 de
+# docs/versions-reference.md existe pour empêcher.
+#
+# Aucun autre paquet n'est autorisé : la liste est une liste blanche, et un
+# script de post-installation est du code exécuté à l'installation.
+allowBuilds:
+  esbuild: true

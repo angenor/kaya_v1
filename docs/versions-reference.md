@@ -221,7 +221,13 @@ entrent dans le lockfile et la porte **P-03** les couvre.
 
 | Paquet | Version | Rôle |
 |---|---|---|
-| `@vite-pwa/nuxt` | **à vérifier au cycle qui l'ajoute** | **Service worker, manifeste d'application, invite d'installation** — la coquille de la PWA (cadrage §13.3). Enveloppe `vite-plugin-pwa` et Workbox ; une seule ligne épingle la chaîne. Vérifier `peerDependencies` contre Nuxt 4.5.1 et le Vite qu'il embarque, comme pour `@vitejs/plugin-vue` |
+| ~~`@vite-pwa/nuxt`~~ | **ÉCARTÉ — conflit constaté le 2026-08-07** | Voir l'encadré « Coquille PWA » ci-dessous. Remplacé par `vite-plugin-pwa` |
+| `vite-plugin-pwa` | **1.3.0** | **Service worker, manifeste d'application, stratégie de cache** — la coquille de la PWA (cadrage §13.3). Branché directement dans `vite.plugins` de `nuxt.config`, **sans l'enveloppe Nuxt**. Embarque `workbox-build` et `workbox-window` en `^7.4.1` : une seule ligne épingle la chaîne. `peerDependencies.vite` couvre `^3` à `^8`, donc satisfaite par le Vite de Nuxt 4.5.1 · `https://registry.npmjs.org/vite-plugin-pwa/latest`, **2026-08-07** |
+| `uuid` | **14.0.1** | **UUID v7 généré côté client sur toute écriture** (cadrage §11.5 point 1, constitution principe 6). `crypto.randomUUID()` rend un **v4**, aléatoire et **non ordonnable dans le temps** : rien de présent ne produit un v7. Le paquet expose `dist/v7.js` (vérifié sur `https://data.jsdelivr.com/v1/packages/npm/uuid@14.0.1`) et **n'a aucune dépendance** · `https://registry.npmjs.org/uuid/latest`, **2026-08-07** |
+| `idb` | **8.0.3** | **File hors-ligne persistante, session et réglages de scénario** (SYN-02). `localStorage` est **synchrone** et bloquerait le premier rendu sur l'Android 2 Go d'Aminata ; IndexedDB brut est fondé sur des événements. Aucune dépendance. **Même magasin que la clé d'appareil de PWA-05** — choisi une fois · `https://registry.npmjs.org/idb/latest`, **2026-08-07** |
+| `knip` | **6.32.0** | **Porte P-06** — exports sans appelant, dans les deux sens. Aucune dépendance présente ne sait répondre à *« ce symbole a-t-il un appelant ? »* : ESLint juge un fichier à la fois, TypeScript compile sans se prononcer. **Seul de sa famille à lire les SFC Vue** ; `ts-prune` et `depcheck` produiraient un faux « dû » sur chaque composant. `engines.node ^20.19.0 \|\| >=22.12.0`, satisfait par Node 24.18.1 · `https://registry.npmjs.org/knip/latest`, **2026-08-07** |
+| `@vitest/coverage-v8` | **4.1.10** | **Seconde propriété de P-06** — tout point d'entrée « branché » est **exercé par un test**. `vitest` seul exécute sans dire ce qui a été touché ; le rapport v8 porte la couverture **par fonction**, ce qui distingue « ce fichier est testé » de « cette méthode est appelée ». `peerDependencies.vitest` est **exact et satisfait** : `4.1.10` · `https://registry.npmjs.org/@vitest/coverage-v8/latest`, **2026-08-07** |
+| `@intlify/eslint-plugin-vue-i18n` | **4.5.1** | **Aucune chaîne visible en dur** (constitution principe 8, TRX-08) — règle `@intlify/vue-i18n/no-raw-text`, qui échoue **en nommant le fichier et la ligne**. `eslint-plugin-vue 10.10.0` n'a **aucune règle de texte brut**. `peerDependencies.eslint` porte `^10.0.0`, satisfait par eslint 10.8.0 · `https://registry.npmjs.org/@intlify/eslint-plugin-vue-i18n/latest`, **2026-08-07** |
 | `@nuxtjs/i18n` | **10.6.0** | i18n fr/en, fr par défaut (principe VIII) |
 | `openapi-typescript` | **7.13.0** | **Génère les types TS depuis `openapi.json`** — le seul artefact généré (principe I·a), soumis à la porte du client généré |
 | `openapi-fetch` | **0.17.0** | Client fetch typé, ~6 kB — **écrit à la main, jamais généré** |
@@ -241,6 +247,25 @@ entrent dans le lockfile et la porte **P-03** les couvre.
 | `subset-font` | **2.5.0** | Sous-règle la police d'icônes ; **contrôle tiers** des polices de texte par harfbuzz — outil de génération, absent du paquet livré |
 | `@fontsource-variable/archivo` | **5.3.0** | **Source d'Archivo** — texte et titres, embarquée en local (porte des ressources embarquées) |
 | `@fontsource-variable/chivo-mono` | **5.3.0** | **Source de Chivo Mono** — montants, quantités, heures ; le tabulaire qui aligne les colonnes |
+
+#### Coquille PWA — pourquoi `vite-plugin-pwa` et non `@vite-pwa/nuxt`
+
+Le §3.2 portait `@vite-pwa/nuxt` avec la mention « **à vérifier au cycle qui l'ajoute** ». **Le cycle F1 est ce cycle, la vérification est faite, et elle est négative.**
+
+| Interrogé le **2026-08-07** | `https://registry.npmjs.org/@vite-pwa/nuxt` |
+|---|---|
+| `dist-tags.latest` | **1.1.1** |
+| `description` | « Zero-config PWA for **Nuxt 3** » |
+| `dependencies["@nuxt/kit"]` | **`^3.9.0`** |
+| Portée du constat | Les **huit dernières versions publiées** portent **toutes** `@nuxt/kit ^3.9.0` |
+
+`^3.9.0` **ne satisfait pas** le `@nuxt/kit` 4.x de Nuxt 4.5.1 : le module installerait un **second `@nuxt/kit`** en 3.x dans le même arbre — deux membres d'une même famille, ce que la règle 7 du §1 refuse. Et un module qui annonce « Nuxt 3 » sur sa dernière version est du **terrain non défriché pour un développeur seul**, ce qui est le critère d'arbitrage du §2.
+
+**C'est l'application littérale de la règle 1** : la dernière stable, **sauf conflit constaté**. Le conflit est constaté, pas supposé — on descend donc à la brique que l'enveloppe enveloppait.
+
+**Ce qu'on perd, et pourquoi ça ne coûte rien** : l'enveloppe apporte des auto-imports (`$pwa`) et une intégration aux devtools. La coquille **n'expose aucune de ses fonctions aux composants** — tout passe par `PlatformAdapter` (constitution, principe 7). Il n'y a rien à auto-importer. Et la spécification du cycle demande explicitement une coquille « **mince et remplaçable**, rien de métier dans le service worker » : une enveloppe de cadriciel autour d'une enveloppe de cadriciel va dans l'autre sens, et **Capacitor la rendra caduque**.
+
+**Condition de levée** : `@vite-pwa/nuxt` publie une version dont `@nuxt/kit` accepte `^4`. À vérifier **sur ses `dependencies`**, pas sur son numéro de version, qui peut monter sans changer sa contrainte. *Même précaution que pour `openapi-typescript` ↔ `typescript` ci-dessous.*
 
 #### Génération du client TypeScript — pourquoi ces deux paquets et pas un générateur de SDK
 
@@ -404,7 +429,12 @@ dans un même dépôt, ou deux moteurs de chiffrement dont un seul est audité.
 | Client HTTP sortant | *aucun encore* | dès qu'un cycle en a besoin, **il tranche pour tout le dépôt** et l'inscrit ici |
 | Sérialisation | `serde` / `serde_json` | — |
 | Accès base | `sqlx` | `diesel`, `sea-orm` — brique du §2 |
-| **Données simulées du front** *(phase 2)* | *à trancher au premier cycle d'écran* | Une seule mécanique de mocks pour toute l'application — pas un module qui invente des objets littéraux et un autre qui charge un JSON. Voir `Kaya_Prompts_SpecKit.md` §3 phase 2 |
+| **Données simulées du front** *(phase 2)* | **AUCUNE BIBLIOTHÈQUE** — la couche de simulation **implémente les interfaces de domaine**, en mémoire, sans HTTP. *Tranché par le cycle **F1**, 2026-08-07* | **MSW** — occuperait le **seul emplacement de service worker**, que la coquille PWA détient déjà : conflit d'enregistrement, et le service worker ne doit **rien porter de métier**. **MirageJS** — un second modèle de données à tenir en regard de `docs/modele-donnees/`, donc deux vérités. **json-server** — un **service distant**, ce que la phase 2 interdit. Motif complet : `specs/003-coquille-application/research.md` §2.1 |
+| **Outillage de coquille PWA** *(nouveau — cycle F1)* | **`vite-plugin-pwa`** | `@vite-pwa/nuxt` — **conflit `@nuxt/kit ^3.9.0` constaté le 2026-08-07**, encadré du §3.2 ; et tout service worker écrit à la main |
+| **Stockage local persistant du front** *(nouveau — cycle F1)* | **`idb`** | `dexie`, `localforage`, et **`localStorage` brut** pour toute donnée de file — il est synchrone et bloque le premier rendu sur un Android 2 Go |
+| **Identifiants générés côté client** *(nouveau — cycle F1)* | **`uuid`** (fonction `v7`) | `nanoid`, `ulid`, `cuid`, et **toute implémentation maison** — RFC 9562 exige la monotonicité intra-milliseconde, qu'une implémentation maison rate en silence, et le défaut ne se voit qu'au rejeu |
+| **État partagé du front** *(nouveau — cycle F1)* | **`useState` de Nuxt + composables** — *intégré, aucune dépendance* | **Pinia**, Vuex, et tout magasin tiers. Écarté par la **règle 4 du §1 elle-même** : les dépendances présentes suffisent. La marche arrière est mécanique — un composable se transpose en magasin sans toucher un appelant ; l'inverse serait coûteux |
+| **Analyse des exports sans appelant** *(nouveau — cycle F1)* | **`knip`** | `ts-prune`, `depcheck`, `unimported` — aucun ne lit les SFC Vue, donc tous produiraient un **faux « dû »** sur chaque composant, ce qui ferait désactiver la porte P-06 en trois semaines |
 | **Coquille native** *(différée)* | *aucune — l'application est une PWA* | Tauri, Electron, React Native. Le jour où le besoin natif se manifeste, c'est **Capacitor** qui entre (cadrage §13.3), et il entre au §2 |
 
 **Une famille absente de ce tableau n'est pas une famille libre : c'est une famille non encore
@@ -611,4 +641,5 @@ changements ; il n'a pas d'entrée avant la première inscription réelle d'un m
 | Version | Date | Modification |
 |---|---|---|
 | `postgres:18.4` | 2026-08-06 | **Première matérialisation.** Cycle D1 — le tag exact du §4.2 entre dans `compose.yml`, service `postgres_verification`. Valeur **reprise du §2 sans revérification**, sur instruction explicite du cycle : elle a été vérifiée le 2026-07-30 et ce cycle n'ouvre aucune famille nouvelle. Aucune montée, aucune dépendance ajoutée. |
+| **6 ajouts · 1 écartement · 6 familles** | 2026-08-07 | **Cycle F1 — la planification.** Premier cycle de phase 2, donc **premier manifeste JavaScript du dépôt**. ⚠️ **`@vite-pwa/nuxt` est ÉCARTÉ sur conflit constaté** — `@nuxt/kit ^3.9.0` sur ses huit dernières versions, contre Nuxt 4.5.1 — et remplacé par **`vite-plugin-pwa 1.3.0`** ; c'est la levée de la mention « à vérifier au cycle qui l'ajoute » que le §3.2 portait depuis le 2026-08-04. **Cinq autres ajouts** : `uuid 14.0.1` (UUID v7 client — `crypto.randomUUID()` rend un v4), `idb 8.0.3` (file persistante — `localStorage` est synchrone), `knip 6.32.0` et `@vitest/coverage-v8 4.1.10` (les **deux propriétés** de la porte P-06), `@intlify/eslint-plugin-vue-i18n 4.5.1` (aucune chaîne en dur). **Toutes interrogées sur leur registre officiel le 2026-08-07**, jamais de mémoire. **Six familles du §3.4 tranchées**, dont **« Données simulées du front », que le tableau adressait explicitement au « premier cycle d'écran »** : aucune bibliothèque, la couture est l'interface de domaine — MSW est écarté parce qu'il occuperait le seul emplacement de service worker, que la coquille détient. **Pinia est écarté** au titre de la règle 4 : `useState` de Nuxt suffit. ⚠️ **Aucune de ces lignes n'est encore dans un manifeste** : `package.json` est créé par l'implémentation, et **P-03 — que ce cycle crée aussi — comparera les deux sens** dès qu'il existera. |
 | *(aucune)* | 2026-08-07 | **Cycle D2 — aucune dépendance introduite, aucune montée, aucune famille du §3.4 ouverte.** Le cycle ajoute 47 tables SQL, une porte en Bash et de la documentation : ni `Cargo.toml`, ni `package.json`, ni `rust-toolchain.toml`, ni `.nvmrc`, et **aucun service ajouté à `compose.yml`**. L'unique outil employé — `psql` — est embarqué dans l'image `postgres:18.4` déjà inscrite, et n'est donc pas une dépendance du dépôt. L'extension **`btree_gist`**, exercée pour la première fois par la contrainte d'exclusion de `hebergement.occupation`, est **livrée avec PostgreSQL** et n'a aucune version à épingler ; elle était déjà posée par `00-conventions.sql` depuis le cycle D1, explicitement pour ce jour. **L'exposition résiduelle de P-03 est inchangée** : une ligne, `postgres:18.4`, dans un fichier que ce cycle ne touche pas. *Cette ligne existe parce qu'un journal muet sur un cycle laisse croire qu'on a oublié de l'y écrire.* |

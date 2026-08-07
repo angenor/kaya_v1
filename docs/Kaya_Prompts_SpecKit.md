@@ -898,7 +898,7 @@ c'est toi qui poses le nom, et tu l'inscris au registre.
 ### Cycle D2 — Modèle de données des capacités et des verticales
 
 ```
-/speckit-specify(En cours)
+/speckit-specify
 
 Lis docs/cadrage-v1.md §5 (hébergement, formules, disponibilité) et §6 (points de
 vente), docs/user-stories-v1.md modules HEB, SEJ, RSV, PDV, QRC, STK, et
@@ -983,7 +983,7 @@ un développeur seul.
 ### Cycle F1 — Fondations de l'application
 
 ```
-/speckit-specify
+/speckit-specify(En cours)
 
 Lis docs/Kaya_Design.md (parties I à III), docs/design/tokens.md,
 docs/design/composants.md, docs/design/mouvement.md, docs/design/styleguide.html,

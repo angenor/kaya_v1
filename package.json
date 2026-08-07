@@ -1,0 +1,241 @@
+{
+  "name": "kaya",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": "24.18.1"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "servir": "node .output/server/index.mjs",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:couverture": "vitest run --coverage",
+    "test:navigateur": "playwright test",
+    "knip": "knip --reporter json",
+    "postinstall": "nuxt prepare"
+  },
+  "__commentaire_versions": [
+    "LE FORMAT JSON N'ADMET PAS DE COMMENTAIRE, ET LA RÈGLE 4 DU §1 DE",
+    "docs/versions-reference.md EN EXIGE UN AU-DESSUS DE CHAQUE LIGNE.",
+    "L'écart est déclaré plutôt que tu : la justification vit dans le bloc",
+    "« versionsJustification » ci-dessous, une entrée par dépendance déclarée.",
+    "Elle porte les trois éléments exigés — rôle, registre interrogé, date — plus",
+    "« pourquoiPasLExistant » pour les ajouts. C'est PLUS FORT qu'un commentaire :",
+    "la porte P-03 la vérifie DANS LES DEUX SENS, ce qu'aucun commentaire ne permet.",
+    "Voir specs/003-coquille-application/rapport-de-cycle.md."
+  ],
+  "versionsJustification": {
+    "nuxt": {
+      "role": "Cadriciel de l'application à page unique (ssr: false). Brique n° 5 du principe 11.",
+      "registre": "https://registry.npmjs.org/nuxt/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §2 — reprise sans revérification, consigne du cycle (research.md §1)"
+    },
+    "@nuxtjs/i18n": {
+      "role": "Catalogues fr et en, fr par défaut (constitution, principe 8).",
+      "registre": "https://registry.npmjs.org/@nuxtjs/i18n/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "tailwindcss": {
+      "role": "Utilitaires du noyau adossés aux jetons de @theme. Brique n° 6 du principe 11.",
+      "registre": "https://registry.npmjs.org/tailwindcss/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §2"
+    },
+    "@tailwindcss/vite": {
+      "role": "Greffon Vite de Tailwind 4, aligné à l'identique sur tailwindcss.",
+      "registre": "https://registry.npmjs.org/@tailwindcss/vite/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "vite-plugin-pwa": {
+      "role": "Manifeste d'application, service worker à précache de la coquille, stratégie de cache.",
+      "registre": "https://registry.npmjs.org/vite-plugin-pwa/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Rien de présent ne produit un service worker ni un manifeste. @vite-pwa/nuxt est ÉCARTÉ sur conflit constaté : ses huit dernières versions portent @nuxt/kit ^3.9.0, que le @nuxt/kit 4.x de Nuxt 4.5.1 ne satisfait pas (research.md §1.1)."
+    },
+    "uuid": {
+      "role": "UUID v7 généré côté client sur toute écriture (constitution, principe 6).",
+      "registre": "https://registry.npmjs.org/uuid/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "crypto.randomUUID() est natif dans les deux moteurs mais rend un v4 — aléatoire, NON ordonnable dans le temps. RFC 9562 exige en plus la monotonicité intra-milliseconde, qu'une implémentation maison rate en silence."
+    },
+    "idb": {
+      "role": "File hors-ligne persistante, session et réglages de scénario, en IndexedDB.",
+      "registre": "https://registry.npmjs.org/idb/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "localStorage est SYNCHRONE et bloquerait le premier rendu sur l'Android 2 Go d'Aminata ; IndexedDB brut est fondé sur des événements. Aucune dépendance présente n'enveloppe IndexedDB."
+    },
+    "@phosphor-icons/web": {
+      "role": "Source des glyphes d'icônes — sous-réglée à la construction, jamais expédiée entière.",
+      "registre": "https://registry.npmjs.org/@phosphor-icons/web/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@fontsource-variable/archivo": {
+      "role": "Archivo variable, texte et titres, embarquée en local — aucun chargement distant.",
+      "registre": "https://registry.npmjs.org/@fontsource-variable/archivo/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@fontsource-variable/chivo-mono": {
+      "role": "Chivo Mono variable, montants et heures — le tabulaire qui aligne les colonnes.",
+      "registre": "https://registry.npmjs.org/@fontsource-variable/chivo-mono/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "typescript": {
+      "role": "Langage. Dernière 5.x, pas la dernière stable — contrainte d'openapi-typescript.",
+      "registre": "https://registry.npmjs.org/typescript/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2, conflit constaté et sa condition de levée"
+    },
+    "@types/node": {
+      "role": "Types du runtime, dernière 24.x alignée sur Node 24.18.1.",
+      "registre": "https://registry.npmjs.org/@types/node/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "vitest": {
+      "role": "Tests d'unité et de composants.",
+      "registre": "https://registry.npmjs.org/vitest/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@vitest/coverage-v8": {
+      "role": "Seconde propriété de la porte P-06 — couverture PAR FONCTION, en rapport JSON.",
+      "registre": "https://registry.npmjs.org/@vitest/coverage-v8/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "vitest seul exécute les tests sans dire ce qu'ils ont touché. Le rapport v8 distingue « ce fichier est testé » de « cette méthode est appelée par un test ». Le pair @vitest/browser est marqué OPTIONNEL (constaté sur le registre le 2026-08-07) : rien à ajouter."
+    },
+    "@vue/test-utils": {
+      "role": "Montage de composants Vue en test — l'absence d'une action du HTML rendu.",
+      "registre": "https://registry.npmjs.org/@vue/test-utils/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "happy-dom": {
+      "role": "Environnement DOM de Vitest, requis par le montage ci-dessus.",
+      "registre": "https://registry.npmjs.org/happy-dom/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@vitejs/plugin-vue": {
+      "role": "Compile les composants monofichiers pour Vitest hors Nuxt.",
+      "registre": "https://registry.npmjs.org/@vitejs/plugin-vue/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@playwright/test": {
+      "role": "Harnais de navigateur réel — porte P-04, projets chromium ET webkit.",
+      "registre": "https://registry.npmjs.org/@playwright/test/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "knip": {
+      "role": "Première propriété de la porte P-06 — les exports sans référence, en rapport JSON.",
+      "registre": "https://registry.npmjs.org/knip/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Aucune dépendance présente ne répond à « ce symbole a-t-il un appelant ? » : ESLint juge un fichier à la fois, TypeScript compile sans se prononcer. Seul de sa famille à lire les SFC Vue."
+    },
+    "eslint": {
+      "role": "Lint — dont : aucune API de plateforme hors PlatformAdapter.",
+      "registre": "https://registry.npmjs.org/eslint/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@eslint/js": {
+      "role": "Configuration de base d'ESLint.",
+      "registre": "https://registry.npmjs.org/@eslint/js/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "eslint-plugin-vue": {
+      "role": "Règles Vue — dont vue/no-root-v-if, la racine unique de FR-036.",
+      "registre": "https://registry.npmjs.org/eslint-plugin-vue/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "typescript-eslint": {
+      "role": "Règles TypeScript.",
+      "registre": "https://registry.npmjs.org/typescript-eslint/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "@intlify/eslint-plugin-vue-i18n": {
+      "role": "Aucune chaîne visible en dur — règle @intlify/vue-i18n/no-raw-text.",
+      "registre": "https://registry.npmjs.org/@intlify/eslint-plugin-vue-i18n/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "eslint-plugin-vue 10.10.0 n'a AUCUNE règle de texte brut, et FR-029 exige un contrôle qui échoue en nommant le fichier et la ligne."
+    },
+    "vue-eslint-parser": {
+      "role": "Parseur des blocs template. Pair EXIGÉ de @intlify/eslint-plugin-vue-i18n.",
+      "registre": "https://registry.npmjs.org/vue-eslint-parser/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Il arrive transitivement avec eslint-plugin-vue, mais le greffon i18n le déclare en peerDependency NON optionnelle (peerDependenciesMeta absent, constaté le 2026-08-07). Il est donc déclaré, à sa version vérifiée, jamais supposée."
+    },
+    "yaml-eslint-parser": {
+      "role": "Pair EXIGÉ de @intlify/eslint-plugin-vue-i18n — catalogues YAML.",
+      "registre": "https://registry.npmjs.org/yaml-eslint-parser/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Le point laissé ouvert par research.md §5 est TRANCHÉ ici sur constat : peerDependenciesMeta vaut null, le pair est donc EXIGÉ, et non « probablement inutile » parce que nos catalogues sont en TypeScript. Une version supposée serait une version inconnue."
+    },
+    "jsonc-eslint-parser": {
+      "role": "Pair EXIGÉ de @intlify/eslint-plugin-vue-i18n — catalogues JSON.",
+      "registre": "https://registry.npmjs.org/jsonc-eslint-parser/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "Même constat, même motif que yaml-eslint-parser ci-dessus."
+    },
+    "subset-font": {
+      "role": "Sous-règle la police d'icônes par harfbuzz. Outil de génération, absent du paquet livré.",
+      "registre": "https://registry.npmjs.org/subset-font/latest",
+      "verifieLe": "2026-08-04",
+      "reprise": "docs/versions-reference.md §3.2"
+    },
+    "jiti": {
+      "role": "Chargeur TypeScript d'ESLint pour eslint.config.ts.",
+      "registre": "https://registry.npmjs.org/jiti/latest",
+      "verifieLe": "2026-08-07",
+      "pourquoiPasLExistant": "ESLint ne lit un fichier de configuration TypeScript que si jiti est résolvable ; il arrive transitivement avec Nuxt, mais une dépendance transitive n'est pas une dépendance déclarée, et P-03 refuse ce qu'aucun manifeste ne porte."
+    }
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource-variable/chivo-mono": "5.3.0",
+    "@nuxtjs/i18n": "10.6.0",
+    "@phosphor-icons/web": "2.1.2",
+    "@tailwindcss/vite": "4.3.3",
+    "idb": "8.0.3",
+    "nuxt": "4.5.1",
+    "tailwindcss": "4.3.3",
+    "uuid": "14.0.1",
+    "vite-plugin-pwa": "1.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@intlify/eslint-plugin-vue-i18n": "4.5.1",
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.13.3",
+    "@vitejs/plugin-vue": "6.0.8",
+    "@vitest/coverage-v8": "4.1.10",
+    "@vue/test-utils": "2.4.11",
+    "eslint": "10.8.0",
+    "eslint-plugin-vue": "10.10.0",
+    "happy-dom": "20.11.1",
+    "jiti": "2.7.0",
+    "jsonc-eslint-parser": "3.2.0",
+    "knip": "6.32.0",
+    "subset-font": "2.5.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10",
+    "vue-eslint-parser": "10.4.1",
+    "yaml-eslint-parser": "2.1.0"
+  }
+}

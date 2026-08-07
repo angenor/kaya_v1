@@ -6,3 +6,30 @@
 
 # macOS
 .DS_Store
+Thumbs.db
+
+# Node — dépendances et artefacts de construction.
+# ⚠️ pnpm-lock.yaml N'EST PAS ignoré : la porte P-03 exige qu'il soit commité.
+node_modules/
+.nuxt/
+.output/
+dist/
+.data/
+*.log
+.env
+.env.*
+!.env.example
+
+# Vitest et Playwright — rapports locaux, jamais commités.
+coverage/
+.rapports/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.tmp
