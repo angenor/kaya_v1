@@ -1525,6 +1525,258 @@ CREATE INDEX ix_intervention_incident
     ON hebergement.intervention (incident_maintenance_id, realisee_le);
 
 
+-- ############################################################################
+-- 6 · PROVISIONS — des tables, et rien d'autre
+--
+-- Les provisions du registre §10 qui relèvent de ce schéma. TABLES SEULEMENT,
+-- AUCUNE LOGIQUE AU MVP (constitution, principe 10).
+--
+-- ⚠️ POURQUOI MAINTENANT ET PAS PLUS TARD : C'EST LE DERNIER CYCLE OÙ ELLES
+-- COÛTENT ZÉRO. Poser une table pendant qu'on écrit le fichier ne demande rien ;
+-- la poser en phase 3 demande une migration, une revue, un déploiement — au
+-- moment précis où l'on a autre chose à faire, c'est-à-dire écrire la logique.
+--
+-- ⚠️ CE QUI LES EMPÊCHE DE DEVENIR AUTRE CHOSE QU'UNE PROVISION : le privilège.
+-- `SELECT` SEUL. Rien ne peut y être écrit, donc rien ne peut être bâti dessus,
+-- et le jour où l'on voudra, IL FAUDRA CHANGER UN GRANT — ce qui se voit dans un
+-- diff, et se discute. Une provision qui recevrait INSERT serait une table
+-- ordinaire qu'on aurait juste oublié d'utiliser.
+--
+-- ⚠️ LE DÉCOMPTE D'UNE PRESTATION INCLUSE N'A REÇU AUCUNE TABLE, et c'est
+-- délibéré (registre §10, incrément 2). La prestation existe — `prestation_incluse`
+-- ci-dessous — ; sa CONSOMMATION n'a aucune story au MVP, et UNE TABLE QU'AUCUNE
+-- STORY N'ÉCRIT SE REMPLIT UN JOUR DE CE QUI TRAÎNE. Elle naîtra avec sa story.
+-- ############################################################################
+
+
+-- ============================================================================
+-- hebergement.prestation_incluse — ce que la formule comprend — PROVISION
+-- CLASSE C · branche C2 — référentiel attaché à la formule
+-- Story : HEB-09
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- Rattachée à la FORMULE et non à la catégorie : « petit-déjeuner compris » est
+-- une propriété de ce qu'on vend, pas de la chambre. La même chambre se vend en
+-- nuitée avec petit-déjeuner et en passage sans.
+--
+-- `valeur_unitaire_plafond` existe dès maintenant parce que c'est la seule
+-- colonne qu'on ne pourrait pas ajouter sans reprendre les données : une
+-- prestation incluse « jusqu'à 3 000 F » et une prestation incluse « en entier »
+-- ne se distinguent pas après coup.
+-- ============================================================================
+CREATE TABLE hebergement.prestation_incluse (
+    id                      UUID CONSTRAINT pk_prestation_incluse PRIMARY KEY,
+    tenant_id               UUID           NOT NULL,
+    formule_id              UUID           NOT NULL,
+    type                    TEXT           NOT NULL,
+    quantite                quantite       NOT NULL,
+    valeur_unitaire_plafond montant_mineur     NULL,
+    code_devise             code_devise        NULL,
+    cree_le                 TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    modifie_le              TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_prestation_incluse_formule FOREIGN KEY (formule_id)
+        REFERENCES hebergement.formule (id)
+);
+
+COMMENT ON TABLE hebergement.prestation_incluse IS
+    'PROVISION — tables seulement, aucune logique au MVP (HEB-09). Rattachée à la FORMULE : la même chambre se vend en nuitée avec petit-déjeuner et en passage sans. LE DÉCOMPTE DE LA CONSOMMATION N''A PAS DE TABLE (registre §10, incrément 2).';
+
+ALTER TABLE hebergement.prestation_incluse ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.prestation_incluse FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.prestation_incluse
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.prestation_incluse
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON hebergement.prestation_incluse TO kaya_app;
+
+
+-- ============================================================================
+-- hebergement.contrat_location — la location meublée de longue durée — PROVISION
+-- CLASSE C · branche C2 — référentiel contractuel
+-- Story : HEB-08 — résidences meublées, INCRÉMENT 3
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- La résidence meublée n'est PAS un séjour long : il y a un contrat, un loyer
+-- périodique, une caution, des charges et un état des lieux. Aucun de ces
+-- objets n'a d'équivalent dans le séjour hôtelier, et les y forcer aurait
+-- dénaturé `sejour` — c'est pourquoi ce sont quatre tables et non quatre
+-- colonnes de plus.
+--
+-- ⚠️ Le rattachement à l'unité passe par une clé étrangère INTERNE au schéma,
+-- et l'occupation de longue durée restera une `occupation` : un locataire
+-- occupe une unité comme un client, et la contrainte d'exclusion vaut pour lui
+-- aussi. La provision ne prépare donc PAS une seconde mécanique de
+-- disponibilité.
+-- ============================================================================
+CREATE TABLE hebergement.contrat_location (
+    id          UUID CONSTRAINT pk_contrat_location PRIMARY KEY,
+    tenant_id   UUID           NOT NULL,
+    client_id   UUID           NOT NULL,
+    unite_id    UUID           NOT NULL,
+    date_debut  DATE           NOT NULL,
+    date_fin    DATE               NULL,
+    loyer       montant_mineur NOT NULL,
+    code_devise code_devise    NOT NULL,
+    periodicite TEXT           NOT NULL,
+    cree_le     TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    modifie_le  TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_contrat_location_client FOREIGN KEY (client_id)
+        REFERENCES hebergement.client (id),
+    CONSTRAINT fk_contrat_location_unite FOREIGN KEY (unite_id)
+        REFERENCES hebergement.unite (id),
+    CONSTRAINT ck_contrat_location_periode CHECK (
+        date_fin IS NULL OR date_fin >= date_debut)
+);
+
+COMMENT ON TABLE hebergement.contrat_location IS
+    'PROVISION — tables seulement, aucune logique au MVP (HEB-08, incrément 3). L''occupation de longue durée restera une hebergement.occupation : la provision ne prépare AUCUNE seconde mécanique de disponibilité.';
+COMMENT ON COLUMN hebergement.contrat_location.date_debut IS
+    'Date de contrat, JAMAIS une période de disponibilité — celle-là est un tstzrange sur occupation. Ne pas confondre les deux (SC-004).';
+
+ALTER TABLE hebergement.contrat_location ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.contrat_location FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.contrat_location
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.contrat_location
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON hebergement.contrat_location TO kaya_app;
+
+
+-- ============================================================================
+-- hebergement.caution — le dépôt de garantie — PROVISION
+-- CLASSE C · branche C2 — référentiel contractuel
+-- Story : HEB-08 — résidences meublées, incrément 3
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- Une table plutôt que deux colonnes de `contrat_location` : une caution peut
+-- être versée en plusieurs fois et restituée partiellement. Deux colonnes ne
+-- porteraient qu'un seul versement, et le premier locataire qui paie en deux
+-- fois imposerait une migration.
+-- ============================================================================
+CREATE TABLE hebergement.caution (
+    id                  UUID CONSTRAINT pk_caution PRIMARY KEY,
+    tenant_id           UUID           NOT NULL,
+    contrat_location_id UUID           NOT NULL,
+    montant             montant_mineur NOT NULL,
+    code_devise         code_devise    NOT NULL,
+    versee_le           TIMESTAMPTZ        NULL,
+    restituee_le        TIMESTAMPTZ        NULL,
+    cree_le             TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    modifie_le          TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_caution_contrat FOREIGN KEY (contrat_location_id)
+        REFERENCES hebergement.contrat_location (id)
+);
+
+COMMENT ON TABLE hebergement.caution IS
+    'PROVISION — tables seulement, aucune logique au MVP (HEB-08, incrément 3).';
+
+ALTER TABLE hebergement.caution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.caution FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.caution
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.caution
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON hebergement.caution TO kaya_app;
+
+
+-- ============================================================================
+-- hebergement.charge_locative — eau, électricité, charges — PROVISION
+-- CLASSE C · branche C2 — référentiel contractuel
+-- Story : HEB-08 — résidences meublées, incrément 3
+-- PROVISION — tables seulement, aucune logique au MVP
+-- ============================================================================
+CREATE TABLE hebergement.charge_locative (
+    id                  UUID CONSTRAINT pk_charge_locative PRIMARY KEY,
+    tenant_id           UUID           NOT NULL,
+    contrat_location_id UUID           NOT NULL,
+    type                TEXT           NOT NULL,
+    montant             montant_mineur NOT NULL,
+    code_devise         code_devise    NOT NULL,
+    periode_debut       DATE           NOT NULL,
+    periode_fin         DATE           NOT NULL,
+    cree_le             TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    modifie_le          TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_charge_locative_contrat FOREIGN KEY (contrat_location_id)
+        REFERENCES hebergement.contrat_location (id),
+    CONSTRAINT ck_charge_locative_periode CHECK (periode_fin >= periode_debut)
+);
+
+COMMENT ON TABLE hebergement.charge_locative IS
+    'PROVISION — tables seulement, aucune logique au MVP (HEB-08, incrément 3).';
+COMMENT ON COLUMN hebergement.charge_locative.periode_debut IS
+    'Période de FACTURATION d''une charge, JAMAIS une période de disponibilité — celle-là est un tstzrange sur occupation. Ne pas confondre les deux (SC-004).';
+
+ALTER TABLE hebergement.charge_locative ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.charge_locative FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.charge_locative
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.charge_locative
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON hebergement.charge_locative TO kaya_app;
+
+
+-- ============================================================================
+-- hebergement.etat_des_lieux — l'entrée et la sortie — PROVISION
+-- CLASSE C · branche C2 — référentiel contractuel
+-- Story : HEB-08 — résidences meublées, incrément 3
+-- PROVISION — tables seulement, aucune logique au MVP
+--
+-- `constat` en `JSONB` pour la même raison que `fiche_police.contenu` : ce qu'on
+-- relève varie d'un bien à l'autre, et le document doit rester lisible TEL
+-- QU'IL A ÉTÉ ÉTABLI — c'est une pièce contradictoire, pas un état courant.
+-- ============================================================================
+CREATE TABLE hebergement.etat_des_lieux (
+    id                  UUID CONSTRAINT pk_etat_des_lieux PRIMARY KEY,
+    tenant_id           UUID        NOT NULL,
+    contrat_location_id UUID        NOT NULL,
+    type                TEXT        NOT NULL,
+    constat             JSONB       NOT NULL,
+    realise_le          TIMESTAMPTZ NOT NULL,
+    cree_le             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modifie_le          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_etat_des_lieux_contrat FOREIGN KEY (contrat_location_id)
+        REFERENCES hebergement.contrat_location (id),
+    CONSTRAINT ck_etat_des_lieux_type CHECK (type IN ('ENTREE', 'SORTIE'))
+);
+
+COMMENT ON TABLE hebergement.etat_des_lieux IS
+    'PROVISION — tables seulement, aucune logique au MVP (HEB-08, incrément 3).';
+COMMENT ON COLUMN hebergement.etat_des_lieux.constat IS
+    'JSONB — ce qu''on relève varie d''un bien à l''autre, et le document doit rester lisible TEL QU''IL A ÉTÉ ÉTABLI : c''est une pièce contradictoire, pas un état courant.';
+
+ALTER TABLE hebergement.etat_des_lieux ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.etat_des_lieux FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.etat_des_lieux
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.etat_des_lieux
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT ON hebergement.etat_des_lieux TO kaya_app;
+
+-- Aucun index sur les cinq provisions : une table que rien n'écrit et que rien
+-- ne lit n'a aucune recherche à servir. Un index sans usage nommé ne se crée
+-- pas — et il en naîtra avec les stories qui les activeront.
+
+
 -- ============================================================================
 -- FIN — 97-hebergement.sql
 -- ============================================================================
