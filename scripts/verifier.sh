@@ -253,12 +253,14 @@ readonly PERIMETRE_SQL="c.relkind = 'r'
 # Plancher de non-vacuité : une porte qui inspecterait zéro table passerait au
 # vert sans rien prouver.
 #
-# 60 pour 71 tables réelles. UN PLANCHER SE RÈGLE JUSTE SOUS LA VALEUR RÉELLE,
-# jamais loin en dessous : à 20, un modèle amputé de ses deux tiers passerait
-# encore, et la porte serait verte en n'inspectant plus grand-chose. La marge de
-# onze absorbe le retrait délibéré d'une table sans exiger de toucher au script,
-# et rien de plus.
-readonly PLANCHER_TABLES=60
+# 110 pour 118 tables réelles — valeur DÉFINITIVE du cycle D2, relevée depuis les
+# 60 du cycle D1 (qui en comptait 71). UN PLANCHER SE RÈGLE JUSTE SOUS LA VALEUR
+# RÉELLE, JAMAIS LOIN EN DESSOUS : à 60, le modèle amputé de ses quarante-sept
+# tables de verticales passerait encore, et la porte serait verte en n'inspectant
+# plus que le socle — c'est-à-dire en ne prouvant plus rien de ce cycle. La marge
+# de huit absorbe le retrait délibéré de quelques tables sans exiger de toucher
+# au script, et rien de plus.
+readonly PLANCHER_TABLES=110
 
 # Les schémas que le README du modèle DÉCLARE. La comparaison à ceux réellement
 # créés est le point 2 du contrat de porte : « vérifie sa complétude ».
@@ -418,13 +420,18 @@ porte_p01() {
 # registre devenu illisible pour l'extracteur ferait passer la porte au vert en
 # NE COMPARANT RIEN.
 #
-# POURQUOI 140 ET NON 80. L'extraction rend 174 entités sur le registre au
-# 2026-08-06. Un plancher confortable — 80, par exemple — serait INUTILE : la
-# moitié d'une extraction cassée suffirait encore à couvrir les 71 tables, et la
-# porte resterait verte en ne comparant plus rien. C'est exactement le mode de
-# défaillance qu'un plancher existe pour refuser.
-readonly PLANCHER_TABLES_P02=60
-readonly PLANCHER_ENTITES=140
+# POURQUOI PAS UN PLANCHER CONFORTABLE. L'extraction rend 180 entités sur le
+# registre au 2026-08-07, après l'ajout de `ligne_inventaire` et
+# d'`article_stock_catalogue`. Un plancher confortable — 80, par exemple —
+# serait INUTILE : la moitié d'une extraction cassée suffirait encore à couvrir
+# les 118 tables, et la porte resterait verte EN NE COMPARANT PLUS RIEN. C'est
+# exactement le mode de défaillance qu'un plancher existe pour refuser.
+#
+# Valeurs DÉFINITIVES du cycle D2, relevées depuis 60 et 140 :
+#   — 110 pour 118 tables réelles, comme P-01 ;
+#   — 170 pour 180 entités extraites, marge de dix.
+readonly PLANCHER_TABLES_P02=110
+readonly PLANCHER_ENTITES=170
 
 # L'extraction est robuste parce que la convention d'écriture du registre est
 # déjà celle-là : toute entité y est citée entre accents graves. Le filtre final
@@ -526,11 +533,23 @@ porte_p02() {
 # Plancher de non-vacuité — nombre de contraintes de clé étrangère que la porte
 # doit avoir EXAMINÉES pour que son vert veuille dire quelque chose.
 #
-# Posé PROVISOIREMENT à 1 : à la création de la porte, seul le socle existe et
-# son compte réel n'est pas encore celui du modèle complet. Il est porté à sa
-# valeur définitive en fin de cycle, réglé JUSTE SOUS le compte réel — un
-# plancher confortable ne refuse rien.
-readonly PLANCHER_FK=1
+# Posé PROVISOIREMENT à 1 à la création de la porte, puis porté ici à sa VALEUR
+# DÉFINITIVE : 90 pour 98 clés étrangères internes réelles.
+#
+# ⚠️ CE PLANCHER EST LE PLUS IMPORTANT DES QUATRE, et c'est le profil de la porte
+# qui le rend tel. P-01 et P-02 cherchent quelque chose ; P-05 cherche une
+# ABSENCE, et est verte quand elle ne trouve rien. Un filtre trop étroit, un nom
+# de catalogue changé, une jointure cassée — et elle inspecterait trois
+# contraintes en annonçant fièrement « aucune inter-schémas ». Le plancher est ce
+# qui distingue « rien à trouver » de « JE NE CHERCHE PLUS ».
+#
+# ⚠️ MAIS IL NE SUFFIT PAS, ET LE CYCLE L'A CONSTATÉ EN LE VÉRIFIANT : quand le
+# prédicat de détection a été saboté délibérément (T016), la porte est restée
+# VERTE en annonçant 92 contraintes examinées — le plancher était atteint, la
+# cible n'était pas vide, seul le prédicat était faux. SEUL LE TEST NÉGATIF A VU
+# LA FAUTE. Plancher et test négatif ne couvrent donc PAS la même défaillance, et
+# il en faut deux.
+readonly PLANCHER_FK=90
 
 porte_p05() {
     local repertoire="$1"

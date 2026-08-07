@@ -463,3 +463,71 @@ sont **la règle elle-même**.
 
 **Verdict : conforme.** Le modèle se lit et se tient ; la règle de tenue écrite au cycle D1 couvre
 désormais les quinze fichiers.
+
+---
+
+## T024 · Les quatre planchers à leur valeur définitive — et la preuve qu'ils mordent
+
+**Date** : 2026-08-07 · **Méthode** : mesure des valeurs réelles, réglage **juste en dessous**, puis
+**vérification que chaque plancher refuse pour de vrai** sur un modèle amputé de ses quatre fichiers
+de verticales.
+
+### Les valeurs
+
+| Plancher | Cycle D1 | Valeur réelle | **Définitif** | Marge |
+|---|---|---|---|---|
+| P-01 · tables inspectées | 60 | **118** | **110** | 8 |
+| P-02 · tables réelles | 60 | **118** | **110** | 8 |
+| P-02 · entités extraites du registre | 140 | **180** | **170** | 10 |
+| P-05 · clés étrangères examinées | 1 *(provisoire)* | **98** | **90** | 8 |
+
+> **Un plancher se règle JUSTE SOUS la valeur réelle, jamais loin en dessous.** À 60, le modèle
+> **amputé de ses quarante-sept tables de verticales passerait encore** — la porte serait verte en
+> n'inspectant plus que le socle, c'est-à-dire en ne prouvant plus rien de ce cycle. La marge
+> absorbe le retrait délibéré de quelques tables, et rien de plus.
+
+### La preuve que les trois mordent
+
+Un modèle privé de `55-ventes.sql`, `96-stocks.sql`, `97-hebergement.sql` et `98-pressing.sql` — et
+dont la liste opposable a été alignée, **pour que l'échec vienne du plancher et non de la
+complétude** :
+
+| Porte | Ce qui est inspecté | Verdict |
+|---|---|---|
+| **P-01** | 71 tables | **ROUGE**, code 1 — *« Plancher : 110 — NON ATTEINT (71) »* |
+| **P-02** | 71 tables | **ROUGE**, code 1 — *« la porte comparerait trop peu de choses »* |
+| **P-05** | 43 clés étrangères | **ROUGE**, code 1 — *« Plancher : 90 — NON ATTEINT (43) »* |
+
+**Avec les anciennes valeurs, les trois seraient passées au vert.** C'est très exactement ce que le
+relèvement achète.
+
+---
+
+## T025 · Les trois tests négatifs rejoués APRÈS le relèvement
+
+**Date** : 2026-08-07 · **Méthode** : `scripts/verifier.sh --test-negatif`.
+
+> **Une porte dont on a changé un seuil sans la recasser n'est plus une porte vérifiée** : elle est
+> redevenue une décoration qu'on croit fonctionnelle. Le relèvement des planchers est exactement le
+> genre de changement qui peut rendre un test négatif inopérant — un seuil mal réglé ferait rougir
+> la porte **pour la mauvaise raison**, et le test passerait en croyant avoir prouvé autre chose.
+
+| Test | Ce qu'il casse | Verdict | Ce qui est nommé |
+|---|---|---|---|
+| `p01` | Politique `isolation_tenant` retirée | **ROUGE** ✓ | `caisse.coupure_comptee` — et **117/118**, donc le plancher n'a pas mordu à sa place |
+| `p02` | Table non déclarée ajoutée, **avec sa RLS complète** | **ROUGE** ✓ | `etablissements.zzz_table_non_declaree` — **P-01 reste VERTE** |
+| `p05` | `ligne_sejour.ligne_commande_id` → clé étrangère | **ROUGE** ✓ | **les trois objets** — **P-01 et P-02 restent VERTES** |
+
+```
+TESTS NÉGATIFS VERTS — 3 — 18 s
+```
+
+**`git status` reste propre** après les trois, et l'empreinte de `docs/modele-donnees/` est
+identique avant et après chacun.
+
+> **Le détail qui prouve que le relèvement n'a rien cassé** : le test de P-01 rend `117/118`. La
+> porte a donc bien échoué **sur le contrôle de politique**, et non sur le plancher — qui aurait
+> rougi lui aussi si les tables avaient manqué. Un test négatif qui échouerait sur le plancher
+> plutôt que sur son contrôle prouverait le plancher, pas la porte.
+
+**Verdict : les trois portes savent échouer, après relèvement.**
