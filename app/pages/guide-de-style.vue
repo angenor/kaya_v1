@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import BandeauAlerte from '~/core/design-system/BandeauAlerte.vue'
+import BandeauAnnulation from '~/core/design-system/BandeauAnnulation.vue'
+import BarreProportion from '~/core/design-system/BarreProportion.vue'
 import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import BoutonPrincipal from '~/core/design-system/BoutonPrincipal.vue'
 import BoutonSecondaire from '~/core/design-system/BoutonSecondaire.vue'
 import CarteChiffre from '~/core/design-system/CarteChiffre.vue'
+import ChampSaisie from '~/core/design-system/ChampSaisie.vue'
 import EtatVide from '~/core/design-system/EtatVide.vue'
 import LigneListe from '~/core/design-system/LigneListe.vue'
 import PastilleEtat from '~/core/design-system/PastilleEtat.vue'
 import SelecteurEtablissement from '~/core/design-system/SelecteurEtablissement.vue'
+import Squelette from '~/core/design-system/Squelette.vue'
 import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vue'
 import TuileAction from '~/core/design-system/TuileAction.vue'
 import SelecteurSegmente, {
@@ -55,6 +59,10 @@ const SECTIONS = [
   '10',
   '11',
   '12',
+  '13',
+  '14',
+  '15',
+  '16',
 ] as const
 
 /** Deux établissements : c'est ce qui fait exister l'état « plusieurs ». */
@@ -77,6 +85,13 @@ const OPTIONS_SEGMENT_DEMO: readonly OptionSegment[] = [
   { valeur: 'impayees', libelleCle: 'guideDeStyle.demo.impayees', compteur: 3 },
 ]
 const segmentDemo = ref('toutes')
+const saisieDemo = ref('')
+const choixDemo = ref('standard')
+const OPTIONS_CHOIX_DEMO = [
+  { valeur: 'standard', libelle: t('guideDeStyle.demo.standard') },
+  { valeur: 'classique', libelle: t('guideDeStyle.demo.classique') },
+  { valeur: 'superieure', libelle: t('guideDeStyle.demo.superieure') },
+]
 
 const { choix, choisir } = useTheme()
 const OPTIONS_THEME: readonly OptionSegment[] = CHOIX_THEME.map((valeur) => ({
@@ -517,6 +532,138 @@ const themeChoisi = computed({
           v-model="segmentDemo"
           :options="OPTIONS_SEGMENT_DEMO"
           taille="comptoir"
+        />
+      </div>
+    </section>
+
+    <!-- 13 · Squelette de chargement -->
+    <section
+      id="composant-13"
+      data-composant="13"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">13</span>
+        {{ $t('guideDeStyle.composant.13') }}
+      </h2>
+      <div class="grid items-start gap-3.5 md:grid-cols-3">
+        <div class="overflow-hidden rounded-xl border border-line bg-surf">
+          <Squelette variante="liste" />
+        </div>
+        <Squelette variante="carte" />
+        <!-- ⚠️ La roue est réservée à une attente réseau dont on ne connaît pas
+             la forme. Employée ailleurs, elle dit « je ne sais pas » là où on
+             sait. -->
+        <div class="flex justify-center rounded-xl border border-line bg-surf p-4">
+          <Squelette variante="roue" />
+        </div>
+      </div>
+    </section>
+
+    <!-- 14 · Bandeau d'annulation -->
+    <section
+      id="composant-14"
+      data-composant="14"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">14</span>
+        {{ $t('guideDeStyle.composant.14') }}
+      </h2>
+      <div class="flex flex-wrap items-center gap-3.5 rounded-xl border border-line bg-surf p-4">
+        <BandeauAnnulation
+          message-cle="guideDeStyle.demo.consommationSupprimee"
+          action-cle="guideDeStyle.demo.annuler"
+          :secondes="8"
+        />
+        <BandeauAnnulation
+          message-cle="guideDeStyle.demo.consommationSupprimee"
+          action-cle="guideDeStyle.demo.annuler"
+          :secondes="3"
+        />
+        <BandeauAnnulation
+          message-cle="guideDeStyle.demo.envoiReussi"
+          non-annulable
+        />
+      </div>
+    </section>
+
+    <!-- 15 · Barre de proportion -->
+    <section
+      id="composant-15"
+      data-composant="15"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">15</span>
+        {{ $t('guideDeStyle.composant.15') }}
+      </h2>
+      <!-- ⚠️ Elle porte TOUJOURS son chiffre : à trois mètres, 70 % et 80 % ont
+           la même longueur. -->
+      <div class="flex flex-col gap-4 rounded-xl border border-line bg-surf p-4">
+        <BarreProportion
+          :part="72"
+          valeur="72 %"
+          etiquette-cle="guideDeStyle.demo.tauxOccupation"
+        />
+        <BarreProportion
+          :part="34"
+          valeur="34 %"
+          ton="secondaire"
+        />
+        <BarreProportion
+          :part="100"
+          valeur="100 %"
+          ton="atteinte"
+        />
+      </div>
+    </section>
+
+    <!-- 16 · Champ de saisie -->
+    <section
+      id="composant-16"
+      data-composant="16"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">16</span>
+        {{ $t('guideDeStyle.composant.16') }}
+      </h2>
+      <div class="grid gap-4 rounded-xl border border-line bg-surf p-4 md:grid-cols-3">
+        <ChampSaisie
+          v-model="saisieDemo"
+          etiquette-cle="guideDeStyle.demo.nomDuClient"
+          aide-cle="guideDeStyle.demo.nomDuClientAide"
+        />
+        <!-- ⚠️ Trois signaux à l'erreur : bordure, message, icône. Une bordure
+             rouge seule ne se voit pas en plein soleil, et pas du tout pour un
+             daltonien. -->
+        <ChampSaisie
+          v-model="saisieDemo"
+          etiquette-cle="guideDeStyle.demo.nomDuClient"
+          aide-cle="guideDeStyle.demo.nomDuClientAide"
+          erreur-cle="guideDeStyle.demo.identifiantRefuse"
+        />
+        <ChampSaisie
+          v-model="choixDemo"
+          etiquette-cle="guideDeStyle.demo.typeDeChambre"
+          :options="OPTIONS_CHOIX_DEMO"
+        />
+        <ChampSaisie
+          v-model="saisieDemo"
+          etiquette-cle="guideDeStyle.demo.numeroDeChambre"
+          desactive
+        />
+        <!-- Lecture seule ≠ désactivé : elle se sélectionne et se copie. -->
+        <ChampSaisie
+          v-model="saisieDemo"
+          etiquette-cle="guideDeStyle.demo.numeroDeChambre"
+          lecture-seule
+        />
+        <ChampSaisie
+          v-model="saisieDemo"
+          etiquette-cle="guideDeStyle.demo.nomDuClient"
+          comptoir
         />
       </div>
     </section>

@@ -289,14 +289,33 @@ confirmation explicite et se contre-passe par un avoir — voir `documents/D7-fa
 
 ---
 
-## 15 · Barre de proportion — hors série, à valider
+## 15 · Barre de proportion
 
-Apparue avec la clôture et le taux d'occupation. Elle porte toujours son chiffre à côté
-d'elle : une barre seule ne se lit pas. `h-2 rounded-pleine bg-tile` + remplissage
-`bg-prim` (part principale), `bg-ocre` (part secondaire), `bg-succes` (proportion atteinte).
+**Rôle.** Montrer une part — taux d'occupation, avancement d'une clôture.
 
-**Décision à prendre** : elle entre dans le canon avec ses états, ou elle reste une
-composition locale de la carte chiffre.
+**États.** part principale (`bg-prim`) · part secondaire (`bg-ocre`) · proportion
+atteinte (`bg-succes`).
+
+```html
+<span class="h-2 flex-1 rounded-pleine bg-tile overflow-hidden">
+  <span class="block h-full rounded-pleine bg-prim transition-[width] duration-240 ease-deplace"></span>
+</span>
+<span class="font-mono text-corps font-bold text-ink whitespace-nowrap">72 %</span>
+```
+
+**Règles.** Elle porte **toujours** son chiffre à côté d'elle : *une barre seule ne se
+lit pas* — à trois mètres, 70 % et 80 % ont la même longueur. La largeur est **le seul
+endroit du produit où une valeur calculée entre en style**, et ce n'est pas une valeur de
+jeton : c'est une proportion, donc une donnée. La règle de lint qui refuse les valeurs
+littérales refuse le style en ligne **statique** et laisse passer la liaison, pour cette
+raison exactement.
+
+> **Décision close le 2026-08-07, par le cycle F1.** Ce composant portait la mention
+> « hors série, à valider », avec le choix laissé ouvert : *entrer au canon avec ses états,
+> ou rester une composition locale de la carte chiffre.* Le rendre dans ses trois états au
+> guide de style a tranché — il a un rôle propre (une part), une forme propre (une piste et
+> un remplissage) et une règle propre (le chiffre obligatoire), qu'aucun autre composant ne
+> porte. Le décompte reste **seize** : il était déjà compté.
 
 ## 16 · Champ de saisie
 
