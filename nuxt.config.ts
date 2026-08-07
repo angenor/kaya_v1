@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -104,6 +105,41 @@ export default defineNuxtConfig({
    * entrent, et sont servis avec leur type.
    */
   hooks: {
+    /**
+     * LA PAGE TÉMOIN DU CYCLE DE VIE — déclarée ici, jamais dans le produit.
+     *
+     * ⚠️ ELLE N'ENTRE AU ROUTEUR QUE SOUS `KAYA_PAGE_TEMOIN=1`. Une construction
+     * ordinaire ne la connaît pas : son fichier vit sous `tests/`, et rien de
+     * `app/` ne le référence. C'est ce qui permet à US3 de prouver qu'une page
+     * NOUVELLE hérite du gabarit, de l'intergiciel et du thème sans rien écrire
+     * — une page du produit aurait pu, elle, avoir opté pour tout cela.
+     *
+     * ⚠️ ET LE DRAPEAU EST LU UNE SEULE FOIS, PAR UNE SEULE CONSTRUCTION.
+     * `app/core/ecrans/index.ts` lit le MÊME drapeau pour déclarer l'entrée
+     * correspondante : les deux côtés de la porte P-04 ne peuvent donc pas
+     * diverger, quel que soit l'état du drapeau.
+     */
+    'pages:extend'(pages) {
+      if (process.env.KAYA_PAGE_TEMOIN !== '1') return
+      pages.push(
+        {
+          name: 'temoin-cycle-de-vie',
+          path: '/_temoin-cycle-de-vie',
+          file: fileURLToPath(new URL('./tests/navigateur/temoin/PageTemoin.vue', import.meta.url)),
+        },
+        {
+          // Le point de départ d'une navigation INTERNE : `page.goto` recharge
+          // toujours le document, donc il ne prouverait que la reconstruction
+          // du gabarit à l'identique — pas sa survie.
+          name: 'temoin-navigation',
+          path: '/_temoin-navigation',
+          file: fileURLToPath(
+            new URL('./tests/navigateur/temoin/PageNavigation.vue', import.meta.url),
+          ),
+        },
+      )
+    },
+
     'nitro:build:public-assets'(nitro) {
       const source = join(nitro.options.buildDir, 'dist/client')
       const cible = nitro.options.output.publicDir
