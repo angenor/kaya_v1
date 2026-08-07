@@ -31,6 +31,21 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/unite/**/*.spec.ts'],
     globals: false,
+    /**
+     * ⚠️ TRENTE SECONDES, ET LE DÉFAUT DE CINQ A ÉTÉ CONSTATÉ TROP COURT.
+     *
+     * Trois tests ÉPROUVENT LES RÈGLES DE LINT en lançant un vrai ESLint sur du
+     * texte : la première invocation charge `eslint.config.ts` à travers jiti,
+     * c'est-à-dire tout `typescript-eslint` et les greffons Vue. Sur une machine
+     * au repos, une seconde ; sur une machine chargée — c'est-à-dire la machine
+     * réelle —, plus de cinq. Les tests rougissaient alors SANS QU'AUCUN DÉFAUT
+     * N'EXISTE, sur un dépassement de délai et non sur une assertion.
+     *
+     * **Un test qui rougit selon la charge de la machine est désactivé sous
+     * trois semaines, et il a raison de l'être.** Un test réellement bloqué
+     * échoue toujours — simplement plus tard, ce qui ne coûte rien.
+     */
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       // ⚠️ LE RAPPORT JSON EST CE QUE LA PORTE P-06 LIT, et c'est le seul

@@ -20,6 +20,7 @@
  * la barre, la première qui oublierait la rendrait vide, et personne ne le
  * verrait avant la démonstration.
  */
+import BandeauCoquille from '~/core/coquille/BandeauCoquille.vue'
 import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
 import { CLE_SEUIL_LATENCE_DEGRADEE, lireParametreEntier } from '~/core/configuration/configuration'
 import { useFile } from '~/core/file/useFile'
@@ -111,6 +112,13 @@ const etatReseau = computed(() => {
         </NuxtLink>
       </div>
     </header>
+
+    <!-- ⚠️ LE BANDEAU DE LA COQUILLE EST DANS LE GABARIT, PAS DANS UNE PAGE.
+         « Présents partout » ne se délègue pas : une version nouvelle et une
+         application non installée concernent l'APPAREIL, quel que soit l'écran
+         ouvert. La première page qui oublierait de le poser serait celle où
+         l'exploitant passe sa journée. -->
+    <BandeauCoquille />
 
     <main class="flex-1">
       <slot />

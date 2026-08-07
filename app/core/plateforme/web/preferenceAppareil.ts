@@ -23,6 +23,14 @@
  *  avec ce qu'un autre outil poserait sur la même origine. */
 export const CLE_THEME = 'kaya.theme'
 export const CLE_LANGUE = 'kaya.langue'
+/**
+ * ⚠️ « L'invitation à installer a été écartée » EST une préférence d'affichage,
+ * et elle appartient à l'appareil. Sur WebKit, aucune bannière ne se déclenche
+ * jamais : le bandeau qui explique le menu de partage serait donc permanent, sur
+ * chaque écran, pour toujours. Un bandeau permanent cesse d'être lu — et il
+ * cesse d'être lu au moment précis où il aurait quelque chose à dire.
+ */
+export const CLE_INVITATION_ECARTEE = 'kaya.installation.ecartee'
 
 /**
  * ⚠️ TOUT PASSE PAR UN `try` : sur WebKit en navigation privée, l'accès à

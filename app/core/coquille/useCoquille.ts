@@ -28,5 +28,20 @@ export function useCoquille() {
     await appliquerNouvelleVersion()
   }
 
-  return { disponible, versionEnAttente, installer, recharger }
+  /**
+   * ⚠️ LE PANNEAU SCÉNARIOS APPELLE CECI, ET C'EST SA RAISON D'ÊTRE. Une version
+   * nouvelle n'arrive qu'après un déploiement : sans levier, l'invite de FR-017
+   * ne s'exercerait **sur aucun moteur**, ni à la démonstration ni au test.
+   * L'instrument met l'application dans une condition qu'on ne sait pas produire
+   * autrement — c'est exactement ce à quoi il sert.
+   *
+   * ⚠️ ET IL N'INVENTE RIEN : il pose le MÊME drapeau que le service worker, et
+   * l'interface répond de la même façon. Ce qui est simulé, c'est l'arrivée de
+   * la version — pas la réponse du produit.
+   */
+  function annoncerVersionEnAttente(enAttente: boolean): void {
+    versionEnAttente.value = enAttente
+  }
+
+  return { disponible, versionEnAttente, installer, recharger, annoncerVersionEnAttente }
 }

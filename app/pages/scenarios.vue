@@ -15,6 +15,8 @@ import { useFile } from '~/core/file/useFile'
 import { CLASSES_ESSAI } from '~/core/scenarios/reglages'
 import { useScenarios } from '~/core/scenarios/useScenarios'
 import { useSession } from '~/core/session/useSession'
+import { useCoquille } from '~/core/coquille/useCoquille'
+import { useInstallation } from '~/core/coquille/useInstallation'
 import { capacitesAbsentes } from '~/core/plateforme/capacites'
 
 /**
@@ -152,6 +154,29 @@ async function lancerEssai(): Promise<void> {
 }
 
 const absences = capacitesAbsentes()
+
+/**
+ * LE LEVIER DE VERSION NOUVELLE — le septième, et le seul moyen d'exercer
+ * FR-017 sans déployer.
+ *
+ * ⚠️ LA VOIE D'INSTALLATION EST AFFICHÉE, JAMAIS RÉGLÉE. Elle vient du moteur :
+ * la simuler laisserait croire qu'on a vérifié le parcours de WebKit depuis
+ * Chromium, ce qui est faux. On la LIT, et le bandeau du gabarit la rend.
+ */
+const { versionEnAttente, annoncerVersionEnAttente } = useCoquille()
+const { voie: voieInstallation } = useInstallation()
+
+const versionNouvelle = computed({
+  get: () => (versionEnAttente.value ? 'oui' : 'non'),
+  set: (valeur: string) => annoncerVersionEnAttente(valeur === 'oui'),
+})
+
+const VOIES: Readonly<Record<string, string>> = {
+  INVITE: 'scenarios.voieInvite',
+  MENU_DE_PARTAGE: 'scenarios.voieMenuDePartage',
+  DEJA_INSTALLEE: 'scenarios.voieDejaInstallee',
+  IMPOSSIBLE: 'scenarios.voieImpossible',
+}
 
 /** L'état interne du témoin — il ne sort pas d'ici. */
 const etatTemoin = computed(() => {
@@ -310,6 +335,42 @@ const etatTemoin = computed(() => {
           neutre
           @activer="toutVider()"
         />
+      </div>
+    </section>
+
+    <!-- La coquille : version nouvelle et voie d'installation -->
+    <section
+      class="grid gap-5 rounded-xl border border-line bg-surf p-4 md:grid-cols-2"
+      data-bloc="coquille"
+    >
+      <div class="flex flex-col gap-1.5 md:col-span-2">
+        <h2 class="font-titre text-titre-s font-semibold text-ink">
+          {{ $t('scenarios.coquille') }}
+        </h2>
+        <p class="max-w-[80ch] text-mini text-ink-3">
+          {{ $t('scenarios.coquilleAide') }}
+        </p>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-etiquette uppercase text-ink-3">
+          {{ $t('scenarios.versionNouvelle') }}
+        </span>
+        <SelecteurSegmente
+          v-model="versionNouvelle"
+          :options="OPTIONS_BOOLEEN"
+          data-levier="version-nouvelle"
+        />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-etiquette uppercase text-ink-3">
+          {{ $t('scenarios.voieInstallation') }}
+        </span>
+        <p
+          class="text-corps text-ink-2"
+          data-voie-installation
+        >
+          {{ $t(VOIES[voieInstallation] ?? 'scenarios.voieImpossible') }}
+        </p>
       </div>
     </section>
 

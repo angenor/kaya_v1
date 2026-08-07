@@ -140,6 +140,14 @@ export default {
     fileVide: "No pending write. Writes produced here will appear in this list.",
     capacites: "What this device cannot do",
     capacitesAucune: "This device can do everything the product asks for.",
+    coquille: "The shell",
+    coquilleAide: "A new version only arrives after a deployment, and the install route comes from the engine. The first is simulated; the second is READ — simulating it would suggest WebKit had been checked from Chromium.",
+    versionNouvelle: "A new version is waiting",
+    voieInstallation: "Install route for this device",
+    voieInvite: "The engine offers its prompt.",
+    voieMenuDePartage: "No prompt will fire: installing goes through the share menu.",
+    voieDejaInstallee: "Already installed on this device.",
+    voieImpossible: "This engine does not install web applications.",
   },
   file: {
     refusHorsLigne: "This action requires an internet connection.",
@@ -195,6 +203,19 @@ export default {
       motif: "Device verification",
       alternative: "There is no alternative on the web, and that is accepted: security rests on the server, never on a promise from this device.",
     },
+  },
+  coquille: {
+    versionNouvelle: "A new version is ready.",
+    versionNouvelleAide: "Reload whenever you like: nothing you have entered is lost.",
+    recharger: "Reload",
+    installable: "This application can be installed on this device.",
+    installableAide:
+      "Once installed, it opens even without a network, with no address bar — and it receives alerts.",
+    installer: "Install the app",
+    installationManuelle: "This device will not show any install prompt.",
+    installationManuelleAide:
+      "Open the share menu, then \"Add to Home Screen\". Without installing, this device will not receive alerts.",
+    compris: "Got it",
   },
   essai: {
     noteInterne: "Internal note",

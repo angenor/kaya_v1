@@ -225,9 +225,9 @@ L'instruction du cycle demande deux choses qui se rencontrent ici : **« ordonn�
 
 **Vérification indépendante** : installer, couper le réseau, rouvrir.
 
-- [ ] T045 [US1] Régler la **stratégie de cache** : **précache de la coquille** — l'application s'ouvre hors ligne **dès le premier écran** — et **révision au rechargement**, pour qu'un correctif parte le jour même. Écrire `tests/navigateur/hors-ligne.spec.ts` : réseau coupé, l'application s'ouvre et affiche sa première page — **jamais la page d'erreur du navigateur**. *Fin : le test passe sur Chromium et sur WebKit.*
-- [ ] T046 [US1] Livrer le **parcours d'installation**, étape guidée du produit et non un détail : invite sur Chromium ; sur **WebKit**, l'écran **explique le menu de partage** et dit qu'**aucune bannière ne se déclenchera**, et que **sans installation l'appareil ne recevra pas les alertes**. Libellés depuis le lexique (T024). *Fin : le parcours est constaté sur les deux moteurs.*
-- [ ] T047 [US1] Livrer l'**invite de nouvelle version** : quand une version nouvelle est disponible, l'interface **propose explicitement de recharger** — ni rechargement d'office, ni silence. *Fin : simuler une révision fait apparaître l'invite.*
+- [X] T045 [US1] Régler la **stratégie de cache** : **précache de la coquille** — l'application s'ouvre hors ligne **dès le premier écran** — et **révision au rechargement**, pour qu'un correctif parte le jour même. Écrire `tests/navigateur/hors-ligne.spec.ts` : réseau coupé, l'application s'ouvre et affiche sa première page — **jamais la page d'erreur du navigateur**. *Fin : le test passe sur Chromium et sur WebKit.*
+- [X] T046 [US1] Livrer le **parcours d'installation**, étape guidée du produit et non un détail : invite sur Chromium ; sur **WebKit**, l'écran **explique le menu de partage** et dit qu'**aucune bannière ne se déclenchera**, et que **sans installation l'appareil ne recevra pas les alertes**. Libellés depuis le lexique (T024). *Fin : le parcours est constaté sur les deux moteurs.*
+- [X] T047 [US1] Livrer l'**invite de nouvelle version** : quand une version nouvelle est disponible, l'interface **propose explicitement de recharger** — ni rechargement d'office, ni silence. *Fin : simuler une révision fait apparaître l'invite.*
 
 **Point de contrôle** : l'application installée s'ouvre hors ligne, dans le bon thème, **sans éclair clair**.
 

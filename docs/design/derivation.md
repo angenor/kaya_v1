@@ -181,6 +181,13 @@ instruments n'ont pas de code, donc ils n'ajoutent aucun préfixe aux onze exist
 | **Écrans** | `/_ecrans` | **08** ligne de liste · **04** pastille d'état · **12** sélecteur segmenté | charme |
 | **Scénarios** | `/_scenarios` | **16** champ de saisie (dont « choix fermé ») · **12** sélecteur segmenté · **01 · 02** actions · **07** bandeau d'alerte · **08** ligne de liste · **10** témoin · **11** état vide | charme |
 
+> **Le bandeau de la coquille n'est pas un écran, et il est visible sur tous.** Il vit dans le
+> gabarit par défaut, entre la barre et le `<main>`, et porte les deux annonces que la coquille
+> doit faire : **une version nouvelle attend** (FR-017) et **l'application n'est pas installée**
+> (FR-015). Il emploie le **composant 07** et rien d'autre. ⚠️ **Un seul à la fois** : une version
+> en attente prime sur une invitation à installer — *deux bandeaux en font lire zéro*, et un
+> correctif qui ne part pas coûte plus cher qu'une installation remise à demain.
+
 ### Le quatrième cas, et ce qu'il exige
 
 > **Les documents ne peuvent pas avoir tout prévu** : c'est en construisant un parcours qu'on

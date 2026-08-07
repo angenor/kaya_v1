@@ -158,6 +158,14 @@ export default {
     fileVide: "Aucune écriture en attente. Les écritures produites ici apparaîtront dans cette liste.",
     capacites: "Ce que cet appareil ne sait pas faire",
     capacitesAucune: "Cet appareil sait tout faire de ce que le produit demande.",
+    coquille: "La coquille",
+    coquilleAide: "Une version nouvelle n'arrive qu'après un déploiement, et la voie d'installation vient du moteur. Le premier se simule ; la seconde se LIT — la simuler laisserait croire qu'on a vérifié WebKit depuis Chromium.",
+    versionNouvelle: "Une version nouvelle attend",
+    voieInstallation: "Voie d'installation de cet appareil",
+    voieInvite: "Le moteur propose son invitation.",
+    voieMenuDePartage: "Aucune invitation ne se déclenchera : l'installation passe par le menu de partage.",
+    voieDejaInstallee: "Déjà installée sur cet appareil.",
+    voieImpossible: "Ce moteur n'installe pas d'application web.",
   },
   file: {
     refusHorsLigne: "Cette action nécessite internet.",
@@ -213,6 +221,23 @@ export default {
       motif: "Vérification de l'appareil",
       alternative: "Il n'y a pas d'alternative sur le web, et c'est assumé : la sécurité repose sur le serveur, jamais sur une promesse de cet appareil.",
     },
+  },
+  // ── La coquille : version nouvelle et installation ─────────────────────────
+  // ⚠️ UNE PHRASE AU PASSÉ qui dit ce qui s'est produit, puis ce qui reste à
+  // faire. C'est la structure du composant 07, et elle n'est pas décorative.
+  coquille: {
+    versionNouvelle: "Une version nouvelle est prête.",
+    versionNouvelleAide:
+      "Rechargez quand vous voulez : rien de ce que vous avez saisi n’est perdu.",
+    recharger: "Recharger",
+    installable: "Cette application peut être installée sur cet appareil.",
+    installableAide:
+      "Installée, elle s’ouvre même sans réseau, sans barre d’adresse — et elle reçoit les alertes.",
+    installer: "Installer l’application",
+    installationManuelle: "Cet appareil n’affichera aucune invitation d’installation.",
+    installationManuelleAide:
+      "Ouvrez le menu de partage, puis « Sur l’écran d’accueil ». Sans installation, cet appareil ne recevra pas les alertes.",
+    compris: "J’ai compris",
   },
   essai: {
     noteInterne: "Note interne",

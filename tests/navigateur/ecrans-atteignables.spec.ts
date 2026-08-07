@@ -205,9 +205,14 @@ for (const schema of ['light', 'dark'] as const) {
         ).toEqual([])
 
         // ── CONTRASTE AA sur tout ce qui porte du texte visible ─────────────
+        // ⚠️ LE BANDEAU DE LA COQUILLE EST DANS LA LISTE, ET IL A FAILLI NE PAS
+        // Y ÊTRE. Il vit ENTRE l'en-tête et le `<main>` : un sélecteur en
+        // « main … , header … » l'aurait laissé dehors, et sur WebKit il est
+        // affiché sur CHAQUE écran. Une surface visible partout et vérifiée
+        // nulle part est le meilleur endroit où cacher un défaut de contraste.
         const textes = await mesurerTextes(
           page,
-          'main h1, main h2, main p, main button, header button, [data-forme]',
+          'main h1, main h2, main p, main button, header button, [data-forme], [data-bandeau-coquille] span, [data-bandeau-coquille] button',
         )
         expect(
           textes.length,
