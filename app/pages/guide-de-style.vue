@@ -17,6 +17,7 @@ import TuileAction from '~/core/design-system/TuileAction.vue'
 import SelecteurSegmente, {
   type OptionSegment,
 } from '~/core/design-system/SelecteurSegmente.vue'
+import { formaterEcart, formaterMontant } from '~/core/format/montant'
 import { CHOIX_THEME, useTheme } from '~/core/theme/useTheme'
 
 /**
@@ -86,6 +87,10 @@ const OPTIONS_SEGMENT_DEMO: readonly OptionSegment[] = [
 ]
 const segmentDemo = ref('toutes')
 const saisieDemo = ref('')
+
+/** La devise de Deloria. Elle vient de l'établissement, jamais d'une constante
+ *  — ici c'est une démonstration, et le jeu simulé la portera (T027). */
+const DEVISE_DEMO = 'XOF'
 
 /**
  * ⚠️ LA ZONE SE POSE SUR LE CONTENEUR D'ÉCRAN, JAMAIS SUR UN COMPOSANT
@@ -340,13 +345,13 @@ const themeChoisi = computed({
       <div class="grid grid-cols-2 gap-3.5 md:grid-cols-4">
         <CarteChiffre
           etiquette-cle="guideDeStyle.demo.recetteDuJour"
-          valeur="184 000 F"
-          delta="+ 12 500 F"
+          :valeur="formaterMontant(184000, DEVISE_DEMO)"
+          :delta="formaterEcart(12500, DEVISE_DEMO)"
         />
         <CarteChiffre
           etiquette-cle="guideDeStyle.demo.recetteDuJour"
-          valeur="97 500 F"
-          delta="− 8 000 F"
+          :valeur="formaterMontant(97500, DEVISE_DEMO)"
+          :delta="formaterEcart(-8000, DEVISE_DEMO)"
           :delta-positif="false"
         />
         <CarteChiffre
@@ -413,20 +418,20 @@ const themeChoisi = computed({
           reference="204"
           libelle="M. Traoré"
           sous-titre-cle="guideDeStyle.demo.troisNuits"
-          montant="47 500 F"
+          :montant="formaterMontant(47500, DEVISE_DEMO)"
         />
         <LigneListe
           reference="205"
           libelle="Mme Koné"
           sous-titre-cle="guideDeStyle.demo.troisNuits"
-          montant="12 500 F"
+          :montant="formaterMontant(12500, DEVISE_DEMO)"
           etat="selectionnee"
         />
         <LigneListe
           reference="206"
           libelle="M. Bamba"
           sous-titre-cle="guideDeStyle.demo.envoiEnAttente"
-          montant="25 500 F"
+          :montant="formaterMontant(25500, DEVISE_DEMO)"
           etat="enAttente"
         >
           <template #fin>
@@ -439,12 +444,12 @@ const themeChoisi = computed({
         <LigneListe
           reference="207"
           libelle="M. Yao"
-          montant="15 500 F"
+          :montant="formaterMontant(15500, DEVISE_DEMO)"
           etat="annulee"
         />
         <LigneListe
           libelle-cle="guideDeStyle.demo.total"
-          montant="101 000 F"
+          :montant="formaterMontant(101000, DEVISE_DEMO)"
           etat="total"
         />
       </div>
