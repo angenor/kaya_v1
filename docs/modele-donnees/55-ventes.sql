@@ -266,6 +266,9 @@ CREATE TABLE ventes.conversion_unite_mesure (
     CONSTRAINT ck_conversion_unite_mesure_facteur_positif CHECK (facteur > 0)
 );
 
+COMMENT ON TABLE ventes.conversion_unite_mesure IS
+    'PROVISION — tables seulement, aucune logique au MVP (PDV-01, amendement A3). AUCUN GRANT à kaya_app, PAS MÊME SELECT : rien du produit n''a de raison de la lire, et c''est cette absence qui la prouve provision. Le jour où l''on convertira, il faudra un GRANT — ce qui se voit dans un diff.';
+
 ALTER TABLE ventes.conversion_unite_mesure ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ventes.conversion_unite_mesure FORCE  ROW LEVEL SECURITY;
 

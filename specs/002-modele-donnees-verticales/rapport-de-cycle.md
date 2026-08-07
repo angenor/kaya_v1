@@ -353,3 +353,59 @@ ailleurs —, et le `JurisdictionAdapter` de la phase 3 reste le seul endroit po
 
 **Verdict : conforme sur les cinq points.** Aucune de ces décisions ne coûtera de migration au
 premier exploitant qui aura deux cuisines, ou deux durées de ménage sur la même catégorie.
+
+---
+
+## T020 · Les provisions existent en table, et nulle part ailleurs
+
+**Date** : 2026-08-07 · **Méthode** : privilèges du catalogue, commentaires de table et de colonne,
+et **recherche des tables qui n'auraient pas dû naître**.
+
+**Le test de ce récit** : *chercher chaque provision du registre §10 relevant de ces schémas et la
+trouver ; lire ses privilèges et constater qu'on ne peut rien bâtir dessus.*
+
+### Les six provisions du cycle
+
+| Provision | Schéma | Privilège | Mention littérale |
+|---|---|---|---|
+| `prestation_incluse` | `hebergement` | **`SELECT`** | ✓ fichier **et** catalogue |
+| `contrat_location` | `hebergement` | **`SELECT`** | ✓ fichier **et** catalogue |
+| `caution` | `hebergement` | **`SELECT`** | ✓ fichier **et** catalogue |
+| `charge_locative` | `hebergement` | **`SELECT`** | ✓ fichier **et** catalogue |
+| `etat_des_lieux` | `hebergement` | **`SELECT`** | ✓ fichier **et** catalogue |
+| `conversion_unite_mesure` | `ventes` | **aucun** — *pas même `SELECT`* | ✓ fichier **et** catalogue |
+
+**Le défaut trouvé, et corrigé** : `conversion_unite_mesure` portait sa mention **dans le fichier
+seulement**. Les cinq autres la portaient des deux côtés. Un `COMMENT ON TABLE` a été ajouté, et les
+six sont désormais reconnaissables **depuis la base**, sans ouvrir un fichier — ce qui est le seul
+endroit où un cycle de phase 3 les rencontrera vraiment.
+
+### Les deux provisions-colonnes
+
+| Colonne | Nullable | Valeur par défaut | Commentaire |
+|---|---|---|---|
+| `stocks.mouvement_stock.cout_unitaire` (A4) | ✓ | **aucune** | *« PROVISION — nullable et JAMAIS RENSEIGNÉE AU MVP »* |
+| `ventes.article.code_barre` (A5) | ✓ | **aucune** | *« PROVISION-COLONNE — non utilisée au MVP »* |
+| `ventes.article.article_parent_id` (A5) | ✓ | **aucune** | *idem* |
+
+> **L'absence de valeur par défaut est ce qui les tient.** Une provision-colonne avec un `DEFAULT`
+> serait **renseignée à chaque insertion** — et l'on croirait le stock valorisé alors qu'on aurait
+> seulement écrit des zéros. `atthasdef` vaut `false` sur les trois.
+
+### Le décompte d'une prestation incluse n'a reçu aucune table
+
+| Ce qui est cherché | Attendu | Constaté |
+|---|---|---|
+| Table nommée `*decompte*`, `*consommation_prestation*`, `*quota*` | **aucune** | **aucune** ✓ |
+| Le fichier dit-il pourquoi ? | oui | **oui** ✓ — *« une table qu'aucune story n'écrit se remplit un jour de ce qui traîne »* |
+
+### Le décompte des vingt provisions du modèle complet
+
+| Régime | Tables | Dont ce cycle |
+|---|---|---|
+| **Aucun privilège** — la provision qu'on ne peut même pas lire | **2** (`etablissements.convention_inter_etablissements`, `ventes.conversion_unite_mesure`) | 1 |
+| **`SELECT` seul** | **18** | 5 |
+| | **20** ✓ | **6** |
+
+**Verdict : conforme.** Toute provision du modèle a sa table, aucune n'a de logique, et **aucune ne
+pourra en recevoir sans qu'un `GRANT` change** — ce qui se voit dans un diff, et se discute.
