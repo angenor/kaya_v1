@@ -778,3 +778,94 @@ règle de tenue oblige à mettre à jour.
 
 `.specify/feature.json` pointe désormais sur `specs/002-modele-donnees-verticales` : c'est l'état de
 l'outil de spécification pour ce cycle, et il est commité avec lui.
+
+---
+
+## T032 · Revue de la *Definition of Done* — `docs/user-stories-v1.md` §0.4
+
+**Date** : 2026-08-07 · **Règle appliquée** : *les points hors phase se déclarent « sans objet »,
+**jamais cochés en silence**.*
+
+| # | Point | Phase | Verdict |
+|---|---|---|---|
+| **1** | Critères d'acceptation couverts par des tests | **toutes** | ✅ **tenu, avec une réserve nommée** — voir ci-dessous |
+| **2** | Annotations utoipa, client TypeScript régénéré | phase 3 | ⚪ **sans objet** |
+| **3** | Migration sqlx versionnée, `cargo sqlx prepare`, seeds | phase 3 | ⚪ **sans objet** |
+| **4** | **RLS activée ET forcée** sur toute nouvelle table, avec test d'isolation | phases 1 et 3 | ✅ **118/118**, `ENABLE` **et** `FORCE`, forme unique · le **test d'isolation multi-tenant** est de phase 3 : ⚪ **sans objet ici** |
+| **5** | **Classe hors-ligne déclarée** pour toute nouvelle entité, avec son test | phases 1 et 3 | ✅ **118/118** déclarées, P-02 verte · les **tests `tester_classe_bcd!`** sont de phase 3 : ⚪ **sans objet ici** |
+| **6** | Événement outbox pour tout changement d'état | phase 3 | ⚪ **sans objet** |
+| **7** | **Clés i18n fr et en**, aucune chaîne en dur | **toutes** | ⚪ **sans objet** — ce cycle ne produit **aucune chaîne exposée à un utilisateur**. Les libellés de `CHECK` (`'SEJOUR'`, `'PRET'`) sont des **valeurs d'énumération de base**, jamais un texte affiché ; leur traduction naîtra avec l'écran qui les montre |
+| **8** | Écran vérifié clair **et** sombre, en navigateur réel, Chromium **et** WebKit | phase 2 | ⚪ **sans objet** — aucun écran |
+| **9** | **Paramètres exposés en configuration** quand la story dit « paramétrable » | **toutes** | ✅ **tenu** — voir ci-dessous |
+| **10** | Document imprimé vérifié sur imprimante thermique | phase 3 | ⚪ **sans objet** |
+| **11** | **`docs/modele-donnees/{schema}.sql` à jour** — en phase 1 il **est** le livrable | **toutes** | ✅ **c'est le livrable** : quatre fichiers créés, README tenu dans le même changement |
+| **12** | Jeu de données simulées à la forme du modèle | phase 2 | ⚪ **sans objet** — aucune donnée simulée |
+| **13** | Données simulées des endpoints livrés supprimées | phase 3 | ⚪ **sans objet** |
+| **14** | **`scripts/verifier.sh` passe en une commande**, enchaîne tout, et **toute porte ajoutée a son test négatif** | **toutes** | ✅ **tenu** — voir ci-dessous |
+
+### Point 1 — « couverts par des tests », et ce que cela veut dire quand il n'y a pas de code
+
+**Ce cycle ne livre aucun code exécutable**, donc aucun test unitaire n'a de sujet. Ce qui en tient
+lieu, et qui est **exécutable** :
+
+- **Trois portes** dans une commande unique, sur **118 tables** — appliquées sur une base vierge à
+  chaque exécution ;
+- **Trois tests négatifs** qui prouvent que les portes savent échouer, **rejoués après le
+  relèvement des planchers** ;
+- **Cinq cas de la contrainte d'exclusion** déroulés à la main, dont **deux transactions
+  réellement concurrentes** ;
+- **une mesure de performance** sur 20 000 lignes.
+
+**La réserve, et elle est nommée parce qu'elle ne se réparera pas toute seule** : *aucun de ces
+contrôles ne prouve la **justesse d'une classe**.* Aucune lecture du schéma ne retrouve qu'une ligne
+de commande est **A** à la saisie et **B** à l'annulation après envoi. C'est le seul point du modèle
+qui demande un **jugement humain**, et ce cycle en compte **six** — contre deux au cycle D1.
+
+### Point 9 — aucun paramètre métier en dur
+
+| Paramètre | Où il vit | Ce que le cycle **n'a pas** fait |
+|---|---|---|
+| Seuil de bascule passage → nuitée | Clé de catalogue `seuil_bascule_nuitee_minutes` (D1) | **aucune colonne** nulle part |
+| Heures d'arrivée et de départ standard | Clés de catalogue (D1) | colonnes de `formule` **nullables**, sens = « demander à l'établissement » ; **aucune valeur en dur** |
+| Destination de préparation par défaut | Clé `ventes.destination_preparation_defaut` (D1) | `article.destination_preparation_id` **nullable**, avec le repli commenté |
+| Politique d'annulation, délai d'expiration d'une provisoire | Clés de catalogue (RSV-01, RSV-03) | **aucune table** — et `97-hebergement.sql` le dit |
+| Moment de règlement du pressing | Clé `pressing.moment_reglement` | **résolu à la création du bon, puis figé** |
+| Toute règle fiscale | `JurisdictionAdapter`, phase 3 | **zéro `TRIGGER`, zéro fonction** dans les quatorze schémas |
+
+### Point 14 — la commande unique, et la porte ajoutée
+
+**`scripts/verifier.sh` passe en une commande, et il enchaîne tout ce qui doit passer.** Aucun
+contrôle n'est lancé à la main **en plus** de lui : les constats de ce rapport sont des **constats
+humains datés**, pas des contrôles à rejouer — c'est la distinction que la constitution pose, et le
+jour où l'un d'eux échoue, il devient une porte.
+
+**La porte ajoutée par ce cycle a son test négatif** — `--test-negatif p05` —, et il a lui-même été
+vérifié **en cassant P-05 volontairement** : la porte sabotée est restée verte, et le test est sorti
+en **code 4**.
+
+> **Sur l'ajout de P-05 lui-même** : la spécification approuvée disait « aucune porte nouvelle ».
+> **Le plan du cycle D1 avait explicitement désigné celui-ci** comme le moment où elle serait
+> justifiée, cible non vide à l'appui — et la cible est passée de **zéro** à **onze rattachements
+> distincts et une trentaine de colonnes**. Le conflit **n'a pas été tranché en silence** : FR-044,
+> FR-046, FR-047, SC-012, SC-013 et la section « Hors périmètre » de la spécification ont été
+> amendés dans le même changement, avec le motif écrit.
+
+**Verdict : quatre points tenus, sept sans objet, trois partiellement sans objet — et la seule
+réserve du cycle est nommée plutôt que passée.**
+
+---
+
+## Ce que ce cycle laisse écrit pour la phase 3, plutôt que de le laisser redécouvrir
+
+| Ce qui reste à faire | Où c'est écrit |
+|---|---|
+| Le calcul qui pose `periode_indisponibilite` à `periode.fin + temps_remise_en_etat` | [disponibilite.md](./contracts/disponibilite.md) §3 · commentaire de colonne |
+| **Insérer et traiter le rejet `23P01`**, jamais lire puis insérer | [disponibilite.md](./contracts/disponibilite.md) §2 · en-tête d'`occupation` |
+| **Insérer et traiter le conflit `23505`** pour les deux reports, jamais lire puis insérer | [sagas-inter-modules.md](./contracts/sagas-inter-modules.md) §4 · commentaires de colonne |
+| La compensation des deux sagas et le **test du scénario orphelin** (SYN-03) | [sagas-inter-modules.md](./contracts/sagas-inter-modules.md) §3 et §5 |
+| La règle « `lot_envoi_id` ne s'écrit qu'une fois » — **de service, pas de privilège** | Commentaire de colonne, `55-ventes.sql` |
+| **La portée du compteur doit égaler celle de l'index d'unicité** — `numerotation_reference`, `numerotation_retrait` | Commentaires, `55-ventes.sql` et `98-pressing.sql` |
+| Le **test structurel** qui échoue si `verticales/hebergement` déclare `verticales/pressing`, ou l'inverse | En-tête de `98-pressing.sql` · [sagas-inter-modules.md](./contracts/sagas-inter-modules.md) §4.2 |
+| Le **piège du préfixe à trois chiffres** pour un seizième fichier | [README du modèle](../../docs/modele-donnees/README.md) |
+| **Le `COMMIT` du perdant rend `ROLLBACK`** : vérifier le succès sur l'`INSERT`, jamais sur le `COMMIT` | Ce rapport, T006 |
+| **Quand `ix_unite_categorie` gagnera son coût** — et qu'il faudra refaire la mesure | Ce rapport, T026 |
