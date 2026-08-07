@@ -619,6 +619,579 @@ CREATE INDEX ix_occupation_origine
     ON hebergement.occupation (origine_type, origine_id);
 
 
+-- ############################################################################
+-- 3 · SÉJOUR — du client à la note, et la note à la taxe
+-- ############################################################################
+
+
+-- ============================================================================
+-- hebergement.client — ce qui est propre au client de l'hébergement
+-- CLASSE C · branche C2 — PARTAGÉ ENTRE LES ÉTABLISSEMENTS DU TENANT
+-- Story : SEJ-01
+--
+-- ⚠️ AUCUNE DONNÉE D'IDENTITÉ N'EST DUPLIQUÉE ICI. Nom, prénoms, téléphone,
+-- type et numéro de pièce vivent sur `comptes.personne` (cycle D1), qui porte
+-- l'index de recherche ET `piece_capturee_le`, la colonne de la purge ARTCI
+-- TRX-06. LES DUPLIQUER DONNERAIT DEUX CIBLES À LA PURGE, et une purge qui en
+-- oublie une est une non-conformité — découverte au contrôle, pas avant.
+-- Cette table ne porte donc que ce qui est propre au CLIENT DE L'HÉBERGEMENT :
+-- sa nationalité pour la fiche de police, son adresse de facturation, sa
+-- catégorie commerciale, la note interne du personnel.
+--
+-- ⚠️ AUCUN `etablissement_id`, ET C'EST SEJ-01 QUI L'IMPOSE. La fiche est
+-- « rattachée au tenant, PARTAGÉE ENTRE SES ÉTABLISSEMENTS » (registre §7.3).
+-- Une colonne d'établissement la rattacherait à un seul et contredirait
+-- `uq_client_personne`, unique PAR TENANT. Un établissement retrouve « ses »
+-- clients PAR SES SÉJOURS — `sejour.etablissement_id` —, ce qui est exactement
+-- ce que « partagée » veut dire. L'isolation reste portée par `tenant_id`,
+-- comme sur toute table du modèle.
+-- ============================================================================
+CREATE TABLE hebergement.client (
+    id                    UUID CONSTRAINT pk_client PRIMARY KEY,
+    tenant_id             UUID        NOT NULL,
+    -- Rattachement inter-modules vers comptes.personne — NU. L'identité vit
+    -- là-bas, et NULLE PART AILLEURS.
+    personne_id           UUID        NOT NULL,
+    nationalite           TEXT            NULL,
+    adresse               TEXT            NULL,
+    categorie_commerciale TEXT            NULL,
+    note_interne          TEXT            NULL,
+    cree_le               TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modifie_le            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- UNIQUE PAR TENANT, jamais par établissement : c'est la forme qui dit
+    -- « partagée entre les établissements du tenant ».
+    CONSTRAINT uq_client_personne UNIQUE (tenant_id, personne_id)
+);
+
+COMMENT ON TABLE hebergement.client IS
+    'Spécialisation de comptes.personne. AUCUNE donnée d''identité dupliquée : la purge ARTCI TRX-06 n''a qu''une cible.';
+COMMENT ON COLUMN hebergement.client.personne_id IS
+    'Rattachement inter-modules vers comptes.personne — nu, sans REFERENCES. L''identité et piece_capturee_le vivent là-bas.';
+
+ALTER TABLE hebergement.client ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.client FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.client
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.client
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.client TO kaya_app;
+
+-- Sert : retrouver le client depuis la personne trouvée par la recherche
+-- d'identité du socle — le sens de lecture réel à l'arrivée (SEJ-01)
+CREATE INDEX ix_client_personne ON hebergement.client (personne_id);
+
+
+-- ============================================================================
+-- hebergement.preference_personne — « chambre calme, étage bas »
+-- CLASSE A · branche A4 — append-only, commutative, sans effet monétaire
+-- Story : SEJ-01, SEJ-02
+--
+-- ⚠️ SUR LA PERSONNE, PAS SUR LE CLIENT. Une préférence suit la personne d'un
+-- établissement à l'autre : c'est le même homme qui n'aime pas le rez-de-
+-- chaussée, qu'il dorme à Abidjan ou à Abengourou. La poser sur `client`
+-- l'enfermerait dans la fiche d'hébergement, alors que la personne existe aussi
+-- comme cliente du pressing.
+--
+-- APPEND-ONLY : deux enregistrements de la même préférence ne se contredisent
+-- pas, et c'est ce qui la rend commutative — donc atteignable hors ligne.
+-- ============================================================================
+CREATE TABLE hebergement.preference_personne (
+    id                UUID CONSTRAINT pk_preference_personne PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    -- Rattachement inter-modules vers comptes.personne — NU.
+    personne_id       UUID        NOT NULL,
+    type              TEXT        NOT NULL,
+    valeur            TEXT        NOT NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON COLUMN hebergement.preference_personne.personne_id IS
+    'Rattachement inter-modules vers comptes.personne — nu, sans REFERENCES. SUR LA PERSONNE et non sur le client : la préférence suit l''homme d''un établissement à l''autre.';
+
+ALTER TABLE hebergement.preference_personne ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.preference_personne FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.preference_personne
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.preference_personne
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT ON hebergement.preference_personne TO kaya_app;
+
+-- Sert : les préférences à afficher à l'arrivée, de la plus récente à la plus
+-- ancienne (SEJ-01, SEJ-02)
+CREATE INDEX ix_preference_personne_personne
+    ON hebergement.preference_personne (personne_id, cree_le DESC);
+
+
+-- ============================================================================
+-- hebergement.sejour — quelqu'un occupe une unité, du check-in au check-out
+-- CLASSE B · branche B3 — ressource unique
+-- Story : SEJ-02, SEJ-04
+--
+-- `occupation_id` EST OBLIGATOIRE, et c'est ce qui rend la disponibilité
+-- indéformable : IL N'EXISTE PAS DE SÉJOUR SANS OCCUPATION. Un séjour qui
+-- n'aurait pas la sienne serait une attribution d'unité que la contrainte
+-- d'exclusion n'aurait jamais vue — donc une double attribution possible.
+--
+-- `client_id` EST NULLABLE, et c'est SEJ-05 qui l'impose : la vente à un client
+-- extérieur — passage sans fiche, salle de réunion à l'heure — ne crée pas
+-- toujours de fiche client. La rendre obligatoire ferait créer des fiches vides.
+--
+-- LE CHANGEMENT D'UNITÉ EN COURS DE SÉJOUR NE MODIFIE PAS `unite_id` : il crée
+-- DEUX occupations — la première close sur l'instant du changement, la seconde
+-- ouverte sur la nouvelle unité — et l'historique est conservé, comme SEJ-04
+-- l'exige. `unite_id` porte l'unité COURANTE.
+-- ============================================================================
+CREATE TABLE hebergement.sejour (
+    id                UUID CONSTRAINT pk_sejour PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    -- Rattachement inter-modules vers etablissements.etablissement — NU.
+    -- C'EST PAR LUI qu'un établissement retrouve « ses » clients, `client`
+    -- n'en portant pas.
+    etablissement_id  UUID        NOT NULL,
+    client_id         UUID            NULL,
+    unite_id          UUID        NOT NULL,
+    formule_id        UUID        NOT NULL,
+    occupation_id     UUID        NOT NULL,
+    reservation_id    UUID            NULL,
+    etat              TEXT        NOT NULL,
+    arrive_le         TIMESTAMPTZ NOT NULL,
+    parti_le          TIMESTAMPTZ     NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_sejour_client FOREIGN KEY (client_id)
+        REFERENCES hebergement.client (id),
+    CONSTRAINT fk_sejour_unite FOREIGN KEY (unite_id)
+        REFERENCES hebergement.unite (id),
+    CONSTRAINT fk_sejour_formule FOREIGN KEY (formule_id)
+        REFERENCES hebergement.formule (id),
+    CONSTRAINT fk_sejour_occupation FOREIGN KEY (occupation_id)
+        REFERENCES hebergement.occupation (id),
+    CONSTRAINT ck_sejour_etat CHECK (etat IN (
+        'EN_COURS', 'TERMINE', 'ANNULE')),
+    CONSTRAINT ck_sejour_depart_coherent CHECK (
+        parti_le IS NULL OR parti_le >= arrive_le)
+);
+
+COMMENT ON COLUMN hebergement.sejour.etablissement_id IS
+    'Rattachement inter-modules vers etablissements.etablissement — nu, sans REFERENCES. C''est par cette colonne qu''un établissement retrouve « ses » clients : hebergement.client ne porte pas d''établissement (SEJ-01).';
+COMMENT ON COLUMN hebergement.sejour.occupation_id IS
+    'OBLIGATOIRE. Il n''existe pas de séjour sans occupation — un séjour sans la sienne serait une attribution que la contrainte d''exclusion n''aurait jamais vue.';
+COMMENT ON COLUMN hebergement.sejour.client_id IS
+    'NULLABLE — la vente à un client extérieur (SEJ-05) ne crée pas toujours de fiche. L''exiger ferait créer des fiches vides.';
+COMMENT ON COLUMN hebergement.sejour.unite_id IS
+    'Unité COURANTE. Un changement d''unité en cours de séjour crée DEUX occupations et ne réécrit aucun historique (SEJ-04).';
+
+ALTER TABLE hebergement.sejour ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.sejour FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.sejour
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.sejour
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.sejour TO kaya_app;
+
+-- Sert : les séjours en cours d'un établissement — le tableau de réception
+-- (SEJ-02)
+CREATE INDEX ix_sejour_etab_etat ON hebergement.sejour (etablissement_id, etat);
+
+-- Sert : l'historique des séjours d'un client, du plus récent au plus ancien
+-- (SEJ-01)
+CREATE INDEX ix_sejour_client ON hebergement.sejour (client_id, arrive_le DESC);
+
+-- Sert : l'occupant courant d'une unité — l'écran de gouvernante et le
+-- room-service (HEB-06)
+CREATE INDEX ix_sejour_unite_arrivee
+    ON hebergement.sejour (unite_id, arrive_le DESC);
+
+
+-- ============================================================================
+-- hebergement.accompagnant — qui d'autre dort là
+-- CLASSE A · branche A4 — explicitement A au cadrage §11.3
+-- Story : SEJ-02
+--
+-- APPEND-ONLY, et la conséquence compte : LA BASE DU CALCUL DE TAXE DE SÉJOUR
+-- est le nombre de personnes, accompagnants compris (FIS-03). Ajouter un
+-- accompagnant hors ligne est donc licite ; le constat de taxe, lui, est figé au
+-- départ, en ligne, dans `taxe_sejour_constat` — c'est ce qui empêche une
+-- écriture tardive de modifier une taxe déjà déclarée.
+--
+-- `est_mineur` est une colonne plutôt qu'un calcul sur une date de naissance :
+-- l'exonération porte sur le statut au moment du séjour, et la date de naissance
+-- n'est pas toujours collectée.
+-- ============================================================================
+CREATE TABLE hebergement.accompagnant (
+    id                UUID CONSTRAINT pk_accompagnant PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    sejour_id         UUID        NOT NULL,
+    nom               TEXT        NOT NULL,
+    prenoms           TEXT            NULL,
+    type_piece        TEXT            NULL,
+    numero_piece      TEXT            NULL,
+    est_mineur        BOOLEAN     NOT NULL DEFAULT false,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_accompagnant_sejour FOREIGN KEY (sejour_id)
+        REFERENCES hebergement.sejour (id)
+);
+
+COMMENT ON COLUMN hebergement.accompagnant.est_mineur IS
+    'Statut AU MOMENT DU SÉJOUR, colonne et non calcul : l''exonération porte sur ce statut, et la date de naissance n''est pas toujours collectée.';
+
+ALTER TABLE hebergement.accompagnant ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.accompagnant FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.accompagnant
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.accompagnant
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT ON hebergement.accompagnant TO kaya_app;
+
+-- Sert : les accompagnants d'un séjour — la fiche de police et la base du
+-- calcul de taxe (SEJ-02, FIS-03)
+CREATE INDEX ix_accompagnant_sejour ON hebergement.accompagnant (sejour_id);
+
+
+-- ============================================================================
+-- hebergement.note_sejour — ce que le séjour doit, à un instant donné
+-- CLASSE B · branche B3 — effet monétaire, clôt avec le séjour
+-- Story : SEJ-02, SEJ-04
+--
+-- UNE NOTE PAR SÉJOUR — `uq_note_sejour_sejour` —, et l'unicité EST la
+-- structure : deux notes sur un séjour donneraient deux totaux et deux
+-- documents fiscaux.
+--
+-- `total_provisoire` PORTE BIEN SON NOM : c'est un CACHE de lecture, recalculé
+-- depuis les lignes. Le total OPPOSABLE est celui du document fiscal certifié.
+-- Une colonne de total qu'on croirait faisant foi est le plus court chemin vers
+-- une note et une facture qui ne disent pas la même chose.
+--
+-- L'ÉTAT `ARRETEE` EST CE QUI DÉCLENCHE LE CAS ORPHELIN DES DEUX SAGAS : une
+-- consommation qui arrive après l'arrêt ne s'ajoute pas d'office, elle part en
+-- réconciliation. Voir contracts/sagas-inter-modules.md.
+-- ============================================================================
+CREATE TABLE hebergement.note_sejour (
+    id                UUID CONSTRAINT pk_note_sejour PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    sejour_id         UUID           NOT NULL,
+    etat              TEXT           NOT NULL,
+    arretee_le        TIMESTAMPTZ        NULL,
+    total_provisoire  montant_mineur NOT NULL DEFAULT 0,
+    code_devise       code_devise    NOT NULL,
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_note_sejour_sejour FOREIGN KEY (sejour_id)
+        REFERENCES hebergement.sejour (id),
+    CONSTRAINT uq_note_sejour_sejour UNIQUE (tenant_id, sejour_id),
+    CONSTRAINT ck_note_sejour_etat CHECK (etat IN ('OUVERTE', 'ARRETEE'))
+);
+
+COMMENT ON COLUMN hebergement.note_sejour.total_provisoire IS
+    'CACHE de lecture, recalculé depuis les lignes. Le total OPPOSABLE est celui du document fiscal certifié — jamais celui-ci.';
+COMMENT ON COLUMN hebergement.note_sejour.etat IS
+    'OUVERTE | ARRETEE. L''état ARRETEE DÉCLENCHE LE CAS ORPHELIN des deux sagas : une consommation qui arrive après ne s''ajoute pas d''office, elle part en réconciliation (contracts/sagas-inter-modules.md).';
+
+ALTER TABLE hebergement.note_sejour ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.note_sejour FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.note_sejour
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.note_sejour
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.note_sejour TO kaya_app;
+
+-- Aucun index : uq_note_sejour_sejour suffit — une note par séjour, et c'est la
+-- seule recherche de cette table.
+
+
+-- ============================================================================
+-- hebergement.ligne_sejour — une ligne de la note
+-- CLASSE B · branche B3 — effet monétaire sur la note
+-- CLASSE « CELLE DE LA LIGNE D'ORIGINE » — quand la ligne vient d'un point de
+--         vente : une consommation saisie hors ligne en classe A RESTE une
+--         écriture de classe A une fois reportée, et c'est ce qui rend le report
+--         possible depuis un terminal déconnecté (registre §7.3)
+-- Story : SEJ-03
+--
+-- ⚠️ CETTE SECONDE CLASSE N'EST PAS UNE VALEUR FIXE, et c'est pourquoi elle ne
+-- s'inscrit dans aucune colonne de décompte. Elle se lit sur la ligne d'origine.
+--
+-- ⚠️ `ligne_commande_id` EST LA PREMIÈRE DES DEUX SAGAS. Voir le bloc de
+-- commentaires de colonne, rédigé en T015.
+--
+-- ⚠️ L'IDEMPOTENCE DES DEUX REPORTS EST PORTÉE PAR UN INDEX UNIQUE PARTIEL,
+-- JAMAIS PAR UNE LECTURE PRÉALABLE. Un index ordinaire RETROUVERAIT le doublon ;
+-- il ne le REFUSERAIT pas — et un événement rejoué après coupure produirait une
+-- SECONDE LIGNE SUR LA NOTE, donc une double facturation découverte au départ du
+-- client. La forme est celle du socle : « l'idempotence est portée par une
+-- contrainte, pas par du code » (`uq_evenement_metrique_id`, cycle D1). Le
+-- service de la phase 3 INSÈRE ET TRAITE LE CONFLIT `23505` — il ne lit pas
+-- avant d'écrire, exactement comme pour la contrainte d'exclusion.
+--
+-- `sejour_origine_id` PORTE LE TRANSFERT DE CHARGES entre séjours (SEJ-03) :
+-- la ligne vit sur la note qui paie, et garde la trace du séjour qui a consommé.
+-- C'est une clé étrangère INTERNE au schéma — normale et souhaitable.
+-- ============================================================================
+CREATE TABLE hebergement.ligne_sejour (
+    id                UUID CONSTRAINT pk_ligne_sejour PRIMARY KEY,
+    tenant_id         UUID           NOT NULL,
+    note_sejour_id    UUID           NOT NULL,
+    type              TEXT           NOT NULL,
+    libelle           TEXT           NOT NULL,
+    quantite          quantite       NOT NULL,
+    prix_unitaire     montant_mineur NOT NULL,
+    code_devise       code_devise    NOT NULL,
+    taux_tva          NUMERIC        NOT NULL DEFAULT 0,
+    -- SAGA `ventes` → `hebergement`. NU, sans REFERENCES.
+    ligne_commande_id UUID               NULL,
+    -- Transfert de charges — clé étrangère INTERNE au schéma.
+    sejour_origine_id UUID               NULL,
+    -- Report du pressing sur la note. NU, sans REFERENCES.
+    bon_depot_id      UUID               NULL,
+    horodatage_client TIMESTAMPTZ        NULL,
+    cree_le           TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_ligne_sejour_note FOREIGN KEY (note_sejour_id)
+        REFERENCES hebergement.note_sejour (id),
+    CONSTRAINT fk_ligne_sejour_sejour_origine FOREIGN KEY (sejour_origine_id)
+        REFERENCES hebergement.sejour (id),
+    CONSTRAINT ck_ligne_sejour_type CHECK (type IN (
+        'HEBERGEMENT', 'CONSOMMATION', 'PRESSING', 'TAXE', 'DIVERS')),
+    CONSTRAINT ck_ligne_sejour_quantite_positive CHECK (quantite > 0)
+);
+
+COMMENT ON COLUMN hebergement.ligne_sejour.sejour_origine_id IS
+    'Transfert de charges (SEJ-03) : la ligne vit sur la note qui PAIE et garde la trace du séjour qui a CONSOMMÉ. Clé étrangère interne au schéma — normale et souhaitable.';
+
+ALTER TABLE hebergement.ligne_sejour ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.ligne_sejour FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.ligne_sejour
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.ligne_sejour
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.ligne_sejour TO kaya_app;
+
+-- Sert : la note en temps réel — les lignes d'une note et son total provisoire
+-- instantané (SEJ-03)
+CREATE INDEX ix_ligne_sejour_note ON hebergement.ligne_sejour (note_sejour_id);
+
+-- ⚠️ INDEX **UNIQUE** PARTIEL, ET LA NUANCE DÉCIDE D'UNE DOUBLE FACTURATION :
+-- l'idempotence du report est portée par une CONTRAINTE, jamais par une lecture
+-- préalable. Un index ordinaire retrouverait le doublon sans le REFUSER, et un
+-- événement rejoué produirait une seconde ligne sur la note (PDV-02, SEJ-03)
+CREATE UNIQUE INDEX uq_ligne_sejour_ligne_commande
+    ON hebergement.ligne_sejour (tenant_id, ligne_commande_id)
+    WHERE ligne_commande_id IS NOT NULL;
+
+-- Idem pour le report du pressing — même mécanique, même motif (PDV-06)
+CREATE UNIQUE INDEX uq_ligne_sejour_bon_depot
+    ON hebergement.ligne_sejour (tenant_id, bon_depot_id)
+    WHERE bon_depot_id IS NOT NULL;
+
+
+-- ============================================================================
+-- hebergement.fiche_police — l'obligation déclarative de l'hébergeur
+-- CLASSE B · branche B3 — dérivée du check-in, NUMÉROTÉE
+-- Story : SEJ-02
+--
+-- NUMÉROTÉE PAR ÉTABLISSEMENT ET PAR ANNÉE, avec un compteur en table — voir
+-- `numerotation_fiche_police`. Un trou dans une numérotation opposable est une
+-- fiche dont personne ne sait si elle a existé, et c'est à l'autorité qu'il
+-- faudrait l'expliquer.
+--
+-- `contenu` EN `JSONB` : les mentions exigées varient par juridiction et par
+-- époque. Des colonnes fixes imposeraient une migration à chaque évolution
+-- réglementaire, et la fiche doit rester lisible TELLE QU'ELLE A ÉTÉ ÉMISE —
+-- c'est un document, pas un état courant.
+--
+-- `complete` distingue la fiche COMPLÈTE de celle qu'il faut finir : SEJ-06
+-- autorise un check-in avec une pièce non encore capturée, et l'écran de
+-- rattrapage part de cette colonne.
+-- ============================================================================
+CREATE TABLE hebergement.fiche_police (
+    id                UUID CONSTRAINT pk_fiche_police PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    sejour_id         UUID        NOT NULL,
+    -- Rattachement inter-modules vers etablissements.etablissement — NU.
+    -- ⚠️ COLONNE DÉCOUVERTE À L'IMPLÉMENTATION, absente de data-model.md. Elle
+    -- est RENDUE NÉCESSAIRE PAR L'UNICITÉ que ce même document exige — « par
+    -- établissement et année ». Le compteur `numerotation_fiche_police` a pour
+    -- portée l'établissement ET l'année ; sans cette colonne, l'unicité aurait
+    -- dû porter sur le tenant, et LA FICHE N° 1 DU SECOND ÉTABLISSEMENT AURAIT
+    -- ÉTÉ REFUSÉE. Lire l'établissement à travers le séjour ne suffit pas : une
+    -- contrainte UNIQUE ne traverse pas une jointure.
+    etablissement_id  UUID        NOT NULL,
+    numero            TEXT        NOT NULL,
+    annee             SMALLINT    NOT NULL,
+    complete          BOOLEAN     NOT NULL DEFAULT false,
+    emise_le          TIMESTAMPTZ NOT NULL,
+    contenu           JSONB       NOT NULL,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_fiche_police_sejour FOREIGN KEY (sejour_id)
+        REFERENCES hebergement.sejour (id),
+    -- L'unicité porte EXACTEMENT sur la portée du compteur qui l'alimente —
+    -- établissement et année. Toute autre portée ferait diverger les deux : un
+    -- compteur qui rend 1 et une contrainte qui refuse 1.
+    CONSTRAINT uq_fiche_police_numero
+        UNIQUE (tenant_id, etablissement_id, annee, numero)
+);
+
+COMMENT ON COLUMN hebergement.fiche_police.etablissement_id IS
+    'Rattachement inter-modules vers etablissements.etablissement — nu, sans REFERENCES. Présente parce que uq_fiche_police_numero doit porter sur LA MÊME PORTÉE que le compteur numerotation_fiche_police : une contrainte UNIQUE ne traverse pas une jointure.';
+COMMENT ON COLUMN hebergement.fiche_police.contenu IS
+    'JSONB : les mentions exigées varient par juridiction et par époque. La fiche doit rester lisible TELLE QU''ELLE A ÉTÉ ÉMISE — c''est un document, pas un état courant.';
+COMMENT ON COLUMN hebergement.fiche_police.complete IS
+    'Distingue la fiche complète de celle à finir : SEJ-06 autorise un check-in avec une pièce non encore capturée, et l''écran de rattrapage part d''ici.';
+
+ALTER TABLE hebergement.fiche_police ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.fiche_police FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.fiche_police
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.fiche_police
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.fiche_police TO kaya_app;
+
+-- Sert : la fiche d'un séjour, et la liste des fiches à compléter (SEJ-02)
+CREATE INDEX ix_fiche_police_sejour
+    ON hebergement.fiche_police (sejour_id, complete);
+
+
+-- ============================================================================
+-- hebergement.numerotation_fiche_police — le compteur de la fiche de police
+-- CLASSE B · branche B3 — numérotation continue, sérialisée par verrou de ligne
+-- Story : SEJ-02
+--
+-- ⚠️ UN COMPTEUR EN TABLE, JAMAIS UNE `SEQUENCE` (00-conventions.sql, piège
+-- (c)). Une séquence n'est pas transactionnelle : chaque transaction annulée
+-- laisse un trou, et POUR UNE NUMÉROTATION OPPOSABLE À L'AUTORITÉ, un trou est
+-- une fiche dont personne ne sait si elle a existé.
+--
+-- Une ligne par établissement ET PAR ANNÉE : la numérotation repart à 1 au
+-- 1ᵉʳ janvier, ce qui est la pratique de la déclaration.
+-- ============================================================================
+CREATE TABLE hebergement.numerotation_fiche_police (
+    id                UUID CONSTRAINT pk_numerotation_fiche_police PRIMARY KEY,
+    tenant_id         UUID        NOT NULL,
+    -- Rattachement inter-modules vers etablissements.etablissement — NU.
+    etablissement_id  UUID        NOT NULL,
+    annee             SMALLINT    NOT NULL,
+    dernier_numero    BIGINT      NOT NULL DEFAULT 0,
+    horodatage_client TIMESTAMPTZ     NULL,
+    cree_le           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_numerotation_fiche_police_portee
+        UNIQUE (tenant_id, etablissement_id, annee),
+    CONSTRAINT ck_numerotation_fiche_police_positif CHECK (dernier_numero >= 0)
+);
+
+COMMENT ON COLUMN hebergement.numerotation_fiche_police.etablissement_id IS
+    'Rattachement inter-modules vers etablissements.etablissement — nu, sans REFERENCES.';
+COMMENT ON COLUMN hebergement.numerotation_fiche_police.dernier_numero IS
+    'Compteur à VERROU DE LIGNE, jamais une SEQUENCE : un trou dans une numérotation opposable est une fiche dont personne ne sait si elle a existé.';
+
+ALTER TABLE hebergement.numerotation_fiche_police ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.numerotation_fiche_police FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.numerotation_fiche_police
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.numerotation_fiche_police
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON hebergement.numerotation_fiche_police TO kaya_app;
+
+-- Aucun index : uq_numerotation_fiche_police_portee sert le verrou de ligne,
+-- qui est la seule recherche de cette table.
+
+
+-- ============================================================================
+-- hebergement.taxe_sejour_constat — ce qui a été constaté au départ
+-- CLASSE B · branche B3 — clôt la note
+-- Story : SEJ-04
+--
+-- ⚠️ IMMUABLE PAR PRIVILÈGE : `SELECT, INSERT` SEULS. LE CONSTAT EST FIGÉ AU
+-- DÉPART, et c'est ce qui protège les déclarations passées : sans cette
+-- immuabilité, un changement de paramétrage fiscal RÉÉCRIRAIT RÉTROACTIVEMENT
+-- des taxes déjà déclarées à la commune, et l'état de reversement ne
+-- correspondrait plus à ce qui a été versé.
+--
+-- ⚠️ CETTE TABLE PORTE UNE TRACE, JAMAIS UNE RÈGLE. Le calcul est celui du
+-- `JurisdictionAdapter` (constitution, principe 5) ; `regle_appliquee` en garde
+-- l'identifiant pour qu'on puisse relire POURQUOI ce montant, sans avoir à
+-- rejouer un calcul dont les paramètres ont changé.
+--
+-- `uq_taxe_sejour_constat_sejour` : UN SEUL CONSTAT PAR SÉJOUR. Deux constats
+-- donneraient deux montants au même reversement communal.
+-- ============================================================================
+CREATE TABLE hebergement.taxe_sejour_constat (
+    id                   UUID CONSTRAINT pk_taxe_sejour_constat PRIMARY KEY,
+    tenant_id            UUID           NOT NULL,
+    sejour_id            UUID           NOT NULL,
+    nuitees_assujetties  INTEGER        NOT NULL,
+    nombre_personnes     INTEGER        NOT NULL,
+    montant_unitaire     montant_mineur NOT NULL,
+    montant_total        montant_mineur NOT NULL,
+    code_devise          code_devise    NOT NULL,
+    regle_appliquee      TEXT           NOT NULL,
+    constate_le          TIMESTAMPTZ    NOT NULL,
+    horodatage_client    TIMESTAMPTZ        NULL,
+    cree_le              TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT fk_taxe_sejour_constat_sejour FOREIGN KEY (sejour_id)
+        REFERENCES hebergement.sejour (id),
+    CONSTRAINT uq_taxe_sejour_constat_sejour UNIQUE (tenant_id, sejour_id),
+    CONSTRAINT ck_taxe_sejour_constat_quantites CHECK (
+        nuitees_assujetties >= 0 AND nombre_personnes > 0)
+);
+
+COMMENT ON TABLE hebergement.taxe_sejour_constat IS
+    'TRACE FIGÉE du constat de départ, jamais une règle. Immuable par privilège : un changement de paramétrage ne doit pas réécrire une taxe déjà déclarée.';
+COMMENT ON COLUMN hebergement.taxe_sejour_constat.regle_appliquee IS
+    'Identifiant de la règle du JurisdictionAdapter appliquée ce jour-là. Permet de relire POURQUOI ce montant sans rejouer un calcul dont les paramètres ont changé.';
+
+ALTER TABLE hebergement.taxe_sejour_constat ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hebergement.taxe_sejour_constat FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY isolation_tenant ON hebergement.taxe_sejour_constat
+    USING      (tenant_id = current_setting('app.current_tenant', true)::uuid)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid);
+
+CREATE POLICY administration_editeur ON hebergement.taxe_sejour_constat
+    FOR ALL TO kaya_owner USING (true) WITH CHECK (true);
+
+-- IMMUABLE PAR PRIVILÈGE — ni UPDATE, ni DELETE. Voir l'en-tête.
+GRANT SELECT, INSERT ON hebergement.taxe_sejour_constat TO kaya_app;
+
+-- Sert : l'état de reversement communal par période — ce qui est dû à la
+-- commune sur un mois donné (FIS-08)
+CREATE INDEX ix_taxe_sejour_constat_date
+    ON hebergement.taxe_sejour_constat (constate_le);
+
+
 -- ============================================================================
 -- FIN — 97-hebergement.sql
 -- ============================================================================

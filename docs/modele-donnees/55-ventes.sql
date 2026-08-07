@@ -491,6 +491,15 @@ CREATE INDEX ix_commande_cible
 -- Sert : l'unicité de la référence à emporter. Index UNIQUE PARTIEL sur la
 -- colonne non nulle : hors du mode EMPORTER, la référence est nulle, et deux
 -- nuls ne se comparent pas (PDV-02)
+--
+-- ⚠️ RÈGLE DE SERVICE OPPOSABLE À LA PHASE 3 : LA PORTÉE DE CET INDEX ET CELLE
+-- DU COMPTEUR DOIVENT COÏNCIDER. `numerotation_reference` est clé par
+-- (tenant, établissement, portée) où `portee` est un LIBELLÉ LIBRE ; pour que le
+-- compteur ne rende jamais un numéro que cet index refuse, LA PORTÉE DOIT ÊTRE
+-- LE POINT DE VENTE. Un compteur de portée « établissement » avec un index de
+-- portée « point de vente » ne casserait rien — il gaspillerait des numéros ;
+-- l'inverse ferait échouer une commande sur un conflit qu'aucun écran
+-- n'explique.
 CREATE UNIQUE INDEX uq_commande_reference_retrait
     ON ventes.commande (tenant_id, point_de_vente_id, reference_retrait)
     WHERE reference_retrait IS NOT NULL;
