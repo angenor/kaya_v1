@@ -3,7 +3,10 @@
 *Le SQL de référence, écrit avant tout code. Ce répertoire est **le livrable** du cycle D1 et la
 source de vérité du modèle (constitution, principe 1b).*
 
-**71 tables · 11 fichiers · 10 schémas PostgreSQL · dont 14 provisions.**
+**118 tables · 15 fichiers · 14 schémas PostgreSQL · dont 20 provisions.**
+
+*Cycle **D1** — le socle : 71 tables sur 11 fichiers. Cycle **D2** — les capacités et les
+verticales : 47 tables de plus. **La phase 1 du produit est close.***
 
 Pour tout appliquer et tout vérifier, une seule commande :
 
@@ -173,11 +176,12 @@ evenement_webhook_paiement
 
 ---
 
-## Les 71 tables et leur classe hors-ligne
+## Les 118 tables et leur classe hors-ligne
 
 *Les classes sont reprises de [docs/registre-classes-offline.md](../registre-classes-offline.md),
-qui **fait foi**. **★** marque les entités **nommées par le cycle D1**. Une table qui porte deux
-classes selon l'opération les déclare toutes les deux — c'est le cas normal, pas l'exception.*
+qui **fait foi**. **★** marque les entités **nommées par un cycle** — D1 ou D2 — parce que le
+registre les décrivait sans les nommer. Une table qui porte deux classes selon l'opération les
+déclare toutes les deux — c'est le cas normal, pas l'exception.*
 
 ### `etablissements` — 19 tables
 
@@ -259,6 +263,25 @@ classes selon l'opération les déclare toutes les deux — c'est le cas normal,
 | `numerotation_document` | **B · B3** | Un compteur en table à verrou de ligne |
 | `modele_document` | **C · C2** | En-tête, pied, mentions obligatoires, gabarit |
 
+### `ventes` — 11 tables, dont 1 provision
+
+*Le tronc commun de la vente, dans **`socle/`**. `verticales/restauration` et `verticales/bar` sont
+des **coquilles vides** : tout ce qu'elles feraient est ici.*
+
+| Table | Classe | À quoi elle sert |
+|---|---|---|
+| `categorie_article` | **C · C2** | Le regroupement d'affichage de la carte, par point de vente |
+| `destination_preparation` | **C · C2** | Où part le bon d'envoi — **par établissement** : une cuisine sert plusieurs points de vente |
+| `article` | **C · C2** | Ce qui se vend. Destination **facultative**, avec repli sur le point de vente |
+| `conversion_unite_mesure` *(provision)* | **C · C2** | **Aucun `GRANT`, pas même `SELECT`** — l'absence est ce qui la prouve provision |
+| `commande` | **A · A4** *(ouverture, réception QR)* · **B · B3** *(validation QR, addition de table)* | Ce qu'on sert, et à qui on le facture. Cible **opaque** |
+| `ligne_commande` | **A · A4** *(saisie, modification avant envoi)* · **B · B3** *(annulation après envoi)* | Prix **verrouillé à la création** |
+| `lot_envoi` | **A · A4** | Ce qui est parti en préparation — **immuable par privilège** |
+| `remise` | **B · B3** | Un geste commercial, son motif, et qui l'a autorisé |
+| `part_addition` | **B · B3** | L'addition divisée, part par part |
+| `numerotation_reference` | **B · B3** | Un compteur en table à verrou de ligne, jamais une `SEQUENCE` |
+| `jeton_table` | **C · C2** | Le QR de la table — **empreinte seule**, jamais le jeton |
+
 ### `synchronisation` — 3 tables
 
 | Table | Classe | À quoi elle sert |
@@ -302,6 +325,66 @@ d'audit sont **dérivés** et n'ont délibérément aucune table — le fichier 
 |---|---|---|
 | `mapping_comptable` *(provision)* | **C · C2** | Quel événement donne quelle écriture |
 | `exercice_comptable` *(provision)* | **C · C2** | Une période, ouverte ou close |
+
+### `stocks` — 7 tables
+
+*Une **capacité**, pas un module : le stock sert la restauration, le bar et le pressing sans
+appartenir à aucun. Seul le profil `SIMPLE` est implémenté.*
+
+| Table | Classe | À quoi elle sert |
+|---|---|---|
+| `point_de_stock` | **C · C2** | Cave, cuisine, bar — **distinct du point de vente** |
+| `article_stock` | **C · C2** | Ce qu'on suit en quantité — un fût, pas une bière pression |
+| ★ `article_stock_catalogue` | **C · C2** | Combien un article vendu consomme — la liaison qui rend le décrément possible |
+| `mouvement_stock` | **B · B3** | Ce qui fait bouger une quantité. **Privilège plus strict que la classe** : une correction est une contre-passation |
+| `inventaire` | **B · B3** | On compte ce qu'il y a réellement — **même régime** |
+| ★ `ligne_inventaire` | **B · B3** | Un article compté, et son écart — un **constat daté** |
+| `alerte_seuil` | **A · A4** | Le stock est passé sous le seuil — un fait, pas un état qu'on acquitte |
+
+### `hebergement` — 26 tables, dont 5 provisions
+
+*Tout le spécifique hôtelier, et **nulle part ailleurs**. La salle de réunion est une **unité d'une
+catégorie dédiée**, pas une entité nouvelle.*
+
+| Table | Classe | À quoi elle sert |
+|---|---|---|
+| `categorie` | **C · C2** | Une classe d'unités, et sa capacité d'accueil |
+| `unite` | **C · C2** *(référentiel)* · **A · A4** *(`statut_menage` — dernier-écrit-gagne, **seul cas du produit**)* | Une chambre, une salle. **Aucune colonne de statut d'occupation** : il est dérivé |
+| `formule` | **C · C2** | Nuitée, passage, demi-journée, salle. Porte les **entrées** du calcul fiscal, jamais la règle |
+| `temps_remise_en_etat` | **C · C2** | La durée de blocage après départ — **unique sur le COUPLE catégorie + formule** |
+| `bareme_palier` | **C · C2** | Le tarif du passage, par palier de durée |
+| `plage_demi_journee` | **C · C2** | Les créneaux d'une formule demi-journée |
+| `calendrier_tarifaire` | **C · C2** | Le prix change selon la saison — daté, et superposable par priorité |
+| **`occupation`** | **B · B3** | **La table la plus structurante du produit.** Deux `tstzrange`, un `CHECK` d'inclusion, et une **contrainte d'exclusion GiST partielle** |
+| `client` | **C · C2** | **Aucune donnée d'identité dupliquée**, **aucun `etablissement_id`** — partagé entre les établissements du tenant |
+| `preference_personne` | **A · A4** | « Chambre calme, étage bas » — **sur la personne**, pas sur le client |
+| `sejour` | **B · B3** | Du check-in au check-out. **`occupation_id` obligatoire** |
+| `accompagnant` | **A · A4** | Qui d'autre dort là — la base du calcul de taxe |
+| `note_sejour` | **B · B3** | Ce que le séjour doit. Son état `ARRETEE` **déclenche le cas orphelin** |
+| `ligne_sejour` | **B · B3** · **classe de la ligne d'origine** *(consommation venue d'un point de vente)* | Une ligne de la note. Deux **index UNIQUE partiels** portent l'idempotence des deux reports |
+| `fiche_police` | **B · B3** | L'obligation déclarative, numérotée par établissement et par année |
+| `numerotation_fiche_police` | **B · B3** | Son compteur en table |
+| `taxe_sejour_constat` | **B · B3** | Le constat **figé au départ** — immuable par privilège |
+| `reservation` | **B · B3** | Une unité promise. On réserve une **catégorie**, l'unité vient plus tard |
+| `arrhes` | **B · B3** *(espèces, virement)* · **D · D1** *(Mobile Money, carte)* | L'imputation de ce qui a été versé d'avance |
+| `incident_maintenance` | **A · A4** | « Le climatiseur de la 12 » — **signaler n'est pas mettre hors service** |
+| `intervention` | **A · A4** | Ce qui a été fait, et quand |
+| `prestation_incluse` *(provision)* | **C · C2** | Ce que la formule comprend. **Son décompte n'a pas de table** |
+| `contrat_location` *(provision)* | **C · C2** | La location meublée — l'occupation restera une `occupation` |
+| `caution` *(provision)* | **C · C2** | Le dépôt de garantie |
+| `charge_locative` *(provision)* | **C · C2** | Eau, électricité, charges |
+| `etat_des_lieux` *(provision)* | **C · C2** | L'entrée et la sortie — une pièce contradictoire |
+
+### `pressing` — 3 tables
+
+*Dépôt, délai, retrait. **Il ne suppose jamais que l'établissement possède de l'hébergement** : un
+pressing seul est un établissement valide.*
+
+| Table | Classe | À quoi elle sert |
+|---|---|---|
+| `numerotation_retrait` | **B · B3** | Le compteur du numéro de retrait — *un trou est une pièce de linge dont personne ne sait si elle a existé* |
+| `bon_depot` | **B · B3** *(création, `pret → retire`)* · **A · A4** *(transitions intermédiaires)* | `personne_id` vers **`comptes.personne`**, jamais vers `hebergement.client`. `moment_reglement` **figé à la création** |
+| `piece_deposee` | **A · A4** | Ce qu'il y a dans le sac, et **l'état constaté au dépôt** |
 
 ---
 
