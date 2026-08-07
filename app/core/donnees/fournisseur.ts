@@ -1,0 +1,45 @@
+import { simulationComptes } from '~/core/donnees/comptes/simulation'
+import type { DonneesComptes } from '~/core/donnees/comptes/interface'
+import { simulationEtablissements } from '~/core/donnees/etablissements/simulation'
+import type { DonneesEtablissements } from '~/core/donnees/etablissements/interface'
+import { simulationHebergement } from '~/core/donnees/hebergement/simulation'
+import type { DonneesHebergement } from '~/core/donnees/hebergement/interface'
+import { simulationVentes } from '~/core/donnees/ventes/simulation'
+import type { DonneesVentes } from '~/core/donnees/ventes/interface'
+
+/**
+ * LE SEUL ENDROIT DU DÉPÔT QUI SAIT QU'UNE IMPLÉMENTATION EST SIMULÉE.
+ *
+ * ⚠️ EN PHASE 3, CHAQUE LIGNE BASCULE **INDÉPENDAMMENT DES AUTRES** — c'est
+ * exactement ce que « endpoint par endpoint » veut dire. Concrètement : on
+ * remplace une ligne, on supprime le `simulation.ts` du domaine, et
+ * `interface.ts` comme `types.ts` restent intacts.
+ *
+ * ⚠️ ET LA COUVERTURE EST CELLE DES DOMAINES QUE DELORIA PEUPLE — QUATRE, pas
+ * quatorze. Écrire dix interfaces vides produirait dix points d'entrée « dû »
+ * qui ne prouveraient rien, et P-06 les compterait.
+ */
+export interface Fournisseur {
+  readonly etablissements: DonneesEtablissements
+  readonly comptes: DonneesComptes
+  readonly hebergement: DonneesHebergement
+  readonly ventes: DonneesVentes
+}
+
+const FOURNISSEUR_SIMULE: Fournisseur = {
+  etablissements: simulationEtablissements,
+  comptes: simulationComptes,
+  hebergement: simulationHebergement,
+  ventes: simulationVentes,
+}
+
+/**
+ * Rend le fournisseur courant.
+ *
+ * ⚠️ AUCUN COMPOSANT N'APPELLE `simulationXxx` DIRECTEMENT — la règle de lint
+ * (b) le refuse. Ils passent tous par ici, donc ils ne connaissent jamais la
+ * provenance de leurs données.
+ */
+export function fournisseur(): Fournisseur {
+  return FOURNISSEUR_SIMULE
+}
