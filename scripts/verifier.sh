@@ -75,8 +75,9 @@ USAGE
                                              qu'elle échoue
     scripts/verifier.sh --test-negatif p02   idem pour P-02
     scripts/verifier.sh --test-negatif p03   idem pour P-03
+    scripts/verifier.sh --test-negatif p04   DEUX mutations, une PAR SENS
     scripts/verifier.sh --test-negatif p05   idem pour P-05
-    scripts/verifier.sh --test-negatif       les quatre
+    scripts/verifier.sh --test-negatif       les cinq
     scripts/verifier.sh --aide               ce message
 
     --test-negatif n'est pas un mode de débogage, c'est une PREUVE : une porte
@@ -1940,6 +1941,161 @@ test_negatif_p03() {
     return "$CODE_OK"
 }
 
+# --- Tests négatifs de P-04 — DEUX, UN PAR SENS ------------------------------
+#
+# ⚠️ UNE SEULE MUTATION NE PROUVERAIT QU'UNE MOITIÉ DE LA PORTE, et c'est
+# précisément la moitié manquante qui rendrait le contrôle muet.
+#
+#   A · premier sens  — /_scenarios RETIRÉE DE L'INDEX, la route restant servie.
+#   B · second sens   — /_guide-de-style rendue INATTEIGNABLE, son entrée restant
+#                       marquée CONSTRUIT.
+#
+# ⚠️ ET UN TROISIÈME CONSTAT, QUI N'EST PAS UNE MUTATION : une entrée « pas
+# commencé » et inatteignable NE DOIT PAS faire rougir. Sans lui, on aurait
+# prouvé que la porte échoue — pas qu'elle échoue AU BON ENDROIT.
+#
+# ⚠️ LA MATRICE N'EST PAS REJOUÉE DANS CE MODE, et le motif est écrit plutôt que
+# tu : les deux mutations portent sur les DEUX COMPARAISONS D'ENSEMBLES, que la
+# porte évalue avant la matrice et sur lesquelles elle s'arrête. Rejouer
+# cinquante secondes de navigateur sur un index dont on sait qu'il est incohérent
+# n'ajouterait aucune preuve — et un test négatif qu'on ne lance plus parce qu'il
+# dure trois minutes ne prouve rien du tout.
+readonly CIBLE_P04_A="/_scenarios"
+readonly CIBLE_P04_B="/_guide-de-style"
+
+# Copie l'index des écrans dans une racine de travail, à sa place exacte.
+copier_index_p04() {
+    local copie
+    copie="$(mktemp -d)"
+    mkdir -p "$copie/$(dirname "$INDEX_ECRANS")"
+    cp "$RACINE/$INDEX_ECRANS" "$copie/$INDEX_ECRANS"
+    copies_de_travail="$copies_de_travail $copie"
+    printf '%s' "$copie"
+}
+
+# Retire de l'index l'entrée qui porte une route donnée.
+retirer_entree_index() {
+    local fichier="$1" route="$2" tampon
+    tampon="$(mktemp)"
+    awk -v motif="route: '$route'" 'index($0, motif) == 0 { print }' "$fichier" > "$tampon"
+    mv "$tampon" "$fichier"
+}
+
+# Retire une route de l'inventaire, dans une COPIE — c'est ainsi qu'une page
+# devient inatteignable : le routeur ne la sert plus.
+copier_inventaire_sans() {
+    local route="$1" copie
+    copie="$(mktemp -d)"
+    node --input-type=commonjs -e '
+      const fs = require("fs");
+      const inv = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+      inv.routes = (inv.routes || []).filter((r) => r !== process.argv[3]);
+      fs.writeFileSync(process.argv[2], JSON.stringify(inv, null, 2) + "\n");
+    ' "$INVENTAIRE_ROUTES" "$copie/routes.json" "$route"
+    copies_de_travail="$copies_de_travail $copie"
+    printf '%s' "$copie/routes.json"
+}
+
+# Un sens : la porte doit rougir, NOMMER l'objet, et DIRE DE QUEL SENS il s'agit.
+p04_exiger_rouge() {
+    local libelle="$1" racine="$2" inventaire="$3" objet="$4" marque="$5"
+    local journal
+    journal="$(mktemp)"
+
+    if porte_p04 "$racine" "$inventaire" non > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ LA PORTE EST PASSÉE AU VERT sur %s.\n' "$libelle"
+        printf '     P-04 est AVEUGLE dans ce sens : un vert de cette porte ne veut rien dire.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    local manquants=""
+    grep -qF "$objet" "$journal" || manquants="$manquants $objet"
+    grep -qF "$marque" "$journal" || manquants="$manquants « $marque »"
+    if [ -n "$manquants" ]; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ la porte a échoué, mais SANS NOMMER :%s\n' "$manquants"
+        return "$CODE_AVEUGLE"
+    fi
+
+    grep -E '✗|INATTEIGNABLE|NON DÉCLARÉE' "$journal" | sed 's/^ *//' | sed 's/^/   /'
+    rm -f "$journal"
+    return "$CODE_OK"
+}
+
+# La porte doit être VERTE sur la copie intacte. Sans ce constat, une copie mal
+# formée ferait rougir la porte pour une autre raison, et l'on croirait avoir
+# prouvé le sens qu'on visait.
+p04_exiger_vert_intact() {
+    local racine="$1" inventaire="$2" journal
+    journal="$(mktemp)"
+    if ! porte_p04 "$racine" "$inventaire" non > "$journal" 2>&1; then
+        sed 's/^/   | /' "$journal"
+        rm -f "$journal"
+        printf '   ✗ P-04 a rougi sur la copie INTACTE : la copie est mal formée.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    # Le troisième constat se lit ICI, sur la copie intacte : des entrées « pas
+    # commencé » sont inatteignables, ET LA PORTE EST VERTE.
+    local dormantes
+    dormantes="$(grep -oE '· [0-9]+ entrée\(s\) « pas commencé » et inatteignable' "$journal" | grep -oE '[0-9]+' | head -n 1)"
+    rm -f "$journal"
+    if [ -z "$dormantes" ] || [ "$dormantes" -eq 0 ]; then
+        printf '   ✗ AUCUNE entrée « pas commencé » inatteignable : le troisième constat\n'
+        printf '     ne prouve rien — la borne du second sens n'\''est pas exercée.\n'
+        return "$CODE_AVEUGLE"
+    fi
+    printf '   P-04 est VERTE sur la copie intacte, AVEC %s entrée(s) « pas commencé »\n' "$dormantes"
+    printf '   inatteignable(s) — la borne du second sens est exercée, et elle ne rougit pas\n'
+    return "$CODE_OK"
+}
+
+test_negatif_p04() {
+    local copie inventaire empreinte_avant empreinte_apres statut
+
+    printf '\n── TEST NÉGATIF P-04 · DEUX mutations, une par sens (copies de travail)\n'
+
+    empreinte_avant="$(empreinte_p04)"
+
+    # La porte a besoin de l'inventaire ET du build pour son C1 ; le mode « non »
+    # ne monte pas de serveur, mais l'inventaire doit exister.
+    if [ ! -f "$INVENTAIRE_ROUTES" ]; then
+        assurer_build || return "$CODE_ROUGE"
+    fi
+
+    # ── Le premier temps, commun aux deux sens ──────────────────────────────
+    p04_exiger_vert_intact "$RACINE" "$INVENTAIRE_ROUTES" || return "$CODE_AVEUGLE"
+
+    # ── A · premier sens ────────────────────────────────────────────────────
+    printf '\n   A · %s retirée de l'\''index, la route restant servie\n' "$CIBLE_P04_A"
+    copie="$(copier_index_p04)"
+    retirer_entree_index "$copie/$INDEX_ECRANS" "$CIBLE_P04_A"
+    p04_exiger_rouge "une route atteignable non déclarée" \
+        "$copie" "$INVENTAIRE_ROUTES" "$CIBLE_P04_A" "PREMIER SENS"
+    statut=$?
+    [ "$statut" -eq 0 ] || return "$statut"
+
+    # ── B · second sens ─────────────────────────────────────────────────────
+    printf '\n   B · %s rendue inatteignable, son entrée restant CONSTRUIT\n' "$CIBLE_P04_B"
+    inventaire="$(copier_inventaire_sans "$CIBLE_P04_B")"
+    p04_exiger_rouge "une entrée construite inatteignable" \
+        "$RACINE" "$inventaire" "$CIBLE_P04_B" "SECOND SENS"
+    statut=$?
+    [ "$statut" -eq 0 ] || return "$statut"
+
+    empreinte_apres="$(empreinte_p04)"
+    if [ "$empreinte_avant" != "$empreinte_apres" ]; then
+        printf '   ✗ LE PÉRIMÈTRE DE P-04 A ÉTÉ MODIFIÉ par le test négatif.\n'
+        return "$CODE_AVEUGLE"
+    fi
+
+    printf '\n   Les DEUX sens rougissent, chacun EN NOMMANT SON OBJET — TEST NÉGATIF VERT\n'
+    printf '   app/core/ecrans/index.ts et tests/navigateur/ inchangés\n'
+    return "$CODE_OK"
+}
+
 # Imprime le verdict d'un contrôle et NOMME les objets fautifs.
 # « Une table n'a pas de politique » envoie chercher pendant vingt minutes ;
 # « caisse.coupure_comptee » envoie à la ligne.
@@ -2079,6 +2235,10 @@ main() {
                     test_negatif_p03 || exit "$CODE_AVEUGLE"
                     portes_passees=1
                     ;;
+                p04)
+                    test_negatif_p04 || exit "$CODE_AVEUGLE"
+                    portes_passees=1
+                    ;;
                 p05)
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
                     portes_passees=1
@@ -2088,10 +2248,11 @@ main() {
                     test_negatif_p02 || exit "$CODE_AVEUGLE"
                     test_negatif_p05 || exit "$CODE_AVEUGLE"
                     test_negatif_p03 || exit "$CODE_AVEUGLE"
-                    portes_passees=4
+                    test_negatif_p04 || exit "$CODE_AVEUGLE"
+                    portes_passees=5
                     ;;
                 *)
-                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02, p03 ou p05)"
+                    erreur_usage "test négatif inconnu : $cible_negatif (attendu : p01, p02, p03, p04 ou p05)"
                     ;;
             esac
             local duree_n=$((SECONDS - debut))

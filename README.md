@@ -122,9 +122,27 @@ scripts/verifier.sh --porte p05
 scripts/verifier.sh --test-negatif p01   # retire une politique RLS
 scripts/verifier.sh --test-negatif p02   # ajoute une table non déclarée au registre
 scripts/verifier.sh --test-negatif p03   # introduit un « ^ » dans une version
+scripts/verifier.sh --test-negatif p04   # DEUX mutations, une PAR SENS
 scripts/verifier.sh --test-negatif p05   # ajoute une clé étrangère inter-schémas
-scripts/verifier.sh --test-negatif       # les quatre
+scripts/verifier.sh --test-negatif       # les cinq
 ```
+
+| Porte | Mutation | Ce qu'elle prouve |
+|---|---|---|
+| **P-01** | une politique `isolation_tenant` retirée | la politique absente est vue, **et la table est nommée** |
+| **P-02** | une table ajoutée sans entrée au registre | la table non déclarée est vue, **et nommée** |
+| **P-03** | `@nuxtjs/i18n` passe à `^10.6.0` | l'intervalle est vu, **et le paquet est nommé** |
+| **P-04** **A** | `/_scenarios` retirée de l'index, route servie | le **premier sens** — une route atteignable non déclarée |
+| **P-04** **B** | `/_guide-de-style` rendue inatteignable, entrée construite | le **second sens** — une entrée qui ne mène nulle part |
+| **P-05** | une clé étrangère ajoutée entre deux schémas | la clé inter-schémas est vue, **et nommée** |
+
+> **Une porte à deux sens a DEUX mutations.** Une seule ne prouverait qu'une moitié — et c'est
+> précisément la moitié manquante qui rendrait le contrôle muet.
+>
+> **Et P-04 porte un troisième constat, qui n'est pas une mutation** : une entrée **« pas
+> commencé » et inatteignable NE DOIT PAS** faire rougir. Sans lui, on aurait prouvé que la porte
+> échoue — pas qu'elle échoue **au bon endroit**. Le test l'exige, et il exige aussi qu'il y ait
+> **au moins une** entrée dans ce cas, sinon la borne ne serait pas exercée.
 
 > **`--test-negatif` n'est pas un mode de débogage, c'est une preuve.** *Une porte qui ne trouve
 > jamais rien est indistinguable d'une porte qui n'a rien à trouver.* Le mode opère sur une **copie
