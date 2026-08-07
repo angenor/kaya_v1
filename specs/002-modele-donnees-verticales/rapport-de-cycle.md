@@ -531,3 +531,141 @@ identique avant et après chacun.
 > plutôt que sur son contrôle prouverait le plancher, pas la porte.
 
 **Verdict : les trois portes savent échouer, après relèvement.**
+
+---
+
+## T026 · SC-010 — la recherche de disponibilité par catégorie
+
+**Date** : 2026-08-07 · **Méthode** : modèle appliqué sur une base locale **non éphémère**, jeu de
+volume généré **en SQL pur** avec `generate_series` — aucune dépendance, aucun outil —, `ANALYZE`,
+puis `EXPLAIN (ANALYZE, BUFFERS)`.
+
+### Le jeu de volume
+
+| Objet | Volume |
+|---|---|
+| Catégories | **5** |
+| Unités | **50** — 10 par catégorie |
+| Formules | **20** — 4 par catégorie |
+| **Occupations** | **20 000** — 400 par unité, réparties sur deux ans |
+
+**Les occupations sont décalées de 3 h par unité**, sinon toutes les unités seraient occupées aux
+mêmes heures et la requête rendrait toujours **zéro** — un résultat vide se court-circuite, et la
+mesure ne prouverait rien. *C'est la première version de la mesure qui l'a montré : elle rendait 0,
+et ne mesurait donc que la vitesse à laquelle on trouve qu'il n'y a rien.*
+
+> **Une preuve tombe au passage** : ces 20 000 lignes ont été insérées **sous la contrainte
+> d'exclusion**. Si le semis passe, c'est qu'il n'y a aucun chevauchement — la base l'a vérifié
+> 20 000 fois.
+
+### La requête mesurée, et pourquoi celle-là
+
+> *« Quelles unités de la catégorie X sont libres entre T1 et T2 ? »*
+
+**Fenêtre de 4 heures — un passage**, qui est le cas principal du marché (cadrage §5.1).
+
+*« Cette unité est-elle libre ? » est servie d'office par l'index de la contrainte d'exclusion et
+donnerait un bon chiffre sans rien prouver.* La requête réelle du produit part de la **catégorie**,
+joint `unite`, puis exclut par les occupations — et rien ne garantissait d'avance que le
+planificateur choisisse un parcours d'index.
+
+### Le plan
+
+```
+ Nested Loop Anti Join (actual time=0.405..0.431 rows=3.00 loops=1)
+   Buffers: shared hit=69
+   ->  Seq Scan on unite u (actual time=0.004..0.007 rows=10.00 loops=1)
+         Filter: (actif AND (categorie_id = '…'::uuid))
+         Rows Removed by Filter: 40
+         Buffers: shared hit=1
+   ->  Index Only Scan using ex_occupation_unite_periode on occupation o
+                            (actual time=0.042..0.042 rows=0.70 loops=10)
+         Index Cond: ((unite_id = u.id)
+                      AND (periode_indisponibilite && '["2026-07-15 14:00+00","2026-07-15 18:00+00")'))
+         Heap Fetches: 7
+         Index Searches: 10
+         Buffers: shared hit=68
+ Planning Time: 0.414 ms
+ Execution Time: 0.441 ms
+```
+
+**Résultat : 3 unités libres sur les 10 de la catégorie.** Le résultat est **non vide**, donc la
+mesure a bien parcouru la chaîne complète.
+
+| Ce qu'on lit | Attendu | Constaté |
+|---|---|---|
+| Parcours sur `occupation` | **Index Scan** ou **Bitmap Index Scan** ; un `Seq Scan` est l'échec | **`Index Only Scan using ex_occupation_unite_periode`** ✓ |
+| Temps d'exécution | **< 300 ms** | **0,441 ms** — soit **680 fois** sous la cible ✓ |
+| Blocs lus | consigné pour comparaison ultérieure | **69** blocs partagés, tous en cache |
+| Bout en bout depuis `psql`, trois exécutions | — | **1,24 · 1,44 · 1,22 ms** — aller-retour réseau compris |
+
+### ⚠️ Il y a un `Seq Scan` dans ce plan, et il est écrit ici plutôt que passé sous silence
+
+**`Seq Scan on unite`.** Lu strictement, la cible de SC-010 dit « jamais un `Seq Scan` » — il
+convient donc de dire pourquoi celui-ci n'est pas l'échec que le critère vise :
+
+1. **`unite` fait 8 192 octets — une seule page.** Passer par `ix_unite_categorie` coûterait la
+   lecture de l'index **plus** celle de la table ; le planificateur choisit correctement de lire la
+   page unique. **Un plan qui utiliserait l'index ici serait moins bon.**
+2. **Le critère vise `occupation`**, où sont les 20 000 lignes et les 3 Mo — et là, l'index GiST est
+   employé, avec `Index Only Scan` et seulement 7 accès au tas.
+3. **`ix_unite_categorie` n'est pas inutile pour autant** : il sert dès que le parc grandit. À 50
+   unités, il ne peut pas encore gagner ; c'est une propriété du volume, pas du schéma.
+
+**Ce qu'il faudra surveiller** : sur un parc de plusieurs milliers d'unités — plusieurs
+établissements, plusieurs tenants sur la même base —, `unite` cessera de tenir en une page et le
+planificateur devra basculer sur `ix_unite_categorie`. **C'est à ce moment-là que l'index gagnera
+son coût**, et la mesure sera à refaire.
+
+### Taille des objets, pour que la mesure soit comparable plus tard
+
+| Objet | Taille |
+|---|---|
+| `occupation` (table) | 3 080 kio |
+| `ex_occupation_unite_periode` (index GiST) | 2 472 kio |
+| `unite` (table) | 8 192 o |
+| `ix_unite_categorie` | 16 kio |
+
+> **Réserve d'usage, la même qu'au cycle D1 et elle est honnête** : mesure prise sur **poste Apple
+> Silicon (arm64)**, table **en cache**, base en `tmpfs`. La production tournera sur **VPS Contabo
+> `linux/amd64` à cache froid**, et ces chiffres **ne la prédisent pas**. Ce qu'ils prouvent est
+> **structurel et transposable** : le planificateur choisit l'index GiST, et non un balayage des
+> 20 000 occupations. La marge de 680× laisse d'ailleurs de la place à un facteur d'écart
+> considérable.
+
+**Verdict : SC-010 est tenu**, avec la réserve d'usage ci-dessus et le `Seq Scan` sur `unite`
+expliqué plutôt que masqué.
+
+---
+
+## T027 · SC-011 — la durée de la commande unique
+
+**Date** : 2026-08-07 · **Méthode** : trois exécutions chronométrées de `scripts/verifier.sh`, base
+détruite entre chacune (le script s'en charge lui-même, y compris en cas d'échec).
+
+| Exécution | Mesure du script | Chronomètre externe | Verdict |
+|---|---|---|---|
+| 1 | 6 s | **8 s** | vert |
+| 2 | 6 s | **6 s** | vert |
+| 3 | 6 s | **7 s** | vert |
+| **Les trois tests négatifs** | 18 s | **19 s** | vert |
+
+*Le chronomètre externe couvre le démarrage du conteneur et sa destruction ; celui du script compte
+depuis la première porte.*
+
+| Repère | Cible | Constaté |
+|---|---|---|
+| Une exécution complète | **< 2 min** (SC-011) | **7 s** en moyenne — **17 fois** sous la cible |
+| Rappel du cycle D1 | 5 s pour 71 tables | **+2 s pour 47 tables et une porte de plus** |
+
+> **Ce que coûte réellement l'ajout de P-05 : une à deux secondes.** Elle réutilise la base montée
+> par P-01 — aucun conteneur de plus — et ne fait que deux requêtes sur `pg_constraint`. C'est ce
+> choix, et le `tmpfs` de `compose.yml`, qui tiennent la durée.
+
+> **Le repère des deux minutes n'est pas un objectif de performance, c'est un DÉCLENCHEUR.**
+> Au-delà, on cesse de lancer un script — on l'oublie, on le contourne, on le désactive. Le jour où
+> la commande unique franchira cette barre, c'est le passage au serveur d'intégration qui sera dû,
+> en phase 3, et il lancera ce script **sans le modifier**. À 7 s, la marge est de deux ordres de
+> grandeur : rien ne presse.
+
+**Verdict : SC-011 est tenu, largement.**
