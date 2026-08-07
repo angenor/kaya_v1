@@ -442,8 +442,10 @@ CREATE TABLE hebergement.calendrier_tarifaire (
         date_fin IS NULL OR date_fin >= date_effet)
 );
 
+COMMENT ON COLUMN hebergement.calendrier_tarifaire.date_effet IS
+    'Période de VALIDITÉ D''UN TARIF, jamais une période de disponibilité — celle-là est le tstzrange de hebergement.occupation. Ne pas confondre les deux (SC-004).';
 COMMENT ON COLUMN hebergement.calendrier_tarifaire.date_fin IS
-    'NULL = jusqu''à nouvel ordre. Jamais une date sentinelle : une date lointaine finit par être lue comme réelle.';
+    'NULL = jusqu''à nouvel ordre. Jamais une date sentinelle : une date lointaine finit par être lue comme réelle. Période de VALIDITÉ D''UN TARIF, jamais de disponibilité (SC-004).';
 
 ALTER TABLE hebergement.calendrier_tarifaire ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hebergement.calendrier_tarifaire FORCE  ROW LEVEL SECURITY;
@@ -787,6 +789,10 @@ COMMENT ON COLUMN hebergement.sejour.occupation_id IS
     'OBLIGATOIRE. Il n''existe pas de séjour sans occupation — un séjour sans la sienne serait une attribution que la contrainte d''exclusion n''aurait jamais vue.';
 COMMENT ON COLUMN hebergement.sejour.client_id IS
     'NULLABLE — la vente à un client extérieur (SEJ-05) ne crée pas toujours de fiche. L''exiger ferait créer des fiches vides.';
+COMMENT ON COLUMN hebergement.sejour.arrive_le IS
+    '⚠️ CONSTAT de l''instant d''arrivée réel — CETTE PAIRE DE COLONNES NE PORTE PAS LA DISPONIBILITÉ. La période réservée et protégée est le tstzrange de hebergement.occupation, et occupation_id est NOT NULL : aucun séjour n''existe sans la sienne. Aucune recherche de disponibilité ne doit partir d''ici ; s''en servir contournerait la contrainte d''exclusion et produirait des doubles attributions (SC-004).';
+COMMENT ON COLUMN hebergement.sejour.parti_le IS
+    '⚠️ CONSTAT de l''instant de départ réel — voir arrive_le. NE PORTE PAS LA DISPONIBILITÉ : celle-ci est le tstzrange de hebergement.occupation.';
 COMMENT ON COLUMN hebergement.sejour.unite_id IS
     'Unité COURANTE. Un changement d''unité en cours de séjour crée DEUX occupations et ne réécrit aucun historique (SEJ-04).';
 COMMENT ON COLUMN hebergement.sejour.reservation_id IS

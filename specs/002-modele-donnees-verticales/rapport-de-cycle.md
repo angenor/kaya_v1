@@ -669,3 +669,112 @@ depuis la première porte.*
 > grandeur : rien ne presse.
 
 **Verdict : SC-011 est tenu, largement.**
+
+---
+
+## T030 · Le quickstart déroulé de bout en bout, dans l'ordre, sur un dépôt propre
+
+**Date** : 2026-08-07.
+
+| § | Ce qui est déroulé | Résultat |
+|---|---|---|
+| **1** | `scripts/verifier.sh` — la commande unique | **code 0** · 15 fichiers, 14 schémas, **118 tables**, trois portes vertes, 7 s |
+| **2** | Les cinq cas de la contrainte d'exclusion | **5/5** — voir T006 |
+| **3** | Les trois tests négatifs, séparément **puis ensemble** | **codes 0** · trois VERTS, 18 s |
+| **4** | La mesure de disponibilité | **0,441 ms**, `Index Only Scan` — voir T026 |
+| **5** | Les constats qu'aucune porte ne couvre | voir T031 ci-dessous |
+
+**`git status` est propre après chaque test négatif** — vérifié séparément pour `p01`, `p02` et
+`p05`, et une quatrième fois après les trois enchaînés. L'empreinte de `docs/modele-donnees/` est
+identique avant et après dans les quatre cas.
+
+**Aucun conteneur ni volume du projet `kaya_verification` ne survit** : `0` conteneur et `0` volume
+après exécution. *(Trois conteneurs `kaya-db`, `kaya-cache` et `kaya-objets` tournent sur le poste
+depuis quatre jours ; ils appartiennent à un **autre projet** et ne sont ni créés ni touchés par ce
+dépôt — `compose.yml` ne déclare qu'un service.)*
+
+---
+
+## T031 · Les quinze critères de réussite, un par un
+
+**Date** : 2026-08-07 · **Méthode** : chaque critère mesuré, jamais déclaré.
+
+| # | Critère | Attendu | Constaté | Où |
+|---|---|---|---|---|
+| **SC-001** | Le modèle s'applique sur une base vierge en **une commande**, sans erreur, base détruite ensuite | 0 erreur | **15 fichiers appliqués, 0 erreur**, 0 conteneur et 0 volume survivant | P-01 · T030 |
+| **SC-002** | **100 %** des tables nouvelles portent les trois éléments, forme **strictement identique** | 0 écart, 0 variante | **118/118** sur les quatre contrôles · **1 seule forme** de `qual` et de `with_check` | P-01 · T014 |
+| **SC-003** | Deux transactions concurrentes chevauchantes : **exactement une** réussit, refusée **par la base** | 1 sur 2 | **1 sur 2**, `23P01 exclusion_violation` nommant `ex_occupation_unite_periode` | **T006** |
+| **SC-004** | **Zéro** période représentée autrement qu'en `tstzrange` ; **zéro** paire de dates portant une disponibilité | 0 | **0** — voir l'examen ci-dessous | **T031** |
+| **SC-005** | **Zéro** clé étrangère entre deux schémas, sagas comprises | 0 | **0** sur 98 examinées, **deux mesures indépendantes** | P-05 · T017 |
+| **SC-006** | **100 %** des tables nouvelles déclarées au registre | 0 non déclarée | **118/118**, P-02 verte | P-02 · T002 |
+| **SC-007** | **Les six** tables à double classe déclarent **les deux**, avec l'opération de chacune | 6/6 | **6/6** · décompte croisé : 42 tables, **48** classes déclarées | **T014** |
+| **SC-008** | **Zéro** `UPDATE`/`DELETE` sur `lot_envoi` et `taxe_sejour_constat` ; **zéro** `DELETE` ; **zéro** `GRANT … ON ALL TABLES` | 0 partout | **0 · 0 · 0**, plus **0** `ALTER DEFAULT PRIVILEGES** *(contrôle ajouté)* | **T013** |
+| **SC-009** | **Zéro** quantité en entier, flottant, identifiant avec `DEFAULT`, `SEQUENCE` | 0 partout | **0 · 0 · 0 · 0**, plus **0** colonne `IDENTITY` *(contrôle ajouté)* | **T013** |
+| **SC-010** | Disponibilité par catégorie **< 300 ms**, **par parcours d'index** | < 300 ms | **0,441 ms** · `Index Only Scan` sur l'index GiST | **T026** |
+| **SC-011** | `scripts/verifier.sh` **< 2 min** | < 120 s | **6 · 6 · 6 s** (7 s au chronomètre externe) | **T027** |
+| **SC-012** | Les **trois** portes échouent quand on les casse, P-01 et P-02 **après** relèvement, et l'échec **nomme la cause** | 3/3 | **3/3**, après relèvement, chacune nommant son objet | **T025** |
+| **SC-013** | **Une seule** porte ajoutée ; **zéro** contrat existant modifié ; **zéro** fichier du socle modifié hors README | 1 · 0 · 0 | **3 portes** au total (2 du D1 + **P-05**) · **0** fichier de `specs/001-…/` modifié · **0** fichier SQL du socle modifié | **T031** |
+| **SC-014** | **Zéro** migration, fichier Rust, écran, `.github/workflows/` | 0 partout | **0** `migrations/` · **0** `.rs` · **0** `.ts`/`.tsx`/`.vue` · **0** `Cargo.toml`/`package.json` · **0** `.github/workflows/` · **0** `app/` · **`compose.yml` non modifié** | **T031** |
+| **SC-015** | **100 %** des tables au README avec leur classe ; **100 %** des schémas à la liste opposable | 100 % | **118/118** au README · **14/14** à la liste opposable, confrontée dans les **deux sens** par P-01 et P-05 | **T021** |
+
+**Quinze critères sur quinze.**
+
+### L'examen de SC-004, qui demandait plus qu'un décompte
+
+**Deux colonnes `tstzrange` dans tout le cycle** — `occupation.periode` et
+`occupation.periode_indisponibilite` —, et **aucune autre représentation d'une occupation**. Mais le
+critère dit aussi *« zéro paire de colonnes de date portant une période de disponibilité »*, et le
+cycle en contient **quatre paires de dates**. Les compter comme des violations aurait été faux ; les
+ignorer aurait été pire.
+
+| Paire | Ce qu'elle porte | Est-ce une disponibilité ? |
+|---|---|---|
+| `calendrier_tarifaire.date_effet` / `.date_fin` | Validité d'un **tarif** | **non** |
+| `charge_locative.periode_debut` / `.periode_fin` *(provision)* | Période de **facturation** | **non** |
+| `contrat_location.date_debut` / `.date_fin` *(provision)* | Durée d'un **contrat** | **non** |
+| **`sejour.arrive_le` / `.parti_le`** | **Constat des instants réels** d'arrivée et de départ | **non — et c'est celle qui demandait un examen** |
+
+**La quatrième est la seule dangereuse**, parce qu'elle *ressemble* à une période d'occupation. Deux
+choses l'en séparent :
+
+1. **`sejour.occupation_id` est `NOT NULL`.** Il n'existe pas de séjour sans son occupation, donc
+   pas d'attribution que la contrainte d'exclusion n'aurait pas vue.
+2. **Ces deux colonnes sont des constats *a posteriori***, pas une réservation : `parti_le` est nul
+   tant que le client est là. Une recherche de disponibilité qui partirait d'elles ne verrait
+   **aucun séjour en cours** comme occupant.
+
+**Les quatre paires portent désormais un commentaire de colonne qui le dit**, et celui de
+`sejour.arrive_le` va plus loin que constater : *« aucune recherche de disponibilité ne doit partir
+d'ici ; s'en servir contournerait la contrainte d'exclusion et produirait des doubles
+attributions »*. C'est le mode de défaillance exact que SC-004 existe pour prévenir, écrit à
+l'endroit où on le lira.
+
+### Le périmètre — et un écart à déclarer
+
+`git diff --stat` entre la fin du cycle D1 et la fin du cycle D2, sur **les onze fichiers SQL du
+socle** : **aucune ligne**. Zéro modification, README du modèle excepté, qui est le fichier que la
+règle de tenue oblige à mettre à jour.
+
+**Ce que le cycle D2 a touché, en tout** :
+
+| Fichier | Nature |
+|---|---|
+| `docs/modele-donnees/55-`, `96-`, `97-`, `98-*.sql` | **créés** |
+| `docs/modele-donnees/README.md` | index, liste opposable, relations, classes |
+| `scripts/verifier.sh` | P-05, trois planchers relevés, `--test-negatif p05` |
+| `docs/registre-classes-offline.md` | §6.1 et journal §13 |
+| `docs/versions-reference.md` | une ligne au journal §6 |
+| `README.md` | la troisième porte |
+| ⚠️ `docs/Kaya_Prompts_SpecKit.md` | **HORS PÉRIMÈTRE — voir ci-dessous** |
+
+> **⚠️ Un fichier hors périmètre a été emporté par un commit du cycle, et il est déclaré plutôt que
+> tu.** `docs/Kaya_Prompts_SpecKit.md` portait une modification **préexistante à ce cycle** — une
+> reformulation de deux lignes du document de prompts, faite par l'auteur avant le début des
+> travaux et visible dans le `git status` initial. Un `git add -A docs/` l'a emportée dans le commit
+> `20d04c2` (T013). **Le contenu n'a pas été produit par ce cycle et n'a pas été modifié par lui** ;
+> seule sa mise en dépôt lui est imputable. Il n'est pas défait : ce serait écarter le travail de
+> son auteur. *La leçon est mécanique et vaut pour les cycles suivants : `git add -A <répertoire>`
+> emporte ce qui traîne, et un `git add` de chemins nommés ne l'aurait pas fait.*
+
+`.specify/feature.json` pointe désormais sur `specs/002-modele-donnees-verticales` : c'est l'état de
+l'outil de spécification pour ce cycle, et il est commité avec lui.
