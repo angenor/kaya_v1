@@ -183,8 +183,9 @@ jeton_table ····> table_pdv                                 └─ point_de_
        ├─ lot_envoi ─ destination_prep.      └─ ligne_inventaire ─ article_stock
        │    └─ ligne_commande               alerte_seuil ─┬─ article_stock
        ├─ remise ─ ligne_commande                         └─ point_de_stock
-       └─ part_addition ····> (OPAQUE)      conversion_unite_mesure
-numerotation_reference ····> etablissement        (provision, AUCUN GRANT)
+       └─ part_addition ····> (OPAQUE)
+numerotation_reference ····> etablissement
+conversion_unite_mesure  (provision, AUCUN GRANT)
 
 hebergement  (verticales/)                  pressing  (verticales/)
 ───────────                                 ────────
@@ -442,7 +443,7 @@ catégorie dédiée**, pas une entité nouvelle.*
 | `fiche_police` | **B · B3** | L'obligation déclarative, numérotée par établissement et par année |
 | `numerotation_fiche_police` | **B · B3** | Son compteur en table |
 | `taxe_sejour_constat` | **B · B3** | Le constat **figé au départ** — immuable par privilège |
-| `reservation` | **B · B3** | Une unité promise. On réserve une **catégorie**, l'unité vient plus tard |
+| `reservation` | **B · B3** | Une unité promise. On réserve une **catégorie** sur un `tstzrange`, l'unité vient plus tard — **aucune exclusion ici** : le blocage naît de l'`occupation` |
 | `arrhes` | **B · B3** *(espèces, virement)* · **D · D1** *(Mobile Money, carte)* | L'imputation de ce qui a été versé d'avance |
 | `incident_maintenance` | **A · A4** | « Le climatiseur de la 12 » — **signaler n'est pas mettre hors service** |
 | `intervention` | **A · A4** | Ce qui a été fait, et quand |
@@ -469,9 +470,11 @@ pressing seul est un établissement valide.*
 
 | Ce qu'on pourrait y chercher | Où c'est |
 |---|---|
-| Les schémas `hebergement`, `ventes`, `pressing`, `stocks` | Cycle **D2** — hors périmètre du socle |
 | La classe hors-ligne d'une entité | [docs/registre-classes-offline.md](../registre-classes-offline.md), qui **fait foi** |
 | Le contrat que chaque fichier honore | [contracts/conventions-sql.md](../../specs/001-modele-donnees-socle/contracts/conventions-sql.md) |
-| Le détail colonne par colonne, et les motifs | [data-model.md](../../specs/001-modele-donnees-socle/data-model.md) |
+| Le détail colonne par colonne, et les motifs — **socle** | [data-model.md du cycle D1](../../specs/001-modele-donnees-socle/data-model.md) |
+| Le détail colonne par colonne, et les motifs — **capacités et verticales** | [data-model.md du cycle D2](../../specs/002-modele-donnees-verticales/data-model.md) |
+| Ce que la base garantit sur la **disponibilité**, et ce qu'elle laisse au `domain` | [contracts/disponibilite.md](../../specs/002-modele-donnees-verticales/contracts/disponibilite.md) |
+| Ce que la phase 3 doit faire du **cas orphelin** des deux sagas | [contracts/sagas-inter-modules.md](../../specs/002-modele-donnees-verticales/contracts/sagas-inter-modules.md) |
 | Les sessions, jetons, verrous, files locales | Nulle part en base : **éphémères reconstructibles** (registre §9) |
 | Les tableaux de bord et les KPI | Nulle part en base : **dérivés** (voir `70-pilotage.sql`) |

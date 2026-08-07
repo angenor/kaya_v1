@@ -148,6 +148,11 @@ fichiers portent désormais tous leur recherche nommée, dans la même forme.**
 **Date** : 2026-08-07 · **Méthode** : lecture des commentaires d'en-tête, décompte croisé sur les
 fichiers, et **mesure indépendante sur le catalogue** après application.
 
+> **Périmètre de ce décompte : les 42 tables du cycle AU MOMENT de l'audit** — les cinq provisions
+> d'hébergement arrivent en T019 et portent le total à **47**. La même méthode appliquée au dépôt
+> livré rend **47 tables pour 53 classes déclarées**, donc **les mêmes 6 doubles classes**. C'est la
+> précaution que T013 prend et que celle-ci avait omise ; le verdict, lui, ne change pas.
+
 ### Les six tables à double classe déclarent bien les deux, avec l'opération de chacune
 
 | Table | Première classe · opération | Seconde classe · opération |
@@ -168,6 +173,10 @@ fichiers, et **mesure indépendante sur le catalogue** après application.
 | `97-hebergement.sql` | 21 | 24 | **3** |
 | `98-pressing.sql` | 3 | 4 | **1** |
 | | **42** | **48** | **6** ✓ |
+
+*Sur le dépôt livré, après les cinq provisions de T019 : **47 tables · 53 classes déclarées · 6
+doubles classes** — `97-hebergement.sql` passant de 21/24 à 26/29. **L'écart entre les deux colonnes
+est le même**, et c'est lui qui porte le verdict.*
 
 ### `mouvement_stock` et `inventaire` déclarent **une seule** classe
 
@@ -257,6 +266,10 @@ toujours faux, puis le tout rejoué :
 | `verifier.sh --test-negatif p05` | **CODE 4** — « la porte est aveugle » | **CODE 4** ✓, avec le message *« LA PORTE EST PASSÉE AU VERT sur une clé étrangère inter-schémas »* |
 | Après restauration du script | **CODE 0** | **CODE 0** ✓ |
 
+*Les **92** de ce tableau sont le décompte du modèle **au moment du sabotage**, avant les cinq
+provisions d'hébergement de T019 ; le modèle complet en porte **98**. Ce récit est daté, et ses
+chiffres le restent.*
+
 > **C'est exactement le mode de défaillance que P-05 rendait probable**, et qui justifiait le
 > plancher de non-vacuité : la porte sabotée **passait au vert en annonçant fièrement 92 contraintes
 > examinées**. Le plancher n'a rien vu — il ne pouvait rien voir, puisque la cible n'était pas vide,
@@ -271,19 +284,25 @@ toujours faux, puis le tout rejoué :
 `relnamespace` diffèrent, sur les **quatorze schémas** du modèle appliqué. **Contre-mesure
 indépendante** : `grep -c "FOREIGN KEY"` sur les quinze fichiers.
 
+> **Décomptes remesurés après T019.** La première rédaction de cette section donnait **92** clés
+> étrangères et **28** pour `hebergement` : c'était l'état du modèle **avant les cinq provisions
+> d'hébergement**, qui en apportent six de plus. Les chiffres ci-dessous sont ceux du modèle
+> **complet**, et ce sont ceux que la porte imprime. *Un décompte non daté vieillit en silence — et
+> celui-ci a vieilli entre deux sections du même rapport.*
+
 ### Le constat
 
 | Ce qui est compté | Attendu | Constaté |
 |---|---|---|
 | Clés étrangères **entre deux schémas** | **0** | **0** ✓ — les deux sagas comprises |
-| Clés étrangères **internes**, total | — | **92** |
-| Mêmes, comptées par `grep` sur les fichiers | **92** | **92** ✓ — *deux mesures indépendantes qui concordent* |
+| Clés étrangères **internes**, total | — | **98** |
+| Mêmes, comptées par `grep` sur les fichiers | **98** | **98** ✓ — *deux mesures indépendantes qui concordent* |
 
 ### Répartition, schéma par schéma
 
 | Schéma | Clés étrangères internes | | Schéma | Clés étrangères internes |
 |---|---|---|---|---|
-| `hebergement` | **28** | | `stocks` | 8 |
+| `hebergement` | **34** | | `stocks` | 8 |
 | `etablissements` | 17 | | `fiscalite` | 5 |
 | `ventes` | 12 | | `editeur` | 3 |
 | `caisse` | 9 | | `pressing` | 1 |
@@ -294,11 +313,11 @@ aucune, ce qui est cohérent : ce sont des schémas de tables autonomes ou de pr
 
 ### P-05 déclare bien son périmètre, et le nombre est le bon
 
-La porte imprime **`Périmètre : 14 schéma(s) · 92 contrainte(s) de clé étrangère examinée(s)`**.
-Ce **92** est le décompte réel du modèle, vérifié par deux voies. La porte n'inspecte donc pas un
-sous-ensemble sans le dire — ce qui est très exactement le point 1 du contrat de porte.
+La porte imprime **`Périmètre : 14 schéma(s) · 98 contrainte(s) de clé étrangère examinée(s)`**.
+Ce **98** est le décompte réel du modèle complet, vérifié par deux voies. La porte n'inspecte donc
+pas un sous-ensemble sans le dire — ce qui est très exactement le point 1 du contrat de porte.
 
-> **Le contraste avec le socle mérite d'être noté** : `hebergement` porte à lui seul **28** clés
+> **Le contraste avec le socle mérite d'être noté** : `hebergement` porte à lui seul **34** clés
 > étrangères internes, soit plus que n'importe quel schéma du socle. C'est la mesure de ce que
 > « toute la verticale vit dans son schéma » veut dire concrètement — et donc la mesure de ce que
 > P-05 protège.
@@ -707,7 +726,7 @@ dépôt — `compose.yml` ne déclare qu'un service.)*
 | **SC-004** | **Zéro** période représentée autrement qu'en `tstzrange` ; **zéro** paire de dates portant une disponibilité | 0 | **0** — voir l'examen ci-dessous | **T031** |
 | **SC-005** | **Zéro** clé étrangère entre deux schémas, sagas comprises | 0 | **0** sur 98 examinées, **deux mesures indépendantes** | P-05 · T017 |
 | **SC-006** | **100 %** des tables nouvelles déclarées au registre | 0 non déclarée | **118/118**, P-02 verte | P-02 · T002 |
-| **SC-007** | **Les six** tables à double classe déclarent **les deux**, avec l'opération de chacune | 6/6 | **6/6** · décompte croisé : 42 tables, **48** classes déclarées | **T014** |
+| **SC-007** | **Les six** tables à double classe déclarent **les deux**, avec l'opération de chacune | 6/6 | **6/6** · décompte croisé sur le dépôt livré : **47** tables, **53** classes déclarées | **T014** |
 | **SC-008** | **Zéro** `UPDATE`/`DELETE` sur `lot_envoi` et `taxe_sejour_constat` ; **zéro** `DELETE` ; **zéro** `GRANT … ON ALL TABLES` | 0 partout | **0 · 0 · 0**, plus **0** `ALTER DEFAULT PRIVILEGES** *(contrôle ajouté)* | **T013** |
 | **SC-009** | **Zéro** quantité en entier, flottant, identifiant avec `DEFAULT`, `SEQUENCE` | 0 partout | **0 · 0 · 0 · 0**, plus **0** colonne `IDENTITY` *(contrôle ajouté)* | **T013** |
 | **SC-010** | Disponibilité par catégorie **< 300 ms**, **par parcours d'index** | < 300 ms | **0,441 ms** · `Index Only Scan` sur l'index GiST | **T026** |
@@ -869,3 +888,120 @@ réserve du cycle est nommée plutôt que passée.**
 | Le **piège du préfixe à trois chiffres** pour un seizième fichier | [README du modèle](../../docs/modele-donnees/README.md) |
 | **Le `COMMIT` du perdant rend `ROLLBACK`** : vérifier le succès sur l'`INSERT`, jamais sur le `COMMIT` | Ce rapport, T006 |
 | **Quand `ix_unite_categorie` gagnera son coût** — et qu'il faudra refaire la mesure | Ce rapport, T026 |
+| Le **surbooking contrôlé** : deux réservations concurrentes sur la même catégorie sont légitimes tant qu'il reste des unités — c'est le `domain` qui compte, jamais la base qui refuse | Commentaire de `reservation.periode` |
+
+---
+
+## Revue adverse du cycle, après les trente-deux tâches
+
+**Date** : 2026-08-07 · **Méthode** : six lecteurs indépendants, une dimension chacun — correction
+SQL, écart à la conception, porte P-05, classes et privilèges, parcours du produit, véracité de la
+documentation. **Chaque constat a ensuite été soumis à un vérificateur distinct, chargé de le
+RÉFUTER** et non de le confirmer. **48 agents, 42 constats soumis, 10 survivants.**
+
+> **Pourquoi une réfutation plutôt qu'une confirmation.** Un relecteur à qui l'on demande de trouver
+> des défauts en trouve — y compris là où il n'y en a pas. Un vérificateur à qui l'on demande de
+> réfuter doit aller lire le fichier, rejouer la requête, chercher la décision assumée. **Trente-deux
+> constats sur quarante-deux sont tombés** à cette épreuve : citations tronquées au point de
+> s'inverser, décisions écrites trois lignes plus bas, conséquences impossibles à produire.
+
+### Les trois défauts majeurs, et leur correction
+
+#### 1 · Une requête de contrôle qui ÉCHOUE était indiscernable d'un contrôle qui RÉUSSIT
+
+**C'est le plus grave du cycle, et il touchait LES TROIS PORTES.**
+
+| Maillon | Ce qui se passait |
+|---|---|
+| 1 | `psql` écrit ses erreurs sur **stderr** et sort en 1 ; la substitution de commande ne capturait que **stdout**, donc le résultat était une **chaîne vide** |
+| 2 | `set -e` est **neutralisé** dans le corps d'une fonction appelée en `porte_pXX … \|\| exit` — bash le désactive dans tout membre non final d'une liste `&&`/`\|\|` |
+| 3 | Une chaîne vide est **indiscernable de « aucun objet fautif »**, et `rendre_verdict` imprimait `✓ 118/118` puis `VERT` |
+
+**Sur un contrôle de plancher, c'était pire encore** : `[ "" -lt 90 ]` rend le code **2**
+(*« integer expression expected »*), donc la branche du `if` **n'est pas prise** — la porte
+imprimait *« Plancher atteint »* sur **zéro objet examiné**. Le plancher, qui existe précisément
+pour distinguer « rien à trouver » de « je ne cherche plus », **était sauté dans le seul cas qui le
+justifie**.
+
+**La correction, en trois points** : `interroger()` capture stderr, relève le statut de `psql`,
+**imprime l'erreur** et rend un statut non nul ; `interroger_nombre()` **exige en plus un entier** —
+une requête peut réussir et rendre autre chose qu'un nombre ; et **les dix appels** transforment
+l'échec en rouge par `|| return "$CODE_ROUGE"`, sans quoi le statut se perdrait dans la substitution.
+
+**Preuve que la correction mord** — cinq requêtes cassées volontairement :
+
+| Ce qui est cassé | Avant | Après |
+|---|---|---|
+| P-01 · requête de **comptage** | ~~VERT~~ | **ROUGE**, code 1 |
+| P-01 · requête de **liste** | ~~VERT~~ | **ROUGE**, code 1 |
+| P-02 · requête de tables | ~~VERT~~ | **ROUGE**, code 1 |
+| P-05 · requête de **comptage** | ~~VERT~~ | **ROUGE**, code 1 |
+| P-05 · requête de **détection** | ~~VERT~~ | **ROUGE**, code 1 |
+
+Chacune sort désormais *« LA REQUÊTE DE CONTRÔLE A ÉCHOUÉ — la porte ne peut RIEN prouver »*, suivie
+du message de `psql`. **Les trois tests négatifs restent verts.**
+
+> **Ce défaut complète la leçon de T016 plutôt que de la contredire.** Le sabotage de T016 avait
+> montré qu'un **plancher atteint** ne prouve rien si le prédicat est faux. Celui-ci montre qu'un
+> **contrôle vert** ne prouve rien si la requête n'a pas tourné. *Une porte a trois façons d'être
+> aveugle — cible vide, prédicat faux, requête morte — et il faut trois défenses distinctes.*
+
+#### 2 · `ck_formule_type` refusait `MENSUEL`
+
+**Trois documents normatifs l'exigent**, et aucun ne l'écarte :
+
+- `spec.md` — qui **fait foi** — énumère `NUITEE`, `PASSAGE`, `DEMI_JOURNEE`, **`MENSUEL`** ;
+- HEB-03 (P0) reprend les quatre valeurs à l'identique ;
+- le cadrage §5 est formel : *« aucune formule n'est réservée à un type d'établissement ; **un hôtel
+  peut proposer du mensuel** »*, et une résidence meublée en fait sa formule principale.
+
+**Une résidence meublée ne pouvait pas créer son tarif au mois.** La valeur `SALLE_REUNION` avait
+pris sa place — **une invention de l'implémentation, qu'aucun document n'arbitrait**, et qui était
+en outre **redondante** : une salle de réunion est une **unité d'une catégorie dédiée** (PDV-08,
+HEB-05), louée à l'heure — donc en `PASSAGE` — ou à la demi-journée. Lui donner un type propre
+créait une cinquième mécanique de tarification faisant ce que les quatre autres font déjà.
+
+**Vérifié en base** : `MENSUEL` accepté, `SALLE_REUNION` désormais refusée par `ck_formule_type`.
+
+#### 3 · `reservation` ne portait AUCUNE période
+
+**Le chemin nominal de cette table était impossible à écrire**, et c'est son propre commentaire qui
+le déclarait nominal : *« on réserve d'abord une **catégorie** ; l'unité précise est attribuée plus
+tard, parfois à l'arrivée »*. `unite_id` et `occupation_id` sont donc nullables **exprès** — mais
+tant qu'aucune unité n'est désignée, **il n'y a pas d'occupation, donc aucun `tstzrange` où loger
+« du 15 au 17 décembre »**. Une réservation de catégorie s'insérait sans qu'aucune colonne ne dise
+**pour quand**, alors que RSV-01 la déclare « ressource unique **sur un intervalle** ».
+
+**La colonne `periode TSTZRANGE NOT NULL` est ajoutée** — et `data-model.md` ne la contenait pas :
+c'est un manque de la conception, découvert à l'implémentation, déclaré comme tel dans le fichier.
+
+> **Aucune contrainte d'exclusion ne la protège, et ce n'est pas un oubli.** Une réservation de
+> catégorie ne bloque **aucune unité en particulier** : le blocage naît de l'`occupation` créée à
+> l'attribution, et c'est elle qui porte l'exclusion. Deux réservations concurrentes sur la même
+> catégorie sont **légitimes** tant qu'il reste des unités — c'est le **surbooking contrôlé**, que
+> le `domain` arbitre **en comptant**, jamais la base **en refusant**. Un index GiST partiel
+> (`ix_reservation_categorie_periode`) sert ce comptage.
+
+**Vérifié en base** : une réservation de catégorie sans unité s'écrit avec sa période ; une
+réservation sans période est refusée.
+
+### Les sept constats mineurs
+
+| Constat | Traitement |
+|---|---|
+| T017 annonce **92** clés étrangères et `hebergement 28` — instantané pris **avant** les cinq provisions de T019 ; le réel est **98** et **34** *(quatre lecteurs l'ont relevé)* | **corrigé** — voir T017 |
+| T014 présente **42 tables / 48 classes** comme le constat final de SC-007, alors que c'est un instantané pris avant T019 ; le réel est **47 / 53** | **corrigé** — la précaution temporelle est ajoutée |
+| `README.md` du modèle : le tableau « ce que ce répertoire ne contient pas » renvoyait encore les quatre schémas au cycle D2 | **corrigé** |
+| Diagramme des relations : `conversion_unite_mesure` était placée dans la colonne `stocks` alors qu'elle est dans `ventes` | **corrigé** |
+
+> **Les quatre constats sur le 92 disent tous la même chose, et c'est ce qui les rend crédibles** :
+> quatre lecteurs partis de dimensions différentes — cohérence de conception, porte P-05,
+> documentation — sont tombés sur le même écart par des chemins indépendants.
+
+### Ce que la revue n'a PAS trouvé
+
+Aucun constat survivant sur : la contrainte d'exclusion et ses cinq cas · l'absence de clé étrangère
+inter-schémas · les privilèges des 118 tables · les six doubles classes · les provisions · les deux
+sagas · la forme RLS · les décomptes du modèle appliqué. **Trente-deux constats sont tombés à la
+réfutation**, dont plusieurs citaient exactement le commentaire qui les démentait trois lignes plus
+bas.

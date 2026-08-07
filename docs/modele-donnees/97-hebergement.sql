@@ -13,6 +13,9 @@
 --      même mécanisme que les chambres — donc par la même contrainte
 --      d'exclusion. Une entité distincte aurait demandé une seconde mécanique
 --      de disponibilité, et deux mécaniques finissent par diverger.
+--      COROLLAIRE, écrit parce qu'il a été manqué une fois : elle n'a pas non
+--      plus de TYPE DE FORMULE propre. Elle se loue à l'heure — en `PASSAGE` —
+--      ou à la demi-journée. Voir `ck_formule_type`.
 --
 --   2. LE STATUT D'OCCUPATION D'UNE UNITÉ — libre, occupée, réservée — EST
 --      DÉRIVÉ des occupations et N'A AUCUNE COLONNE (registre §7.2). Le
@@ -219,10 +222,19 @@ CREATE TABLE hebergement.formule (
     modifie_le              TIMESTAMPTZ    NOT NULL DEFAULT now(),
     CONSTRAINT fk_formule_categorie FOREIGN KEY (categorie_id)
         REFERENCES hebergement.categorie (id),
-    -- SALLE_REUNION est une formule comme une autre : c'est ce qui évite une
-    -- seconde mécanique de réservation (PDV-08).
+    -- LES QUATRE VALEURS SONT CELLES DE LA SPÉCIFICATION, mot pour mot
+    -- (spec.md ; HEB-03 ; cadrage §5 l. 170). `MENSUEL` n'est PAS réservé aux
+    -- résidences meublées : le cadrage est formel — « aucune formule n'est
+    -- réservée à un type d'établissement ; un hôtel peut proposer du mensuel »,
+    -- et un client peut séjourner plusieurs mois en hôtel.
+    --
+    -- ⚠️ IL N'Y A PAS DE VALEUR `SALLE_REUNION`, ET C'EST DÉLIBÉRÉ. Une salle de
+    -- réunion est une UNITÉ D'UNE CATÉGORIE DÉDIÉE (PDV-08, HEB-05), pas un type
+    -- de formule : elle se loue à l'heure — donc en PASSAGE — ou à la
+    -- demi-journée. Lui donner un type propre créerait une cinquième mécanique
+    -- de tarification qui ferait exactement ce que les quatre autres font déjà.
     CONSTRAINT ck_formule_type CHECK (type IN (
-        'NUITEE', 'PASSAGE', 'DEMI_JOURNEE', 'SALLE_REUNION')),
+        'NUITEE', 'PASSAGE', 'DEMI_JOURNEE', 'MENSUEL')),
     CONSTRAINT ck_formule_duree_coherente CHECK (
         duree_min_minutes IS NULL
         OR duree_max_minutes IS NULL
@@ -1271,6 +1283,22 @@ CREATE TABLE hebergement.reservation (
     unite_id          UUID            NULL,
     formule_id        UUID        NOT NULL,
     occupation_id     UUID            NULL,
+    -- ⚠️ CE QUI EST RÉSERVÉ, ET QUAND. COLONNE DÉCOUVERTE À L'IMPLÉMENTATION,
+    -- absente de data-model.md — et son absence rendait le CHEMIN NOMINAL de
+    -- cette table impossible à écrire.
+    -- Le raisonnement, parce qu'il vaut d'être relu : `unite_id` et
+    -- `occupation_id` sont nullables EXPRÈS — on réserve d'abord une CATÉGORIE.
+    -- Mais tant qu'aucune unité n'est désignée, il n'y a pas d'occupation, donc
+    -- AUCUN tstzrange où loger « du 15 au 17 décembre ». Une réservation de
+    -- catégorie se serait insérée sans qu'aucune colonne ne dise POUR QUAND —
+    -- et RSV-01 la déclare pourtant « ressource unique SUR UN INTERVALLE ».
+    -- ⚠️ AUCUNE CONTRAINTE D'EXCLUSION ICI, et ce n'est pas un oubli : une
+    -- réservation de catégorie ne bloque AUCUNE unité en particulier. Le blocage
+    -- naît de l'`occupation` créée à l'attribution, et c'est elle qui porte
+    -- l'exclusion. Deux réservations concurrentes sur la même catégorie sont
+    -- légitimes tant qu'il reste des unités — c'est le surbooking contrôlé, que
+    -- le `domain` de la phase 3 arbitre en comptant, jamais la base en refusant.
+    periode           TSTZRANGE   NOT NULL,
     statut            TEXT        NOT NULL,
     expire_le         TIMESTAMPTZ     NULL,
     annulee_le        TIMESTAMPTZ     NULL,
@@ -1297,8 +1325,10 @@ COMMENT ON COLUMN hebergement.reservation.unite_id IS
     'NULLABLE — on réserve une CATÉGORIE, l''unité est attribuée plus tard. L''exiger figerait le plan de chambres des semaines à l''avance.';
 COMMENT ON COLUMN hebergement.reservation.occupation_id IS
     'NULLABLE tant qu''aucune unité n''est désignée. La conversion en séjour CONSERVE LA MÊME occupation en changeant son motif — jamais une seconde, qui se chevaucherait avec la première.';
+COMMENT ON COLUMN hebergement.reservation.periode IS
+    'CE QUI EST RÉSERVÉ, ET QUAND — TSTZRANGE, jamais une paire de dates, comme sur occupation. Elle existe parce que le CHEMIN NOMINAL de cette table est la réservation d''une CATÉGORIE sans unité : sans occupation, il n''y aurait aucun tstzrange où loger l''intervalle, et RSV-01 déclare pourtant la réservation « ressource unique SUR UN INTERVALLE ». ⚠️ AUCUNE contrainte d''exclusion ne la protège, et c''est voulu : une réservation de catégorie ne bloque aucune unité en particulier — le blocage naît de l''occupation créée à l''attribution.';
 COMMENT ON COLUMN hebergement.reservation.expire_le IS
-    'VALEUR RÉSOLUE de l''échéance, jamais le délai. La clé de catalogue peut changer ; l''échéance d''une réservation déjà prise, non.';
+    'VALEUR RÉSOLUE de l''échéance, jamais le délai. La clé de catalogue peut changer ; l''échéance d''une réservation déjà prise, non. À ne pas confondre avec `periode`, qui est ce qui est réservé : `expire_le` est la date à laquelle une PROVISOIRE tombe.';
 
 ALTER TABLE hebergement.reservation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hebergement.reservation FORCE  ROW LEVEL SECURITY;
@@ -1316,6 +1346,14 @@ GRANT SELECT, INSERT, UPDATE ON hebergement.reservation TO kaya_app;
 -- expirer — la tâche périodique part de là (RSV-01)
 CREATE INDEX ix_reservation_etab_statut
     ON hebergement.reservation (etablissement_id, statut, expire_le);
+
+-- Sert : les réservations d'une catégorie qui recouvrent un intervalle donné —
+-- le comptage de disponibilité prévisionnelle, qui décide s'il reste des unités
+-- à promettre. Index GiST parce que la recherche est un CHEVAUCHEMENT (&&), que
+-- b-tree ne sert pas (RSV-01, RSV-02)
+CREATE INDEX ix_reservation_categorie_periode
+    ON hebergement.reservation USING gist (categorie_id, periode)
+    WHERE statut IN ('PROVISOIRE', 'CONFIRMEE');
 
 -- Sert : les réservations d'un client (RSV-01)
 CREATE INDEX ix_reservation_client ON hebergement.reservation (client_id);
