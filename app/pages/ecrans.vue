@@ -29,7 +29,7 @@ useHead({ title: () => t('ecrans.titre') })
 
 <template>
   <div
-    class="mx-auto flex w-full max-w-[1120px] flex-col gap-5.5 px-6 py-5.5"
+    class="mx-auto flex w-full max-w-280 flex-col gap-5.5 px-6 py-5.5"
     data-ecran="ecrans"
   >
     <h1 class="font-titre text-titre-m font-semibold text-ink">

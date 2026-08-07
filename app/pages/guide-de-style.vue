@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import BandeauAlerte from '~/core/design-system/BandeauAlerte.vue'
 import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import BoutonPrincipal from '~/core/design-system/BoutonPrincipal.vue'
 import BoutonSecondaire from '~/core/design-system/BoutonSecondaire.vue'
+import CarteChiffre from '~/core/design-system/CarteChiffre.vue'
 import LigneListe from '~/core/design-system/LigneListe.vue'
 import PastilleEtat from '~/core/design-system/PastilleEtat.vue'
+import TuileAction from '~/core/design-system/TuileAction.vue'
 import SelecteurSegmente, {
   type OptionSegment,
 } from '~/core/design-system/SelecteurSegmente.vue'
@@ -36,7 +39,7 @@ useHead({ title: () => t('guideDeStyle.titre') })
  * un test la confronte au nombre de sections numérotées du fichier de
  * référence. Un nombre écrit à la main a déjà été faux deux fois.
  */
-const SECTIONS = ['01', '02', '03', '04', '08'] as const
+const SECTIONS = ['01', '02', '03', '04', '05', '06', '07', '08'] as const
 
 const { choix, choisir } = useTheme()
 const OPTIONS_THEME: readonly OptionSegment[] = CHOIX_THEME.map((valeur) => ({
@@ -51,7 +54,7 @@ const themeChoisi = computed({
 
 <template>
   <div
-    class="mx-auto flex w-full max-w-[1120px] flex-col gap-8 px-6 py-5.5"
+    class="mx-auto flex w-full max-w-280 flex-col gap-8 px-6 py-5.5"
     data-ecran="guide-de-style"
     data-zone="charme"
   >
@@ -215,6 +218,112 @@ const themeChoisi = computed({
           etat="casse"
           libelle-cle="guideDeStyle.demo.impaye"
           contour
+        />
+      </div>
+    </section>
+
+    <!-- 05 · Tuile d'action -->
+    <section
+      id="composant-05"
+      data-composant="05"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">05</span>
+        {{ $t('guideDeStyle.composant.05') }}
+      </h2>
+      <div class="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+        <TuileAction
+          libelle-cle="guideDeStyle.demo.passage"
+          icone="ph-door-open"
+          detail-cle="guideDeStyle.demo.chambresLibres"
+        />
+        <TuileAction
+          libelle-cle="guideDeStyle.demo.arrivee"
+          icone="ph-user-plus"
+          detail-cle="guideDeStyle.demo.deuxArrivees"
+          :compteur="2"
+        />
+        <TuileAction
+          libelle-cle="guideDeStyle.demo.encaissement"
+          icone="ph-cash-register"
+          motif-indisponible-cle="guideDeStyle.demo.roleServeuse"
+        />
+        <TuileAction
+          libelle-cle="guideDeStyle.demo.filtrer"
+          icone="ph-funnel"
+          compacte
+        />
+      </div>
+    </section>
+
+    <!-- 06 · Carte chiffre -->
+    <section
+      id="composant-06"
+      data-composant="06"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">06</span>
+        {{ $t('guideDeStyle.composant.06') }}
+      </h2>
+      <div class="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+        <CarteChiffre
+          etiquette-cle="guideDeStyle.demo.recetteDuJour"
+          valeur="184 000 F"
+          delta="+ 12 500 F"
+        />
+        <CarteChiffre
+          etiquette-cle="guideDeStyle.demo.recetteDuJour"
+          valeur="97 500 F"
+          delta="− 8 000 F"
+          :delta-positif="false"
+        />
+        <CarteChiffre
+          etiquette-cle="guideDeStyle.demo.chambresLibres"
+          valeur="7"
+          contrefort
+        />
+        <CarteChiffre
+          etiquette-cle="guideDeStyle.demo.recetteDuJour"
+          en-chargement
+        />
+      </div>
+    </section>
+
+    <!-- 07 · Bandeau d'alerte -->
+    <section
+      id="composant-07"
+      data-composant="07"
+      class="flex flex-col gap-3.5"
+    >
+      <h2 class="font-titre text-titre-s font-semibold text-ink">
+        <span class="font-mono text-ink-3">07</span>
+        {{ $t('guideDeStyle.composant.07') }}
+      </h2>
+      <!-- ⚠️ JAMAIS DEUX BANDEAUX EMPILÉS DANS UN ÉCRAN. Ils sont ici côte à
+           côte parce que c'est un guide de style : on les MONTRE, on ne les
+           empile pas dans un parcours. -->
+      <div class="flex flex-col gap-3.5">
+        <BandeauAlerte
+          ton="info"
+          message-cle="guideDeStyle.demo.noteArretee"
+        />
+        <BandeauAlerte
+          ton="succes"
+          message-cle="guideDeStyle.demo.envoiReussi"
+        />
+        <BandeauAlerte
+          ton="alerte"
+          message-cle="guideDeStyle.demo.consommationSupprimee"
+          action-cle="guideDeStyle.demo.retablir"
+        />
+        <BandeauAlerte
+          ton="danger"
+          message-cle="guideDeStyle.demo.connexionPerdue"
+          alternative-cle="guideDeStyle.demo.saisirAuComptoir"
+          action-cle="guideDeStyle.demo.reessayer"
+          pleine-largeur
         />
       </div>
     </section>

@@ -28,16 +28,23 @@ function fichiersSources(repertoire: string): string[] {
   return trouves
 }
 
-/** Les classes d'icônes réellement écrites dans `app/`, par variante. */
+/**
+ * Les classes d'icônes réellement écrites dans `app/`, par variante.
+ * ⚠️ MÊME RÈGLE QUE `scripts/polices/sous-regler-icones.mjs`, et c'est
+ * volontaire : deux détections différentes se contrediraient, et c'est le test
+ * qui aurait tort en silence.
+ */
+const PREFIXES_DE_VARIANTE = new Set(['ph-fill', 'ph-bold', 'ph-thin', 'ph-light', 'ph-duotone'])
+
 function iconesEmployees() {
   const employees = { regular: new Set<string>(), fill: new Set<string>() }
   for (const fichier of fichiersSources(SOURCES)) {
     const contenu = readFileSync(fichier, 'utf8')
-    for (const trouve of contenu.matchAll(/\bph-fill\s+(ph-[a-z0-9-]+)/g)) {
-      employees.fill.add(trouve[1]!)
-    }
-    for (const trouve of contenu.matchAll(/(?<!-)\bph\s+(ph-[a-z0-9-]+)/g)) {
-      employees.regular.add(trouve[1]!)
+    for (const trouve of contenu.matchAll(/(?<![\w-])ph-[a-z0-9-]+/g)) {
+      const nom = trouve[0]
+      if (PREFIXES_DE_VARIANTE.has(nom)) continue
+      if (nom.startsWith('ph-fill-')) employees.fill.add(nom)
+      else employees.regular.add(nom)
     }
   }
   return employees
@@ -119,5 +126,15 @@ describe('les glyphes sous-réglés couvrent ce que app/ emploie', () => {
     const employees = new Set([...icones.regular, ...icones.fill])
     const superflues = declarees.filter((n) => !employees.has(n))
     expect(superflues, `glyphes embarqués sans emploi : ${superflues.join(', ')}`).toEqual([])
+  })
+
+  it('sous-règle assez de glyphes pour que son vert veuille dire quelque chose', () => {
+    // ⚠️ LE PLANCHER EXISTE PARCE QUE LA PREMIÈRE DÉTECTION ÉTAIT FAUSSE. Elle
+    // cherchait la paire « ph ph-xxx », que les composants n'écrivent jamais —
+    // ils passent l'icône en propriété. Le ratissage rendait ZÉRO glyphe, les
+    // trois contrôles ci-dessus passaient sur des ensembles vides, et
+    // l'application affichait des carrés à la place des icônes.
+    const declarees = [...css.matchAll(/::before/g)].length
+    expect(declarees, 'aucun glyphe déclaré : la détection est probablement cassée').toBeGreaterThanOrEqual(5)
   })
 })

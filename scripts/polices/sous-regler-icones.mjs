@@ -97,18 +97,28 @@ function pointsDeCode(cheminCss, prefixe) {
 
 /**
  * Les classes d'icônes réellement écrites dans `app/`.
- * ⚠️ `ph-fill` est un préfixe de `ph-`, donc l'ordre de reconnaissance compte :
- * on repère d'abord les paires complètes `ph-fill ph-xxx`, puis `ph ph-xxx`.
+ *
+ * ⚠️ ON RATISSE LES NOMS, PAS LES PAIRES `ph ph-xxx`. Première version, et elle
+ * était fausse : les composants passent l'icône EN PROPRIÉTÉ — `icone="ph-door-
+ * open"` d'un côté, `:class="['ph', icone]"` de l'autre. La paire n'apparaît
+ * jamais dans le même fichier, donc le ratissage rendait zéro glyphe et
+ * l'application affichait des carrés vides sans que rien ne le dise.
+ *
+ * ⚠️ ET LA VARIANTE SE DÉCLARE PAR LE NOM, `ph-fill-xxx`. C'est une convention
+ * de CE dépôt : Phosphor écrit `ph-fill ph-xxx`, mais deux classes ne survivent
+ * pas au passage par une propriété. Le composant recompose.
  */
+const PREFIXES_DE_VARIANTE = new Set(['ph-fill', 'ph-bold', 'ph-thin', 'ph-light', 'ph-duotone'])
+
 function iconesEmployees(fichiers) {
   const employees = { regular: new Set(), fill: new Set() }
   for (const fichier of fichiers) {
     const contenu = readFileSync(fichier, 'utf8')
-    for (const trouve of contenu.matchAll(/\bph-fill\s+(ph-[a-z0-9-]+)/g)) {
-      employees.fill.add(trouve[1])
-    }
-    for (const trouve of contenu.matchAll(/(?<!-)\bph\s+(ph-[a-z0-9-]+)/g)) {
-      employees.regular.add(trouve[1])
+    for (const trouve of contenu.matchAll(/(?<![\w-])ph-[a-z0-9-]+/g)) {
+      const nom = trouve[0]
+      if (PREFIXES_DE_VARIANTE.has(nom)) continue
+      if (nom.startsWith('ph-fill-')) employees.fill.add(nom.replace('ph-fill-', 'ph-'))
+      else employees.regular.add(nom)
     }
   }
   return employees
@@ -192,7 +202,16 @@ for (const variante of VARIANTES) {
     )
   }
 
+  // Une variante sans glyphe n'écrit RIEN : un sélecteur qui pointerait vers une
+  // famille non déclarée est une règle morte, et une règle morte se lit comme
+  // une règle vivante.
+  if (noms.length === 0) {
+    console.log(`  ${variante.cle} : aucun glyphe — variante non déclarée`)
+    continue
+  }
+
   const selecteur = variante.cle === 'fill' ? '.ph-fill' : '.ph'
+  const prefixeClasse = variante.cle === 'fill' ? 'ph-fill-' : ''
   lignesCss.push(
     `${selecteur} {`,
     `  font-family: "${variante.famille}";`,
@@ -211,7 +230,8 @@ for (const variante of VARIANTES) {
 
   for (const nom of noms) {
     const code = table.get(nom).toString(16)
-    lignesCss.push(`${selecteur}.${nom}::before { content: "\\${code}"; }`)
+    const classe = prefixeClasse ? nom.replace(/^ph-/, prefixeClasse) : nom
+    lignesCss.push(`${selecteur}.${classe}::before { content: "\\${code}"; }`)
   }
   if (noms.length > 0) lignesCss.push('')
 

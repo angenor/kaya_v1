@@ -1,3 +1,11 @@
+/* ⚠️ CETTE LIGNE EST EN TÊTE DE FICHIER, ET ELLE DOIT L'ÊTRE.
+   `@import` ne vaut qu'AVANT toute autre règle : placée en fin de fichier, elle
+   était silencieusement ÉCARTÉE à la compilation. Constaté à l'écran — les
+   tuiles d'action affichaient un vide à la place de leurs icônes — puis dans le
+   CSS compilé, où « Phosphor » n'apparaissait pas une seule fois. Aucune erreur
+   n'avait été levée : c'est le mode de défaillance des feuilles de style. */
+@import '../polices/icones.css';
+
 /* ═══════════════════════════════════════════════════════════════════════════
    KAYA — POLICES EMBARQUÉES
 
@@ -82,7 +90,3 @@
     U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
     U+2C60-2C7F, U+A720-A7FF;
 }
-
-/* Les glyphes d'icônes, sous-réglés et commités. Fichier ENGENDRÉ — voir
-   scripts/polices/sous-regler-icones.mjs. */
-@import '../polices/icones.css';
