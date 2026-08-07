@@ -221,3 +221,87 @@ Sur le catalogue, **modèle entier** — socle et verticales confondus :
 **Verdict : conforme.** Le modèle complet n'a **qu'une seule forme de politique**, ce qui est la
 condition pour que P-01 n'en cherche qu'une — *une porte qui accepterait deux formes en accepterait
 trois*.
+
+---
+
+## T016 · La porte P-05 sait échouer — cassée volontairement une fois
+
+**Date** : 2026-08-07 · **Méthode** : `scripts/verifier.sh --test-negatif p05`, puis **sabotage
+délibéré du prédicat de détection** de la porte pour vérifier que le test négatif sait le voir.
+
+### Le test négatif, en trois temps
+
+`--test-negatif p05` opère sur une **copie de travail** et ajoute par `ALTER` la clé étrangère
+`hebergement.ligne_sejour.ligne_commande_id → ventes.ligne_commande`.
+
+| Temps | Ce qui est exigé | Constaté |
+|---|---|---|
+| 1 | **P-01 reste VERTE** — la mutation n'ôte ni RLS ni politique | ✓ |
+| 2 | **P-02 reste VERTE** — la mutation n'ajoute aucune table | ✓ |
+| 3 | **P-05 rougit** | ✓ |
+| 4 | L'échec **nomme les trois objets** | ✓ — `fk_ligne_sejour_ligne_commande : hebergement.ligne_sejour → ventes.ligne_commande` |
+| 5 | `docs/modele-donnees/` **inchangé** — empreinte identique avant et après | ✓ |
+
+> **Les temps 1 et 2 ne sont pas de la décoration.** Sans eux, une mutation mal formée ferait rougir
+> P-01 d'abord, et l'on croirait avoir prouvé P-05 alors qu'on aurait prouvé P-01 une **troisième**
+> fois. C'est la même précaution que le test négatif de P-02 du cycle D1, portée à trois portes.
+
+### Le sabotage — ce qui prouve que le test négatif n'est pas décoratif lui non plus
+
+Le prédicat `np.nspname <> nr.nspname` de la requête de détection a été remplacé par un prédicat
+toujours faux, puis le tout rejoué :
+
+| Commande | Attendu si la porte est aveugle | Constaté |
+|---|---|---|
+| `verifier.sh --porte p05` sur le modèle sain | **VERT** — et c'est le problème : rien ne le signale | **VERT**, 92 contraintes examinées, plancher atteint |
+| `verifier.sh --test-negatif p05` | **CODE 4** — « la porte est aveugle » | **CODE 4** ✓, avec le message *« LA PORTE EST PASSÉE AU VERT sur une clé étrangère inter-schémas »* |
+| Après restauration du script | **CODE 0** | **CODE 0** ✓ |
+
+> **C'est exactement le mode de défaillance que P-05 rendait probable**, et qui justifiait le
+> plancher de non-vacuité : la porte sabotée **passait au vert en annonçant fièrement 92 contraintes
+> examinées**. Le plancher n'a rien vu — il ne pouvait rien voir, puisque la cible n'était pas vide,
+> seulement le prédicat était faux. **C'est le test négatif, et lui seul, qui a fait la différence.**
+> Le plancher et le test négatif ne couvrent donc pas la même faute, et il en faut deux.
+
+---
+
+## T017 · SC-005 — zéro clé étrangère entre deux schémas, et le périmètre de P-05
+
+**Date** : 2026-08-07 · **Méthode** : requête sur `pg_constraint` où `contype = 'f'` et les deux
+`relnamespace` diffèrent, sur les **quatorze schémas** du modèle appliqué. **Contre-mesure
+indépendante** : `grep -c "FOREIGN KEY"` sur les quinze fichiers.
+
+### Le constat
+
+| Ce qui est compté | Attendu | Constaté |
+|---|---|---|
+| Clés étrangères **entre deux schémas** | **0** | **0** ✓ — les deux sagas comprises |
+| Clés étrangères **internes**, total | — | **92** |
+| Mêmes, comptées par `grep` sur les fichiers | **92** | **92** ✓ — *deux mesures indépendantes qui concordent* |
+
+### Répartition, schéma par schéma
+
+| Schéma | Clés étrangères internes | | Schéma | Clés étrangères internes |
+|---|---|---|---|---|
+| `hebergement` | **28** | | `stocks` | 8 |
+| `etablissements` | 17 | | `fiscalite` | 5 |
+| `ventes` | 12 | | `editeur` | 3 |
+| `caisse` | 9 | | `pressing` | 1 |
+| `comptes` | 8 | | `synchronisation` | 1 |
+
+*Les quatre schémas restants — `documents`, `pilotage`, `metriques`, `comptabilite` — n'en portent
+aucune, ce qui est cohérent : ce sont des schémas de tables autonomes ou de provisions.*
+
+### P-05 déclare bien son périmètre, et le nombre est le bon
+
+La porte imprime **`Périmètre : 14 schéma(s) · 92 contrainte(s) de clé étrangère examinée(s)`**.
+Ce **92** est le décompte réel du modèle, vérifié par deux voies. La porte n'inspecte donc pas un
+sous-ensemble sans le dire — ce qui est très exactement le point 1 du contrat de porte.
+
+> **Le contraste avec le socle mérite d'être noté** : `hebergement` porte à lui seul **28** clés
+> étrangères internes, soit plus que n'importe quel schéma du socle. C'est la mesure de ce que
+> « toute la verticale vit dans son schéma » veut dire concrètement — et donc la mesure de ce que
+> P-05 protège.
+
+**Verdict : SC-005 est constaté.** Zéro clé étrangère inter-schémas sur les quatorze, et la règle
+n'est plus un commentaire : elle est refusée par une commande.
