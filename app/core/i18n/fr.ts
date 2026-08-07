@@ -126,6 +126,9 @@ export default {
       classique: "Classique",
       superieure: "Supérieure",
       numeroDeChambre: "Numéro de chambre",
+      zone: "Zone de mouvement",
+      charme: "Charme",
+      vitesse: "Vitesse",
     },
   },
   scenarios: {

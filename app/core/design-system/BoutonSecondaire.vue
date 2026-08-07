@@ -32,6 +32,7 @@ defineEmits<{ activer: [] }>()
   <button
     type="button"
     :disabled="desactive"
+    data-mouvement="tactile"
     class="inline-flex h-11 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] bg-transparent px-4.5 font-titre text-action font-semibold transition-colors duration-90 ease-entree active:translate-y-0.5"
     :class="neutre ? 'border-line-2 text-ink-2 hover:bg-tile' : 'border-prim text-prim hover:bg-prim-soft'"
     @click="$emit('activer')"

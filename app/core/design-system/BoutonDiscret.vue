@@ -35,6 +35,7 @@ defineEmits<{ activer: [] }>()
     :disabled="desactive"
     :aria-label="!libelleCle && icone ? icone : undefined"
     data-composant-03
+    data-mouvement="tactile"
     class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-titre text-mini font-semibold transition-colors duration-90 active:scale-97"
     :class="[
       libelleCle ? 'h-9 px-3.5' : 'size-11',

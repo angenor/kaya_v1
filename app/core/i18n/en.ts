@@ -108,6 +108,9 @@ export default {
       classique: "Classic",
       superieure: "Superior",
       numeroDeChambre: "Room number",
+      zone: "Motion zone",
+      charme: "Charm",
+      vitesse: "Speed",
     },
   },
   scenarios: {

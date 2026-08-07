@@ -62,7 +62,8 @@ const partRestante = computed(
       <span class="font-mono text-mini text-bg/60">{{ secondes }}</span>
       <span class="h-1 w-12 overflow-hidden rounded-pleine bg-bg/20">
         <span
-          class="block h-full rounded-pleine bg-bg/70 transition-[width] duration-160 ease-deplace"
+          class="block h-full rounded-pleine bg-bg/70 transition-[width] ease-deplace"
+          data-mouvement="rapide"
           :style="{ width: partRestante }"
         />
       </span>

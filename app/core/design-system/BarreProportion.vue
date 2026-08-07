@@ -50,7 +50,8 @@ const largeur = computed(() => `${Math.min(100, Math.max(0, props.part))}%`)
         :aria-label="valeur"
       >
         <span
-          class="block h-full rounded-pleine transition-[width] duration-240 ease-deplace"
+          class="block h-full rounded-pleine transition-[width] ease-deplace"
+          data-mouvement="standard"
           :class="TONS[ton]"
           :style="{ width: largeur }"
         />

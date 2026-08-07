@@ -74,6 +74,7 @@ const classes = computed(() => [
     v-if="vers"
     :to="vers"
     :class="classes"
+    :data-etat="etat"
     @click="$emit('activer')"
   >
     <span
@@ -99,6 +100,7 @@ const classes = computed(() => [
   <div
     v-else
     :class="classes"
+    :data-etat="etat"
     @click="$emit('activer')"
   >
     <span

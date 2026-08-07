@@ -86,6 +86,18 @@ const OPTIONS_SEGMENT_DEMO: readonly OptionSegment[] = [
 ]
 const segmentDemo = ref('toutes')
 const saisieDemo = ref('')
+
+/**
+ * ⚠️ LA ZONE SE POSE SUR LE CONTENEUR D'ÉCRAN, JAMAIS SUR UN COMPOSANT
+ * (mouvement.md §4). « Un même composant se comporte différemment selon l'écran
+ * qui l'accueille : c'est voulu. » La bascule est ici pour qu'on puisse le VOIR,
+ * et le test le vérifie.
+ */
+const zone = ref<'charme' | 'vitesse'>('charme')
+const OPTIONS_ZONE: readonly OptionSegment[] = [
+  { valeur: 'charme', libelleCle: 'guideDeStyle.demo.charme' },
+  { valeur: 'vitesse', libelleCle: 'guideDeStyle.demo.vitesse' },
+]
 const choixDemo = ref('standard')
 const OPTIONS_CHOIX_DEMO = [
   { valeur: 'standard', libelle: t('guideDeStyle.demo.standard') },
@@ -108,7 +120,7 @@ const themeChoisi = computed({
   <div
     class="mx-auto flex w-full max-w-280 flex-col gap-8 px-6 py-5.5"
     data-ecran="guide-de-style"
-    data-zone="charme"
+    :data-zone="zone"
   >
     <header class="flex flex-wrap items-end justify-between gap-4">
       <h1 class="font-titre text-titre-m font-semibold text-ink">
@@ -119,6 +131,12 @@ const themeChoisi = computed({
         :options="OPTIONS_THEME"
         etiquette-cle="theme.etiquette"
         data-reglage="theme-guide"
+      />
+      <SelecteurSegmente
+        v-model="zone"
+        :options="OPTIONS_ZONE"
+        etiquette-cle="guideDeStyle.demo.zone"
+        data-reglage="zone"
       />
     </header>
 

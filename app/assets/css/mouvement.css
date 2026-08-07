@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   KAYA — RÉGIME DE MOUVEMENT
+
+   ⚠️ POURQUOI CE FICHIER EXISTE, ALORS QUE TOUT LE RESTE EST EN UTILITAIRES.
+   Le principe 12 réserve le CSS explicite « à ce que Tailwind n'exprime pas ».
+   Deux choses le sont ici, et elles ne se contournent pas :
+
+   1. `calc(var(--duree-standard) * var(--intensite))`. Tailwind écrit
+      `duration-240` en `transition-duration: 240ms` — une valeur FIXE. Or
+      `mouvement.md` §4 fait de l'intensité de zone « une seule variable » qui
+      sépare le plaisir de la vitesse : sans ce calcul, `data-zone="vitesse"` ne
+      changerait RIEN, et la promesse « ×0,45 au comptoir » serait décorative.
+
+   2. L'EXEMPTION DU RETOUR TACTILE sous « réduire les animations ».
+      `docs/design/theme.css` — copie conforme, jamais éditée — coupe TOUTE
+      transition à 0,01 ms sous cette préférence. C'est juste pour tout le
+      produit sauf UNE chose : le patron P5, « le seul mouvement qui n'est jamais
+      réduit — il ne raconte rien, il confirme que le doigt a été vu ». Un
+      `!important` sous la même requête média est la seule façon de la reprendre.
+
+   Trois déclarations, regroupées. Rien d'autre n'entre ici.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1 · L'intensité de zone, appliquée aux éléments qui déclarent leur mouvement.
+       `data-mouvement` est une DÉCLARATION, pas une décoration : un élément qui
+       ne le porte pas ne participe pas au régime de zone. */
+[data-mouvement='rapide'] {
+  transition-duration: calc(var(--duree-rapide) * var(--intensite));
+}
+[data-mouvement='standard'] {
+  transition-duration: calc(var(--duree-standard) * var(--intensite));
+}
+[data-mouvement='ample'] {
+  transition-duration: calc(var(--duree-ample) * var(--intensite));
+}
+
+/* 2 · Le retour tactile. Il ne suit PAS l'intensité de zone — il est déjà au
+       plancher — et il garde ses 90 ms sous « réduire les animations ». */
+[data-mouvement='tactile'] {
+  transition-duration: var(--duree-instantane);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-mouvement='tactile'] {
+    transition-duration: var(--duree-instantane) !important;
+  }
+}

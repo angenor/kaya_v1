@@ -43,6 +43,7 @@ defineEmits<{ activer: [] }>()
   <button
     type="button"
     :disabled="Boolean(motifIndisponibleCle)"
+    data-mouvement="tactile"
     class="flex flex-col items-start justify-between gap-3.5 rounded-lg border p-4 text-left shadow-basse transition-[transform,border-color] duration-90 ease-entree active:scale-98"
     :class="[
       compacte ? 'min-h-20' : 'min-h-28',

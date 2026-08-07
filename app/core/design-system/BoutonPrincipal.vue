@@ -46,6 +46,7 @@ defineEmits<{ activer: [] }>()
   <button
     type="button"
     :disabled="desactive || enCours"
+    data-mouvement="tactile"
     class="inline-flex cursor-pointer items-center justify-center gap-2.5 rounded-lg px-5 font-titre text-action font-semibold transition-[transform,box-shadow,background-color] duration-90 ease-entree active:translate-y-0.5"
     :class="[
       comptoir ? 'h-12 w-full' : 'h-11 min-w-42',
