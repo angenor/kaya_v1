@@ -22,6 +22,9 @@
  */
 import BandeauCoquille from '~/core/coquille/BandeauCoquille.vue'
 import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
+import { fournisseur } from '~/core/donnees/fournisseur'
+import type { EtablissementAffichable } from '~/core/design-system/SelecteurEtablissement.vue'
+import { useSession } from '~/core/session/useSession'
 import { CLE_SEUIL_LATENCE_DEGRADEE, lireParametreEntier } from '~/core/configuration/configuration'
 import { useFile } from '~/core/file/useFile'
 import { useScenarios } from '~/core/scenarios/useScenarios'
@@ -54,6 +57,43 @@ onNuxtReady(() => {
   void reprendreFile()
 })
 
+/**
+ * LE SÉLECTEUR D'ÉTABLISSEMENT, BRANCHÉ SUR LA SESSION.
+ *
+ * ⚠️ SANS CELA, LA BARRE AFFICHAIT « K » SUR TOUS LES ÉCRANS — l'initiale de
+ * repli du composant, faute de toute donnée. **Constaté en ouvrant
+ * l'application**, capture à l'appui : le repère d'orientation le plus important
+ * du produit ne disait pas où l'on était. Aucun test ne le regardait, parce
+ * qu'aucun ne demandait au composant ce qu'il rendait avec des données.
+ *
+ * ⚠️ ET IL NE CHANGE JAMAIS DE CONTEXTE TOUT SEUL. Il rend ce que la session
+ * porte ; c'est le panneau Scénarios qui décide, et ce sera `R0` en phase 3. Un
+ * changement de contexte non demandé fait saisir une consommation sur le mauvais
+ * site.
+ */
+const { session } = useSession()
+const etablissements = ref<readonly EtablissementAffichable[]>([])
+
+watch(
+  () => session.value.etablissementId,
+  async (etablissementId) => {
+    if (etablissementId === null) {
+      etablissements.value = []
+      return
+    }
+    const resultat = await fournisseur().etablissements.listerEtablissements()
+    // Une lecture qui échoue — hors ligne, panne — ne vide pas la barre : elle
+    // la laisse telle quelle. Un repère qui disparaît en coupure n'est pas un
+    // repère.
+    if (!resultat.ok) return
+    etablissements.value = resultat.valeur.map((etablissement) => ({
+      id: etablissement.id,
+      nom: etablissement.nom,
+    }))
+  },
+  { immediate: true },
+)
+
 const seuilDegrade = lireParametreEntier(CLE_SEUIL_LATENCE_DEGRADEE, 3000)
 const etatReseau = computed(() => {
   if (reglages.value.horsLigne) return 'horsLigne' as const
@@ -69,13 +109,17 @@ const etatReseau = computed(() => {
     >
       <!-- Composant 09 · sélecteur d'établissement.
            « Toujours en haut à gauche, il ne bouge jamais de place. »
-           Sa liste vient de la session, à T035 : ici, il rend son état
-           « un seul établissement », non cliquable. -->
+           Sa liste vient de la SESSION, et son état actif aussi : avec un seul
+           établissement il perd son chevron et cesse d'être un bouton — un
+           bouton qui n'ouvre rien apprend à ne plus cliquer. -->
       <div
         data-emplacement="etablissement"
         class="flex min-w-0 items-center gap-3.5"
       >
-        <SelecteurEtablissement />
+        <SelecteurEtablissement
+          :etablissements="etablissements"
+          :actif-id="session.etablissementId"
+        />
       </div>
 
       <span class="flex-1" />

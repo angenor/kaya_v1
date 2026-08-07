@@ -180,6 +180,8 @@ Refaire sur **Chromium** : le message **n'apparaît pas**.
 - l'application **s'ouvre et s'affiche** — jamais la page d'erreur du navigateur ;
 - ⚠️ **aucune image du démarrage ne présente le fond clair.** Le script du `<head>` a posé la classe **avant le premier pixel** ; un greffon serait arrivé trop tard.
 
+> ⚠️ **CE PAS N'EST REJOUÉ DE BOUT EN BOUT QUE SUR CHROMIUM, et il faut le dire.** Playwright ne sait pas couper le réseau pour une **navigation** sur WebKit — `setOffline` lève « WebKit encountered an internal error », l'interception répond « Blocked by Web Inspector », toutes deux **avant** que le service worker ne voie la requête. Sur les **deux** moteurs, la porte prouve en revanche que le service worker **contrôle la racine** et que **son précache porte le document et les icônes**. Le détail est au [rapport de cycle](./rapport-de-cycle.md) §2.1.
+
 ---
 
 ## La commande unique
@@ -188,7 +190,11 @@ Refaire sur **Chromium** : le message **n'apparaît pas**.
 scripts/verifier.sh
 ```
 
-**Enchaîne, dans cet ordre, avec arrêt au premier contrôle rouge** : lint → build → tests d'unité → **P-01** → **P-02** → **P-05** → **P-03** → **P-04** → **P-06**.
+**Enchaîne, dans cet ordre, avec arrêt au premier contrôle rouge** : lint → **types** → build →
+tests d'unité **avec couverture** → **P-01** → **P-02** → **P-05** → **P-03** → **P-04** → **P-06**.
+
+⚠️ **La construction se fait avec `KAYA_PAGE_TEMOIN=1`** : sans le drapeau, les deux pages témoin
+n'entrent pas au routeur et la suite `cycle-de-vie` **échoue** — elle échoue, elle ne se saute pas.
 
 ### Sur un poste sans conteneur
 
@@ -200,7 +206,7 @@ scripts/verifier.sh --sans-conteneur
 
 > **Sans le drapeau et sans démon, le script sort en code 3, comme aujourd'hui.** Un poste de développement sans conteneur est une anomalie, pas un mode : le saut doit être une **intention déclarée**, sinon un vert partiel se lirait comme un vert.
 
-### Les tests négatifs — cinq mutations pour trois portes
+### Les tests négatifs — **cinq mutations pour trois portes**
 
 ```sh
 scripts/verifier.sh --test-negatif p03   # un « ^ » introduit → P-03 DOIT rougir

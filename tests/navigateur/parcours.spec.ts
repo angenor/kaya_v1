@@ -72,12 +72,41 @@ for (const etablissement of ETABLISSEMENTS) {
     await page.locator('[data-reglage="section"] [role="radio"]').nth(1).click()
     await expect(page.locator('[data-bloc="index"] > *')).toHaveCount(INSTRUMENTS.length)
 
+    // ── Pas 4 · l'anglais, sans une seule clé brute ─────────────────────────
+    // ⚠️ CE PAS N'ÉTAIT COUVERT PAR AUCUN TEST, et c'est le genre de défaut qui
+    // ne se découvre qu'au jour où quelqu'un bascule la langue — c'est-à-dire
+    // jamais, en développement. Une clé brute a une forme reconnaissable :
+    // `groupe.sousGroupe`, en minuscules, sans espace ni accent.
+    await page.locator('[data-reglage="langue"] [role="radio"]').nth(1).click()
+    await expect(page.locator('[data-ecran="ecrans"] h1')).toHaveText('Screens')
+    const clesBrutes = await page.evaluate(() => {
+      const texte = document.body.innerText
+      return [...texte.matchAll(/\b[a-z][a-zA-Z]*\.[a-z][a-zA-Z.]{3,}\b/g)]
+        .map((m) => m[0])
+        // Les routes et les chemins de fichier ne sont pas des clés : ils
+        // portent une barre, et l'index en rend quarante-six.
+        .filter((c) => !c.includes('/') && !/\.(html|ts|vue|css|md)$/.test(c))
+    })
+    expect(clesBrutes, `clés i18n brutes à l'écran : ${clesBrutes.join(' · ')}`).toEqual([])
+
+    // Et le français revient — c'est la langue par défaut (principe 8).
+    await page.locator('[data-reglage="langue"] [role="radio"]').nth(0).click()
+    await expect(page.locator('[data-ecran="ecrans"] h1')).toHaveText('Écrans')
+
     // ── Le contexte : l'établissement du parcours ───────────────────────────
     await page.goto('/_scenarios', { waitUntil: 'networkidle' })
     await page
       .locator('[data-levier="etablissement"] select')
       .selectOption({ label: etablissement.libelle })
     await expect(page.locator('[data-levier="etablissement"] select')).toHaveValue(/.+/)
+
+    // ⚠️ ET LA BARRE LE DIT, SUR CHAQUE ÉCRAN. Le sélecteur d'établissement est
+    // le repère d'orientation du produit — « savoir où on est avant de faire
+    // quoi que ce soit ». Il a affiché « K », son initiale de repli, sur TOUS
+    // les écrans jusqu'à ce qu'une capture le montre : rien ne le regardait,
+    // parce qu'aucun test ne demandait au composant ce qu'il rend AVEC des
+    // données.
+    await expect(page.locator('header [data-composant-09]')).toContainText(etablissement.libelle)
 
     // ── Pas 5 · hors ligne, instantanément ──────────────────────────────────
     await basculer(page, 'hors-ligne', true)
