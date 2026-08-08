@@ -514,13 +514,25 @@ watch(
           class="flex flex-col gap-2"
           :data-etage="etage.etage ?? 'sans-etage'"
         >
-          <span class="text-etiquette uppercase text-ink-3">{{
-            etage.etage === null
-              ? $t('passage.etageInconnu')
-              : etage.etage === '0'
-                ? $t('passage.rezDeChaussee')
-                : $t('passage.etage', { n: etage.etage })
-          }}</span>
+          <!-- ⚠️ **LE FILET PROLONGE L'INTITULÉ JUSQU'AU BOUT** — même motif
+               qu'à `R2`, et c'est voulu : la grille des chambres est la même
+               chose vue deux fois, elle doit se lire pareil. Ici il compte
+               double, la colonne étant étroite : sans lui, « 1ᵉ étage » se
+               confond avec le libellé d'une tuile. `aria-hidden` — l'intitulé
+               dit déjà tout. -->
+          <span class="flex items-center gap-3">
+            <span class="shrink-0 text-etiquette uppercase text-ink-3">{{
+              etage.etage === null
+                ? $t('passage.etageInconnu')
+                : etage.etage === '0'
+                  ? $t('passage.rezDeChaussee')
+                  : $t('passage.etage', { n: etage.etage })
+            }}</span>
+            <span
+              class="flex-1 border-t border-line"
+              aria-hidden="true"
+            />
+          </span>
           <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <button
               v-for="chambre in etage.chambres"

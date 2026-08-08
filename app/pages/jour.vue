@@ -188,13 +188,25 @@ watch(
             class="flex flex-col gap-2"
             :data-etage="etage.etage ?? 'sans-etage'"
           >
-            <span class="text-etiquette uppercase text-ink-3">{{
-              etage.etage === null
-                ? $t('jour.etageInconnu')
-                : etage.etage === '0'
-                  ? $t('jour.rezDeChaussee')
-                  : $t('jour.etage', { n: etage.etage })
-            }}</span>
+            <!-- ⚠️ **LE FILET PROLONGE L'INTITULÉ JUSQU'AU BOUT, ET IL TRAVAILLE.**
+                 Les niveaux se suivent sans respiration : un intitulé de 11 px
+                 posé au-dessus d'une grille de tuiles se lit comme une tuile de
+                 plus. Le trait donne au niveau une LIGNE À LUI, et l'œil compte
+                 les étages sans lire les mots. Il est `aria-hidden` — c'est une
+                 séparation visuelle, et l'intitulé dit déjà tout. -->
+            <span class="flex items-center gap-3">
+              <span class="shrink-0 text-etiquette uppercase text-ink-3">{{
+                etage.etage === null
+                  ? $t('jour.etageInconnu')
+                  : etage.etage === '0'
+                    ? $t('jour.rezDeChaussee')
+                    : $t('jour.etage', { n: etage.etage })
+              }}</span>
+              <span
+                class="flex-1 border-t border-line"
+                aria-hidden="true"
+              />
+            </span>
             <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               <div
                 v-for="chambre in etage.chambres"
