@@ -211,6 +211,21 @@ export const permissions: readonly Permission[] = [
    * l'établissement n'a pas.
    */
   { id: 'perm-commande-prendre-bar', tenantId: TENANT_DELORIA, code: 'ventes.commande.prendre.bar', moduleActiviteCode: 'BAR', libelle: 'Prendre une commande au bar' },
+  /**
+   * ⚠️ **LE MÊME MANQUE QUE POUR LE BAR, RESTÉ UN CYCLE DE PLUS.** Le pressing
+   * est un `module_activite` à part entière, et le catalogue ne portait aucune
+   * permission pour lui : l'accueil comme la navigation exigeaient
+   * `ventes.commande.prendre` — qui appartient à **RESTAURATION**. Conséquence
+   * exacte : chez un hôtel qui a un pressing et **pas** de restaurant, le
+   * pressing disparaissait de l'écran, et il disparaissait *silencieusement*,
+   * exactement comme si l'établissement ne l'offrait pas.
+   *
+   * ⚠️ **ET IL A FALLU UN TEST POUR LE VOIR.** Rien ne rougissait : sur Deloria,
+   * qui a les deux modules, la permission de restauration était accordée, donc
+   * l'entrée s'affichait. Le défaut ne serait apparu que chez le premier client
+   * mono-service — c'est-à-dire en production.
+   */
+  { id: 'perm-commande-prendre-pressing', tenantId: TENANT_DELORIA, code: 'ventes.commande.prendre.pressing', moduleActiviteCode: 'PRESSING', libelle: 'Enregistrer un dépôt de pressing' },
   { id: 'perm-commande-remise', tenantId: TENANT_DELORIA, code: 'ventes.commande.remise', moduleActiviteCode: 'RESTAURATION', libelle: 'Appliquer une remise' },
   { id: 'perm-pilotage-lire', tenantId: TENANT_DELORIA, code: 'pilotage.lire', moduleActiviteCode: null, libelle: 'Consulter les chiffres' },
   { id: 'perm-etablissement-gerer', tenantId: TENANT_DELORIA, code: 'etablissement.gerer', moduleActiviteCode: null, libelle: 'Régler l’établissement' },
@@ -226,10 +241,21 @@ export const permissionsParRole: Readonly<Record<string, readonly string[]>> = {
   // c'est-à-dire le droit de corriger une commande sans celui d'en ouvrir une.
   // Le manque ne se voyait pas tant qu'aucun écran ne composait par permission ;
   // il rendait l'accueil du maquis vide pour Yao, qui en est le GÉRANT.
-  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.prendre', 'ventes.commande.prendre.bar', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
+  // ⚠️ `ventes.commande.prendre.pressing` AJOUTÉE AU CYCLE F3, MÊME MOTIF QUE LE
+  // BAR. Elle va au gérant et au serveur, exactement comme celle du bar : le
+  // pressing est un comptoir de vente, et qui prend une commande prend un dépôt.
+  //
+  // ⚠️ ELLE A D'ABORD ÉTÉ DONNÉE À LA RÉCEPTIONNISTE, sur l'idée que « le linge
+  // se dépose au comptoir ». C'était une supposition, pas une observation — et
+  // `poste-derive.spec.ts` l'a immédiatement rougie : Yao, réceptionniste à
+  // Deloria, se voyait attribuer le poste **« Pressing »**, seul point de vente
+  // qu'il atteignait. Un fait inventé dans le jeu ressort en fait affirmé à
+  // l'écran. La question « qui enregistre un dépôt ? » se tranche à l'atelier
+  // terrain, pas ici.
+  gerant: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart', 'ventes.commande.prendre', 'ventes.commande.prendre.bar', 'ventes.commande.prendre.pressing', 'ventes.commande.remise', 'pilotage.lire', 'etablissement.gerer'],
   caissier: ['caisse.encaisser', 'caisse.cloture'],
   receptionniste: ['hebergement.passage.ouvrir', 'hebergement.sejour.arrivee', 'hebergement.sejour.depart'],
-  serveur: ['ventes.commande.prendre', 'ventes.commande.prendre.bar'],
+  serveur: ['ventes.commande.prendre', 'ventes.commande.prendre.bar', 'ventes.commande.prendre.pressing'],
   proprietaire: ['pilotage.lire', 'etablissement.gerer'],
   admin_editeur: [],
 }

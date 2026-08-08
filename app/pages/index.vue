@@ -104,6 +104,65 @@ const mention = ref<{ titre: string; cycle: string } | null>(null)
 const activitesOuvertes = ref(true)
 
 /**
+ * LA HAUTEUR RÉELLE DE LA BARRE — **mesurée, plus devinée**.
+ *
+ * ⚠️ **UNE RÉSERVE ÉCRITE EN DUR EST UNE RÉSERVE QUI SERA FAUSSE.** La première
+ * version posait `h-44` barre ouverte, `h-16` repliée : deux hauteurs relevées
+ * une fois, sur une largeur donnée. L'arrivée de la navigation latérale a pris
+ * 15 rem à la colonne centrale, les tuiles d'activité sont passées **sur deux
+ * rangs**, la barre a grandi — et la dernière carte de la liste est repassée
+ * dessous, *visible à travers le dégradé et atteignable par personne*. C'est le
+ * défaut exact que la réserve existe pour fermer, revenu par la porte de la
+ * largeur.
+ *
+ * ⚠️ **ET C'EST P-04 QUI L'A TROUVÉ, PAS L'ŒIL.** À l'écran, la barre paraissait
+ * normale ; il fallait comparer deux rectangles pour voir le recouvrement.
+ *
+ * ⚠️ `ResizeObserver` N'EST PAS UNE CAPACITÉ DE PLATEFORME : il n'observe rien
+ * du terminal — ni capteur, ni stockage, ni réseau —, seulement la mise en page
+ * que le navigateur vient de calculer. Il n'a donc rien à faire dans
+ * `PlatformAdapter`, qui porte ce que Capacitor implémente autrement.
+ */
+const barreActivites = ref<HTMLElement | null>(null)
+const hauteurBarre = ref(0)
+let observateur: ResizeObserver | null = null
+let imageDemandee = 0
+
+/**
+ * ⚠️ **LA MESURE SE POSE À L'IMAGE SUIVANTE, ET C'EST OBLIGATOIRE.** Écrire la
+ * réserve depuis le rappel de l'observateur change la mise en page *pendant* la
+ * passe de mise en page : WebKit rend alors « ResizeObserver loop completed with
+ * undelivered notifications » à la console — et P-04 refuse toute console qui
+ * parle. Ce n'est pas un avertissement cosmétique : c'est le signe que le
+ * navigateur a dû abandonner une passe de calcul. L'arrondi seul ne suffit pas ;
+ * il enlève le va-et-vient sous-pixel, pas la boucle.
+ */
+function mesurer(element: HTMLElement): void {
+  cancelAnimationFrame(imageDemandee)
+  imageDemandee = requestAnimationFrame(() => {
+    const mesure = Math.round(element.getBoundingClientRect().height)
+    if (mesure !== hauteurBarre.value) hauteurBarre.value = mesure
+  })
+}
+
+watch(barreActivites, (element) => {
+  observateur?.disconnect()
+  observateur = null
+  cancelAnimationFrame(imageDemandee)
+  if (element === null) {
+    hauteurBarre.value = 0
+    return
+  }
+  observateur = new ResizeObserver(() => mesurer(element))
+  observateur.observe(element)
+})
+
+onBeforeUnmount(() => {
+  observateur?.disconnect()
+  cancelAnimationFrame(imageDemandee)
+})
+
+/**
  * CE QUI ATTEND DANS LES SERVICES — le total porté par la bulle de la poignée.
  *
  * ⚠️ IL SE RECALCULE À CHAQUE COMPOSITION, comme le reste de l'écran : c'est ce
@@ -308,12 +367,18 @@ watch(
         <!-- ⚠️ LA RÉSERVE DE BAS DE COLONNE — un espace vide, et il est
              nécessaire : la barre « Vos activités » flotte AU-DESSUS du contenu,
              donc la dernière carte de la liste finirait sous elle, atteignable
-             par personne. Sa hauteur suit l'état de la barre, et elle n'est PAS
-             animée : ce qui bouge ici est de la mise en page. -->
+             par personne. Elle n'est PAS animée : ce qui bouge ici est de la
+             mise en page.
+
+             ⚠️ **SA HAUTEUR EST CELLE QUE LA BARRE MESURE**, pas une valeur
+             relevée une fois — voir `hauteurBarre`. La liaison `:style` est le
+             seul moyen d'y porter un nombre calculé, et c'est précisément le cas
+             que les jetons laissent ouvert. -->
         <span
           v-if="seRend(accueil.activites.etat)"
           class="hidden shrink-0 lg:block"
-          :class="activitesOuvertes ? 'h-44' : 'h-16'"
+          :style="{ height: `${hauteurBarre}px` }"
+          data-reserve-activites
           aria-hidden="true"
         />
       </div>
@@ -333,6 +398,7 @@ watch(
            les appuis rend inatteignable ce qu'on voit à travers elle. -->
       <section
         v-if="seRend(accueil.activites.etat)"
+        ref="barreActivites"
         class="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex flex-col lg:absolute lg:z-auto"
         data-rubrique="activite"
         :data-etat="accueil.activites.etat"
@@ -534,11 +600,14 @@ watch(
          activités est fixée à l'écran et non posée dans une colonne : sans cet
          espace, la dernière carte des chiffres finirait derrière elle, vue et
          inatteignable. En deux colonnes, c'est la colonne principale qui porte
-         sa propre réserve. -->
+         sa propre réserve.
+
+         ⚠️ **MÊME MESURE QUE L'AUTRE**, et pour la même raison : une hauteur
+         écrite en dur redevient fausse dès qu'une tuile passe à la ligne. -->
     <span
       v-if="accueil.repli === null && seRend(accueil.activites.etat)"
       class="shrink-0 lg:hidden"
-      :class="activitesOuvertes ? 'h-48' : 'h-16'"
+      :style="{ height: `${hauteurBarre}px` }"
       aria-hidden="true"
     />
   </div>

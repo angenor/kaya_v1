@@ -328,6 +328,32 @@ et se refusait elle-même **sur le seul écran où elle sert**. *Trouvé à l'é
 dit à voix haute devenait deux nombres. `whitespace-nowrap`, et le corps suit la largeur disponible
 entre deux jetons existants — aucune valeur intermédiaire n'est inventée.
 
+**La navigation latérale se range par VERTICALE, et son premier classement était un mot d'hôtel.**
+Elle est née d'un constat d'usage — sur `/jour`, on ne pouvait plus revenir à l'accueil — et son
+premier découpage rangeait par moment de travail : « Aujourd'hui », « La réception », « Les
+services ». *Relu par l'exploitant* : ces trois intitulés n'ont de sens que dans un hôtel, et « les
+services » désigne, vu de l'hôtel, tout ce qui n'est pas l'hébergement. Le classement retenu est
+donc **une rubrique par module d'activité** — celui-là même que porte déjà la base, à un schéma
+PostgreSQL par module. Trois défauts sont sortis du seul fait de le coder, et **aucun d'une
+relecture** :
+
+- sur l'accueil, qui n'appartient à aucune verticale, la barre s'ouvrait avec **deux entrées sur
+  douze** et quatre intitulés fermés ;
+- **rail replié, l'accueil disparaissait** — la sortie de secours s'effaçait exactement quand la
+  barre se réduit à l'essentiel ;
+- l'écran courant n'était marqué **nulle part** dès que sa verticale était refermée, par le repli du
+  rail comme à la main. La règle n'est pas « le rail est-il replié ? » mais « l'entrée courante
+  est-elle visible ? » — la première version posait la mauvaise question et laissait passer un cas
+  sur deux.
+
+**Et le pressing exigeait la permission du restaurant.** `ventes.commande.prendre` appartient au
+module `RESTAURATION` ; l'accueil comme la navigation s'en servaient pour le pressing. Chez un
+exploitant qui a un pressing et **pas** de restaurant, le pressing disparaissait de l'écran —
+silencieusement, exactement comme si l'établissement ne l'offrait pas. Rien ne rougissait, parce que
+le jeu de données de référence a les deux modules : le défaut ne serait apparu qu'au premier client
+mono-service, c'est-à-dire en production. C'est **le classement par verticale qui l'a rendu
+visible**, et un test de cohérence qui l'a nommé.
+
 ⚠️ **Une ligne de ce document ne se marque « codé » que dans le changement qui livre l'écran.**
 Ce fichier est **opposable** : il autorise un écran sans maquette. Y inscrire « codé » sur un écran
 qui n'existe pas ferait mentir le seul document qui dise ce qui a le droit d'être codé — et le

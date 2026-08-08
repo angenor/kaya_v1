@@ -109,6 +109,13 @@ export default tseslint.config(
         CustomEvent: 'readonly',
         MediaQueryListEvent: 'readonly',
         HTMLElement: 'readonly',
+        // ⚠️ `ResizeObserver` N'EST PAS UNE CAPACITÉ DE PLATEFORME : il n'observe
+        // rien du terminal — ni capteur, ni stockage, ni réseau —, seulement la
+        // mise en page que le navigateur vient de calculer. Il est du même
+        // registre que `document` : le rendu lui-même.
+        ResizeObserver: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
         process: 'readonly',
         ...autoImportsDeNuxt(),
       },

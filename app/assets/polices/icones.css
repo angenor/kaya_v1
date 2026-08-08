@@ -51,14 +51,17 @@
 .ph.ph-house::before { content: "\e2c2"; }
 .ph.ph-info::before { content: "\e2ce"; }
 .ph.ph-key::before { content: "\e2d6"; }
+.ph.ph-list::before { content: "\e2f0"; }
 .ph.ph-lock-simple::before { content: "\e308"; }
 .ph.ph-magnifying-glass::before { content: "\e30c"; }
 .ph.ph-money::before { content: "\e588"; }
 .ph.ph-moon::before { content: "\e330"; }
 .ph.ph-notebook::before { content: "\e34e"; }
+.ph.ph-notepad::before { content: "\e63e"; }
 .ph.ph-package::before { content: "\e390"; }
 .ph.ph-percent::before { content: "\e3b6"; }
 .ph.ph-scales::before { content: "\e750"; }
+.ph.ph-sidebar-simple::before { content: "\ec24"; }
 .ph.ph-sign-in::before { content: "\e428"; }
 .ph.ph-sign-out::before { content: "\e42a"; }
 .ph.ph-sliders-horizontal::before { content: "\e434"; }

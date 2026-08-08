@@ -470,7 +470,7 @@ watch(
           <span class="flex shrink-0 items-center gap-2 xl:ml-auto">
             <button
               type="button"
-              class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-line-2 px-4 font-titre text-corps font-semibold text-ink transition-[transform,border-color] duration-90 hover:border-prim active:translate-y-0.5"
+              class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-md border border-line-2 px-4 font-titre text-corps font-semibold text-ink transition-[transform,border-color] duration-90 hover:border-prim active:translate-y-0.5"
               data-action="scanner-piece"
             >
               <i
@@ -481,7 +481,7 @@ watch(
             </button>
             <button
               type="button"
-              class="inline-flex h-10 cursor-pointer items-center rounded-md border border-line px-4 font-titre text-corps font-medium text-ink-2 transition-colors duration-90 hover:border-line-2 hover:text-ink"
+              class="inline-flex h-11 cursor-pointer items-center rounded-md border border-line px-4 font-titre text-corps font-medium text-ink-2 transition-colors duration-90 hover:border-line-2 hover:text-ink"
               data-action="saisir-telephone"
             >
               {{ $t('passage.saisirTelephone') }}

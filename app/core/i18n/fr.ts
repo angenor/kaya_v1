@@ -559,9 +559,14 @@ export default {
   navigation: {
     titre: 'Aller à',
     replier: 'Replier le menu',
-    aujourdhui: 'Aujourd’hui',
-    reception: 'La réception',
-    services: 'Les services',
+    deplier: 'Déplier le menu',
+    // Les verticales. Ce sont les mots du métier de l'exploitant, pas les nôtres :
+    // « Hébergement », pas « module HEBERGEMENT ».
+    hebergement: 'Hébergement',
+    restaurant: 'Restaurant',
+    bar: 'Bar',
+    pressing: 'Pressing',
+    // Les écrans.
     accueil: 'Accueil',
     jour: 'Vue du jour',
     planning: 'Le planning',
@@ -570,8 +575,9 @@ export default {
     depart: 'Départ',
     clients: 'Les clients',
     salle: 'La salle',
-    bar: 'Le bar',
-    pressing: 'Le pressing',
+    commandes: 'Les commandes',
+    comptoir: 'Le comptoir',
+    depots: 'Les dépôts',
     caisse: 'La caisse',
   },
 

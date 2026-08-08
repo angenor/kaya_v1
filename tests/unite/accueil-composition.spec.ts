@@ -154,11 +154,16 @@ describe('les quatre variantes sortent du CONTEXTE, jamais d’une branche', () 
     })
   })
 
-  it('Aminata : une seule permission, et aucune surface de caisse', () => {
+  it('Aminata : trois permissions de vente, et aucune surface de caisse', () => {
+    // ⚠️ `ventes.commande.prendre.pressing` s'ajoute au cycle F3 — le pressing
+    // exigeait jusque-là la permission du RESTAURANT, et disparaissait donc
+    // chez un exploitant qui a l'un sans l'autre. Ce que ce test garde, ce
+    // n'est pas le compte de permissions : c'est qu'aucune ne touche la caisse.
     const retenues = surfacesRetenues('compte-aminata', DELORIA)
     expect(permissionsDe('compte-aminata', DELORIA).sort()).toEqual([
       'ventes.commande.prendre',
       'ventes.commande.prendre.bar',
+      'ventes.commande.prendre.pressing',
     ])
     for (const surface of retenues) {
       expect(

@@ -485,9 +485,13 @@ export default {
   navigation: {
     titre: 'Go to',
     replier: 'Collapse the menu',
-    aujourdhui: 'Today',
-    reception: 'The front desk',
-    services: 'The services',
+    deplier: 'Expand the menu',
+    // The business lines, in the operator's own words.
+    hebergement: 'Rooms',
+    restaurant: 'Restaurant',
+    bar: 'Bar',
+    pressing: 'Laundry',
+    // The screens.
     accueil: 'Home',
     jour: 'Day view',
     planning: 'The schedule',
@@ -496,8 +500,9 @@ export default {
     depart: 'Departure',
     clients: 'The guests',
     salle: 'The dining room',
-    bar: 'The bar',
-    pressing: 'The laundry',
+    commandes: 'The orders',
+    comptoir: 'The counter',
+    depots: 'The drop-offs',
     caisse: 'The till',
   },
 

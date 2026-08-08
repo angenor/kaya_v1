@@ -108,7 +108,11 @@ export const SURFACES_ACCUEIL: readonly SurfaceAccueil[] = [
   { cle: 'activite.hebergement', permission: 'hebergement.passage.ouvrir', moduleCode: 'HEBERGEMENT', ecranCible: 'R2', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.restauration', permission: 'ventes.commande.prendre', moduleCode: 'RESTAURATION', ecranCible: 'P1', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.bar', permission: 'ventes.commande.prendre.bar', moduleCode: 'BAR', ecranCible: 'P1', famille: 'activite', titreCle: 'accueil.activites.titre' },
-  { cle: 'activite.pressing', permission: 'ventes.commande.prendre', moduleCode: 'PRESSING', ecranCible: 'P4', famille: 'activite', titreCle: 'accueil.activites.titre' },
+  // ⚠️ LA PERMISSION EST CELLE DU PRESSING, PAS CELLE DU RESTAURANT. Corrigé au
+  // cycle F3 : cette surface exigeait `ventes.commande.prendre`, qui appartient
+  // à RESTAURATION. Chez un hôtel qui a un pressing et pas de restaurant, elle
+  // disparaissait sans un mot — voir `perm-commande-prendre-pressing` au jeu.
+  { cle: 'activite.pressing', permission: 'ventes.commande.prendre.pressing', moduleCode: 'PRESSING', ecranCible: 'P4', famille: 'activite', titreCle: 'accueil.activites.titre' },
   { cle: 'activite.salleReunion', permission: 'hebergement.passage.ouvrir', moduleCode: 'SALLE_REUNION', ecranCible: 'V1', famille: 'activite', titreCle: 'accueil.activites.titre' },
 
   // ── Les chiffres · montants par `format/montant.ts`, chiffres tabulaires ──
