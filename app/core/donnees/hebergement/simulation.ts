@@ -33,6 +33,7 @@ import {
 } from '~/core/reception/disponibilite'
 import { formaterHeure } from '~/core/format/instant'
 import { ecrireSimule, lireSimule } from '~/core/donnees/simulationCommune'
+import { reglagesCourants } from '~/core/scenarios/reglages'
 
 /** ⚠️ Ce fichier disparaît au branchement de la phase 3. */
 const TOUTES_CATEGORIES = [...deloria.categories, ...test.categories]
@@ -212,9 +213,49 @@ export const simulationEcrituresReception: EcrituresReception = {
       const menage = remiseEnEtatMinutes(deloria.tempsRemiseEnEtat, formule.id, unite.categorieId)
       const periodeIndisponibilite = avecRemiseEnEtat(periode, menage)
 
+      // ── 2 bis · la demi-journée ne se fractionne pas ─────────────────────
+      // ⚠️ **UNE PLAGE SE LOUE EN ENTIER**, et les heures viennent de
+      // l'établissement — jamais du code. Le lexique l'exige : la phrase du
+      // refus **reçoit** les deux plages.
+      if (formule.type === 'DEMI_JOURNEE') {
+        const plages = deloria.plagesDemiJournee.filter((p) => p.formuleId === formule.id)
+        const entiere = plages.find(
+          (plage) => dureeDeLaPlage(plage) === demande.dureeMinutes,
+        )
+        if (plages.length >= 2 && entiere === undefined) {
+          return echec('PLAGE_NON_FRACTIONNABLE', {
+            plage1: `${plages[0]!.heureDebut} – ${plages[0]!.heureFin}`,
+            plage2: `${plages[1]!.heureDebut} – ${plages[1]!.heureFin}`,
+          })
+        }
+      }
+
       // ── 3 · VÉRIFIER LE CHEVAUCHEMENT — AVANT TOUTE ÉCRITURE ─────────────
       // ⚠️ Vérifier après aurait donné la chambre, et le refus se découvrirait
       // avec le client dans le couloir.
+      //
+      // ⚠️ **ET LE REFUS SE DÉCIDE ICI, AU MOMENT DU TAP — JAMAIS AU MOMENT DE
+      // L'AFFICHAGE.** La grille montre l'état d'il y a quelques secondes ;
+      // entre les deux, un autre poste a pu donner la chambre. Le levier
+      // `conflitAuTap` fait exactement cela, et c'est lui qui exerce le cas des
+      // deux réceptionnistes à la même seconde — celui qui décide si le refus
+      // arrive avant ou après la clé.
+      if (reglagesCourants().conflitAuTap) {
+        etat.occupations.push({
+          id: `occupation-concurrente-${demande.id}`,
+          tenantId: unite.tenantId,
+          uniteId: unite.id,
+          motif: 'SEJOUR',
+          periode,
+          periodeIndisponibilite,
+          statut: 'ACTIVE',
+          origineType: 'sejour',
+          origineId: `sejour-concurrent-${demande.id}`,
+          horodatageClient: null,
+          creeLe: debut,
+        })
+      }
+
       const conflit = occupationEnConflit(
         etat.occupations,
         demande.uniteId,
@@ -264,7 +305,14 @@ export const simulationEcrituresReception: EcrituresReception = {
       // ── 6 · ouvrir la note, y porter la ligne au prix du palier ──────────
       const bareme = deloria.baremePaliers.filter((p) => p.formuleId === formule.id)
       const issue = prixDeLaDuree(bareme, formule, demande.dureeMinutes)
-      if (issue === null) return echec('DUREE_HORS_CONTRAINTE', { min: 1, max: 8 })
+      // ⚠️ **`INTROUVABLE`, ET NON UNE BORNE ÉCRITE EN DUR.** Une première
+      // version rendait `DUREE_HORS_CONTRAINTE { min: 1, max: 8 }` — deux
+      // valeurs métier dans le code, sur un chemin qui n'a rien à voir avec une
+      // durée : le barème de cette formule est **absent du référentiel**. La
+      // demi-journée de Deloria est dans ce cas, et c'est un manque du jeu, pas
+      // une contrainte de durée. Dire « hors contrainte » aurait envoyé la
+      // réceptionniste chercher une durée valable qui n'existe pas.
+      if (issue === null) return echec('INTROUVABLE')
       if (issue.bascule) {
         return echec('BASCULE_FORMULE_NON_CONFIRMEE', {
           seuilHeures: issue.seuilMinutes / 60,
@@ -372,6 +420,13 @@ export const simulationEcrituresReception: EcrituresReception = {
       return reussite(undefined)
     })
   },
+}
+
+/** La durée d'une plage de demi-journée, en minutes. */
+function dureeDeLaPlage(plage: PlageDemiJournee): number {
+  const [debutH = 0, debutM = 0] = plage.heureDebut.split(':').map(Number)
+  const [finH = 0, finM = 0] = plage.heureFin.split(':').map(Number)
+  return finH * 60 + finM - (debutH * 60 + debutM)
 }
 
 /** ⚠️ Huit secondes, et elles viennent du domaine — jamais du composant. */
