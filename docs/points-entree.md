@@ -125,10 +125,16 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/donnees/contrat.ts#reussite` | branché | navigateur | core/donnees/simulationCommune.ts |
 | `app/core/donnees/etablissements/simulation.ts#simulationEtablissements` | branché | navigateur | core/donnees/fournisseur.ts |
 | `app/core/donnees/etablissements/types.ts#CLASSEMENTS_CI` | dû | — | cycle **G1** — le classement de l'établissement, à l'écran |
+| `app/core/donnees/horloge.ts#deriveHorlogeSecondes` | dû | — | cycle **F3**, phase 7 — l'annonce de dérive d'horloge (T039). La fonction existe avec l'horloge parce que **l'écart signé est une propriété de l'horloge**, pas de l'écran qui l'affiche |
+| `app/core/donnees/horloge.ts#instantAutorite` | branché | unité | `core/reception/composerJour.ts` · `core/reception/composerPassage.ts` · `core/donnees/hebergement/simulation.ts` · `core/donnees/jeux/deloria.ts` |
+| `app/core/donnees/horloge.ts#maintenantAutorite` | branché | navigateur | `core/coquille/EnTeteContexte.vue` — l'en-tête affiche l'heure **d'autorité**, celle qui facture, jamais celle de l'appareil |
+| `app/core/donnees/horloge.ts#maintenantAppareil` | branché | navigateur | `core/file/useFile.ts` — l'horodatage client EST celui de l'appareil, et il le dit |
+| `app/core/donnees/horloge.ts#decale` | branché | unité | `core/reception/` · `core/donnees/hebergement/simulation.ts` · `core/donnees/jeux/deloria.ts` |
+| `app/core/donnees/horloge.ts#jourA` | branché | unité | `core/donnees/jeux/deloria.ts` — les douze jeux de cas, tous datés relativement |
 | `app/core/donnees/fournisseur.ts#fournisseur` | branché | navigateur | pages/ecrans.vue · pages/scenarios.vue · tests/unite/regles-opposables.spec.ts |
 | `app/core/donnees/hebergement/simulation.ts#simulationHebergement` | branché | navigateur | core/donnees/fournisseur.ts |
 | `app/core/donnees/hebergement/types.ts#REGLES_CONVERSION_TAXE` | dû | — | cycle **fiscal F6** — le `JurisdictionAdapter` |
-| `app/core/donnees/hebergement/types.ts#STATUTS_MENAGE` | dû | — | cycle **F3** — le planning et la remise en état |
+| `app/core/donnees/hebergement/types.ts#STATUTS_MENAGE` | branché | navigateur | `tests/unite/conformite-modele-mouvement.spec.ts` — ⚠️ **son premier appelant est le test qui confronte l'énumération au `CHECK` du SQL**, et il a immédiatement trouvé un écart de deux cycles : la liste portait `EN_NETTOYAGE` et `HORS_SERVICE`, que la base refuse |
 | `app/core/donnees/hebergement/types.ts#TYPES_FORMULE` | dû | — | cycle **F3** — l'offre d'hébergement `G2` |
 | `app/core/donnees/simulationCommune.ts#lireSimule` | branché | navigateur | core/donnees/comptes/simulation.ts · core/donnees/etablissements/simulation.ts · core/donnees/hebergement/simulation.ts |
 | `app/core/donnees/simulationCommune.ts#lireUnSimule` | branché | navigateur | core/donnees/comptes/simulation.ts · core/donnees/etablissements/simulation.ts |
