@@ -4,8 +4,16 @@ import { simulationComptes } from '~/core/donnees/comptes/simulation'
 import type { DonneesComptes } from '~/core/donnees/comptes/interface'
 import { simulationEtablissements } from '~/core/donnees/etablissements/simulation'
 import type { DonneesEtablissements } from '~/core/donnees/etablissements/interface'
-import { simulationHebergement, simulationReception } from '~/core/donnees/hebergement/simulation'
-import type { DonneesHebergement, DonneesReception } from '~/core/donnees/hebergement/interface'
+import {
+  simulationEcrituresReception,
+  simulationHebergement,
+  simulationReception,
+} from '~/core/donnees/hebergement/simulation'
+import type {
+  DonneesHebergement,
+  DonneesReception,
+  EcrituresReception,
+} from '~/core/donnees/hebergement/interface'
 import { simulationVentes } from '~/core/donnees/ventes/simulation'
 import type { DonneesVentes } from '~/core/donnees/ventes/interface'
 
@@ -35,6 +43,15 @@ export interface Fournisseur {
    * mouvement s'écrit et ne se cache jamais.
    */
   readonly reception: DonneesReception
+  /**
+   * ★ Les ÉCRITURES du mouvement — séparées des lectures, et pas par goût.
+   *
+   * ⚠️ **UNE LECTURE SE CACHE, UNE ÉCRITURE NE SE CACHE JAMAIS.** En phase 3,
+   * les lectures passeront derrière un cache et les écritures derrière une
+   * file : deux régimes, deux interfaces. Les mêler obligerait à traiter
+   * l'ensemble au régime le plus strict.
+   */
+  readonly ecrituresReception: EcrituresReception
   readonly ventes: DonneesVentes
   /** ★ Ajouté au cycle F2 — les cinq rubriques de `R1`, une source chacune. */
   readonly accueil: DonneesAccueil
@@ -45,6 +62,7 @@ const FOURNISSEUR_SIMULE: Fournisseur = {
   comptes: simulationComptes,
   hebergement: simulationHebergement,
   reception: simulationReception,
+  ecrituresReception: simulationEcrituresReception,
   ventes: simulationVentes,
   accueil: simulationAccueil,
 }

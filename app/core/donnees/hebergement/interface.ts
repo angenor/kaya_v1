@@ -95,6 +95,76 @@ export interface DonneesReception {
   ): Promise<ResultatDomaine<readonly Liberation[]>>
 }
 
+/**
+ * LA DEMANDE D'UN PASSAGE — **et son identifiant, généré côté client**.
+ *
+ * ⚠️ **`id` EST UN UUID v7, JAMAIS UN v4.** `crypto.randomUUID()` rend un
+ * identifiant aléatoire, **non ordonnable dans le temps** ; les 48 bits de tête
+ * d'un v7 portent l'horodatage, et c'est ce qui rend la file rejouable dans
+ * l'ordre et le dédoublonnage serveur inoffensif.
+ *
+ * ⚠️ **ET C'EST LUI QUI DÉDUPLIQUE.** Trois envois de la même demande n'en
+ * produisent qu'un. Sans cela, un double tap sur un réseau lent créerait deux
+ * occupations, donc deux encaissements, sur une chambre donnée une seule fois.
+ */
+export interface DemandePassage {
+  readonly id: string
+  readonly etablissementId: string
+  readonly uniteId: string
+  readonly formuleId: string
+  readonly dureeMinutes: number
+  /** Le client reconnu, quand il l'est. ⚠️ **`null` est le cas nominal.** */
+  readonly clientId: string | null
+  /** L'horodatage de l'appareil — **indicatif**, aucune règle ne s'y appuie. */
+  readonly horodatageClient: string | null
+}
+
+/** Ce que l'écran annonce **immédiatement après** le tap. */
+export interface PassageEnregistre {
+  readonly occupation: Occupation
+  readonly sejourId: string
+  readonly noteSejourId: string
+  /** Le code de la chambre — **le plus grand élément de l'écran suivant**. */
+  readonly codeUnite: string
+  /** L'heure de fin — **le nombre qu'on dit à voix haute**. */
+  readonly finPrevue: string
+  readonly montant: number
+  readonly codeDevise: string
+  /** Le numéro de la fiche de police émise, **sans trou dans la série**. */
+  readonly numeroFichePolice: string
+  /**
+   * ⚠️ **HUIT SECONDES, ET ELLES VIENNENT DU DOMAINE.** Le composant 14 les
+   * affiche ; il ne les décide pas. Un délai décidé dans un composant serait
+   * devenu une constante que personne ne rouvre.
+   */
+  readonly fenetreAnnulationSecondes: number
+}
+
+/**
+ * LES ÉCRITURES DE LA RÉCEPTION, **et leur classe hors-ligne**.
+ *
+ * ⚠️ **CHAQUE ÉCRITURE COMMENCE PAR LA MÊME GARDE**, posée dans la fonction
+ * d'appel et non dans le composant, et rend `HORS_LIGNE` **sans avoir rien
+ * tenté** (contrat §3).
+ */
+export interface EcrituresReception {
+  /**
+   * ⚠️ **UN SEUL GESTE, CINQ EFFETS** : occupation, séjour, note ouverte puis
+   * arrêtée, encaissement espèces, fiche de police à compléter. **Classe B.**
+   */
+  enregistrerPassage(demande: DemandePassage): Promise<ResultatDomaine<PassageEnregistre>>
+
+  /**
+   * Défait **les cinq effets**, jamais un seul. **Classe B**, bornée par la
+   * fenêtre d'annulation.
+   *
+   * ⚠️ **L'OCCUPATION PASSE À `ANNULEE`, ELLE NE DISPARAÎT PAS.** Une ligne
+   * supprimée ne laisse aucune trace de ce qui a été tenté — et c'est
+   * exactement ce qu'un audit cherche.
+   */
+  annulerPassage(occupationId: string): Promise<ResultatDomaine<void>>
+}
+
 /** L'état de ménage d'une unité, tel que la grille le rend. */
 export interface UniteAvecEtat {
   readonly unite: Unite
