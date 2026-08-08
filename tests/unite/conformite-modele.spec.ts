@@ -1,12 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, expect, it } from 'vitest'
 
 import * as deloria from '../../app/core/donnees/jeux/deloria'
 import * as test from '../../app/core/donnees/jeux/residence-test'
 import * as tantieAdjo from '../../app/core/donnees/jeux/tantie-adjo'
+import { colonnesDeLaTable, enCamel } from './outils/modele-sql'
 
 /**
  * LE JEU SIMULÉ A LA **FORME** DU MODÈLE : mêmes noms de champs, mêmes types,
@@ -20,33 +17,6 @@ import * as tantieAdjo from '../../app/core/donnees/jeux/tantie-adjo'
  * mal nommé aujourd'hui coûte une correction de trois lignes ; le même champ
  * découvert au branchement coûte un écran et son test.
  */
-
-const racine = fileURLToPath(new URL('../..', import.meta.url))
-const MODELE = join(racine, 'docs/modele-donnees')
-
-/** `snake_case` → `camelCase`. LE SEUL écart autorisé, et il est mécanique. */
-function enCamel(nom: string): string {
-  return nom.replace(/_([a-z0-9])/g, (_, lettre: string) => lettre.toUpperCase())
-}
-
-/** Les colonnes déclarées par une table du modèle, dans l'ordre du fichier. */
-function colonnesDeLaTable(fichier: string, table: string): string[] {
-  const contenu = readFileSync(join(MODELE, fichier), 'utf8')
-  const bloc = contenu.match(
-    new RegExp(`CREATE TABLE [a-z_]+\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`, 'm'),
-  )
-  if (!bloc) throw new Error(`table introuvable dans ${fichier} : ${table}`)
-  return [
-    ...new Set(
-      bloc[1]!
-        .split('\n')
-        .map((ligne) => ligne.trim())
-        .filter((ligne) => /^[a-z_]+\s+[A-Za-z]/.test(ligne))
-        .filter((ligne) => !/^(CONSTRAINT|PRIMARY|UNIQUE|FOREIGN|CHECK|EXCLUDE)\b/.test(ligne))
-        .map((ligne) => ligne.split(/\s+/)[0]!),
-    ),
-  ]
-}
 
 /**
  * LES COLONNES DÉLIBÉRÉMENT NON REPRISES, AVEC LEUR MOTIF.
