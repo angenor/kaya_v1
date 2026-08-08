@@ -263,6 +263,18 @@ compose jamais : `docs/Kaya_Design.md` §1 est formel, et `R4` porte une intenti
 assemblage ne retrouverait pas — les tailles de la durée et de l'heure de fin, la place du prix sur
 le bouton.
 
+⚠️ **Un point où la maquette dit le contraire du cadrage, et où c'est le cadrage qui gagne.**
+`R4-passage-hors-ligne.html` écrit en bandeau : *« Donner une chambre ne demande pas le réseau. »*
+Le cadrage §11.3 classe l'attribution d'unité et le check-in en **classe B**, et §11.1 ne les
+autorise hors ligne **qu'en mode C, avec un nœud de site** — qui n'existe pas avant l'incrément 3.
+Hors ligne, en mode terminal, l'action est donc **absente du HTML rendu**, remplacée par la phrase
+du lexique « **Cette action nécessite internet.** », annoncée **avant** que l'utilisateur s'en
+approche. Ce que la maquette dessine redeviendra vrai le jour où un nœud de site existe : il faudra
+alors le rendre **conditionnel au mode de déploiement**, pas inconditionnel comme elle le laisse
+croire. *Sans cette note, le premier écran codé recopierait le bandeau et rendrait atteignable hors
+ligne une opération de classe B — ce que la constitution §6 fait échouer au build.*
+(Constaté au cycle F3, `specs/005-reception-passage-note-planning/spec.md`, arbitrage A.)
+
 `R3` **Arrivée** est **dérivé** de `R4` — *« parcours long : plus de champs, même grammaire »*. Les
 champs s'ajoutent sans que l'écran devienne un formulaire : le dernier geste reste le **tap sur la
 chambre**, et il n'existe aucun bouton de soumission.
@@ -273,6 +285,27 @@ nommées**, plutôt que d'être supprimées. ⚠️ **Un point que la maquette n
 doit dire** : la note se ferme **arrêtée et non réglée**. Sans cette phrase, l'écran laisse croire
 au paiement, et le trou se découvre au comptage de caisse sans qu'on sache à quel séjour il se
 rattache.
+
+⚠️ **`R7` calcule la taxe de séjour d'une façon que le cadrage a corrigée depuis — ne pas recopier
+la ligne.** La maquette affiche *« 500 F par personne et par nuit · 2 personnes × 4 nuits »* =
+4 000 F. Le cadrage §9.6 a été corrigé le **2026-08-03** par la décision **B-10, close** : la taxe
+est due **par nuitée et par séjour, jamais par personne** — *un couple en chambre double paie une
+taxe, pas deux*. Avec la règle seed `une_nuitee_par_occupation`, la bonne valeur de cette note est
+**500 F**, et son total **282 860 F**. Le nombre de personnes reste au constat **à titre
+indicatif** et n'entre dans aucun calcul. La maquette est **antérieure à l'arbitrage** : elle reste
+la référence pour le **dessin** de la ligne — sa place, sa typographie, sa phrase d'assiette —, et
+elle n'est **pas** une référence pour le **montant**. *Sans cette note, le premier écran codé
+recopierait une multiplication par les personnes, et le trop-perçu ne se verrait sur aucun écran.*
+(Cycle F3, `specs/005-reception-passage-note-planning/spec.md`, D-05a.)
+
+⚠️ **`R7` a un quatrième état, et il n'est pas maquetté : l'issue INDÉTERMINÉE.** La maquette en
+porte trois — note en cours, envoi en cours, échec. L'envoi aux impôts a une quatrième fin
+possible, le timeout, et la constitution §5 lui interdit tout rejeu automatique : un second envoi
+créerait une seconde facture réelle chez l'administration, et elle ne s'annule pas côté client.
+L'état s'inscrit donc ici, comme **écran inventé à l'implémentation** — ce que ce document autorise
+— avec la phrase du lexique : « **Nous ne savons pas si les impôts ont reçu cette facture** ».
+Le rapprochement manuel qui le résout appartient au cycle F6 ; `R7` le **nomme** sans l'ouvrir.
+(Cycle F3, `specs/005-reception-passage-note-planning/spec.md`, D-14.)
 
 `R5` **Fiche client et recherche** est **dérivé** de `R7` — *« liste + fiche, pas de total »* — et
 l'absence du bloc de total est le point qui se paierait si on l'oubliait : additionner les séjours

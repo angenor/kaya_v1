@@ -799,6 +799,7 @@ Toute entité déclare sa classe (cadrage §11) et embarque les tests suivants :
 | Barème passage | 1 h : 1 500 · 2 h : 2 800 · 3 h : 4 000 · 4 h : 5 000 · h. suppl. : +1 200 | HEB-04 |
 | Durée max de passage avant bascule en nuitée (`seuil_bascule_nuitee_minutes`) | 480 min (8 h) — clé du catalogue, portée la plus basse **ETABLISSEMENT** | HEB-04 |
 | Plages de demi-journée | 8h–12h et 13h–16h | HEB-05 |
+| Durée de tenue d'une chambre gardée au comptoir (`heb.duree_garde_comptoir_minutes`) | **15 min** — clé du catalogue, portée la plus basse **ETABLISSEMENT**. Quand tout est pris, la réception « garde » la première chambre qui se libère pour le client qui attend ; la garde est une **occupation de motif `RESERVATION`**, **relâchée automatiquement**. ⚠️ **À ne pas confondre avec la ligne suivante** : celle-ci se compte en minutes, au comptoir, sans engagement du client ; l'autre en heures, à distance, avec un engagement. Inscrite par le cycle **F3** le 2026-08-08 — *un délai décidé dans un composant serait devenu une constante que personne ne rouvre* | HEB-02 |
 | Expiration d'une réservation provisoire | 24 h | RSV-01 |
 | Politique d'annulation — délai franc | 48 h | RSV-03 |
 | Taux de TVA | 18 % | FIS-03 |

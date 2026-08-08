@@ -468,9 +468,7 @@ Principes non négociables :
 ### 2.1 `/speckit-clarify`
 
 ```
-/speckit-clarify
-
-Avant de me poser une question, vérifie si la réponse est dans docs/cadrage-v1.md
+/speckit-clarify Avant de me poser une question, vérifie si la réponse est dans docs/cadrage-v1.md
 ou docs/user-stories-v1.md et cite la section. Ne me pose que les questions dont
 la réponse n'y figure pas.
 
@@ -1112,7 +1110,7 @@ aussi. Sans le second versant, tout déclarer branché rendrait le contrôle mue
 ### Cycle F2 — Entrée dans l'application : connexion, accueil, contexte
 
 ```
-/speckit-specify(En cours)
+/speckit-specify
 
 Lis docs/user-stories-v1.md CPT-01, CPT-02, CPT-03, ETB-06, et
 docs/design/html/R1-accueil*.html (quatre variantes), plus les lignes R0, A1, S1 de
@@ -1144,7 +1142,7 @@ de fixer la grammaire — en-tête, navigation, retour, titres, espacements — 
 que les six cycles suivants la reprendront telle quelle.
 ```
 
-### Cycle F3 — Réception : passage, séjour, planning
+### Cycle F3 — Réception : passage, séjour, planning(En cours)
 
 ```
 /speckit-specify
