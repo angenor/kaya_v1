@@ -16,6 +16,14 @@
  * ⚠️ AVEC UN SEUL ÉTABLISSEMENT, IL PERD SON CHEVRON ET CESSE D'ÊTRE UN BOUTON.
  * Un bouton qui n'ouvre rien apprend à ne plus cliquer.
  *
+ * ⚠️ **ET LE NOM SE TRONQUE VRAIMENT.** Le `truncate` était posé depuis toujours
+ * sur les deux lignes, et il ne servait à rien : dans une colonne flex en
+ * `items-start`, chaque ligne prend la largeur de SON contenu, jamais celle du
+ * bloc — le nom sortait donc de la carte, mesuré à **149 px dans une carte de
+ * 148, débordant jusqu'à 42 px au-delà du cadre** sur un téléphone. L'alignement
+ * revient à `text-left`, qui rend la même chose sans figer la largeur, et
+ * `overflow-hidden` garantit que rien ne franchit le trait de la carte.
+ *
  * ⚠️ **IL NE DÉPASSE JAMAIS DE SON EMPLACEMENT** — `max-w-full`, et c'est un
  * constat de mesure : le bouton portait `max-w-64` seul, soit 256 px, et sur une
  * barre de 390 px il rendait **210 px dans un emplacement de 147** — il passait
@@ -77,7 +85,7 @@ const initiale = computed(() => (actif.value?.nom ?? 'K').trim().charAt(0).toUpp
     <component
       :is="plusieurs ? 'button' : 'div'"
       :type="plusieurs ? 'button' : undefined"
-      class="inline-flex h-11 min-w-0 max-w-full items-center gap-2.5 rounded-lg border border-line bg-surf px-3 shadow-basse lg:max-w-64"
+      class="inline-flex h-11 min-w-0 max-w-full items-center gap-2.5 overflow-hidden rounded-lg border border-line bg-surf px-3 shadow-basse lg:max-w-64"
       :class="plusieurs && 'cursor-pointer hover:border-prim'"
       data-composant-09
       :aria-expanded="plusieurs ? ouvert : undefined"
@@ -89,7 +97,7 @@ const initiale = computed(() => (actif.value?.nom ?? 'K').trim().charAt(0).toUpp
       >{{ initiale }}</span>
       <span
         v-if="actif"
-        class="flex min-w-0 flex-col items-start gap-0.5"
+        class="flex min-w-0 flex-col gap-0.5 text-left"
       >
         <span class="truncate font-titre text-corps font-semibold text-ink">{{ actif.nom }}</span>
         <span
