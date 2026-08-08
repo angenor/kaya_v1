@@ -12,6 +12,11 @@
  * écrase les tuiles quand il y en a deux — or le nombre de services dépend de
  * l'établissement, et il n'est jamais le même.
  *
+ * ⚠️ **SUR UN TÉLÉPHONE, LA TUILE EST COMPACTE** — la variante du §05, pas une
+ * hauteur inventée. La barre occupait **225 px, soit 27 % d'un écran de 844** :
+ * plus du quart de la surface pour un bandeau censé s'effacer devant le travail.
+ * La hauteur pleine revient à partir de `lg`, là où elle ne coûte rien.
+ *
  * ⚠️ **LE COMPTEUR DU §05 EST ENFIN ALIMENTÉ.** Le composant le portait depuis
  * F1 — « il ne s'affiche que s'il y a du travail en attente, jamais à zéro » —
  * et rien ne le remplissait. Ce qu'il compte est **dérivé de l'écran lui-même** :
@@ -42,7 +47,8 @@ defineEmits<{ activer: [activite: ActiviteComposee] }>()
     <TuileAction
       v-for="activite in activites"
       :key="activite.surfaceCle"
-      class="min-w-38 flex-1 snap-start"
+      compacte
+      class="min-w-38 flex-1 snap-start lg:min-h-28"
       :libelle="activite.libelle"
       :detail="activite.detail"
       :icone="activite.icone"

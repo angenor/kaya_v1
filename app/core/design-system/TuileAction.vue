@@ -9,6 +9,13 @@
  * ⚠️ SURFACE ENTIÈREMENT CLIQUABLE, PAS D'ÎLOT DE CLIC À L'INTÉRIEUR. Sur un
  * téléphone tenu à une main, un îlot de clic se rate.
  *
+ * ⚠️ **LA VARIANTE COMPACTE RÉDUIT LE CONTENU, PAS SEULEMENT LA BORNE.** Elle ne
+ * portait qu'un `min-h-20`, c'est-à-dire un PLANCHER que le contenu dépassait de
+ * toute façon : sur un téléphone, la tuile rendait **117 px** et la barre des
+ * activités occupait **27 % de l'écran**. En compact, l'icône descend à la
+ * taille d'un titre, les marges se resserrent, et le détail tient sur une ligne
+ * — une tuile de barre est un **raccourci vers un service**, pas une fiche.
+ *
  * ⚠️ LE COMPTEUR NE S'AFFICHE QUE S'IL Y A DU TRAVAIL EN ATTENTE, JAMAIS À ZÉRO.
  * Un « 0 » permanent apprend à ne plus regarder le compteur.
  *
@@ -56,8 +63,8 @@ defineEmits<{ activer: [] }>()
   <button
     type="button"
     data-mouvement="tactile"
-    class="flex cursor-pointer flex-col items-start gap-2.5 rounded-xl border border-line bg-surf px-4 py-3.5 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
-    :class="compacte ? 'min-h-20' : 'min-h-28'"
+    class="flex cursor-pointer flex-col items-start rounded-xl border border-line bg-surf px-4 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
+    :class="compacte ? 'min-h-20 gap-1.5 py-2.5' : 'min-h-28 gap-2.5 py-3.5'"
     @click="$emit('activer')"
   >
     <!-- ⚠️ L'ICÔNE EST **OCRE ET AU-DESSUS DU TEXTE**, pas indigo et en ligne
@@ -67,7 +74,7 @@ defineEmits<{ activer: [] }>()
          icône indigo à l'intérieur ferait chercher une seconde cible. -->
     <span class="flex w-full items-start justify-between gap-3">
       <i
-        :class="['ph', icone, 'text-chiffre text-ocre']"
+        :class="['ph', icone, 'text-ocre', compacte ? 'text-titre-s' : 'text-chiffre']"
         aria-hidden="true"
       />
       <span
@@ -75,7 +82,7 @@ defineEmits<{ activer: [] }>()
         class="inline-flex h-7 min-w-7 items-center justify-center rounded-pleine bg-alerte px-2 font-mono text-mini font-bold text-ocre-ink"
       >{{ compteur }}</span>
     </span>
-    <span class="flex flex-col gap-0.5">
+    <span class="flex w-full min-w-0 flex-col gap-0.5">
       <span class="font-titre text-action font-semibold text-ink">{{
         libelleCle ? $t(libelleCle) : libelle
       }}</span>
@@ -88,6 +95,7 @@ defineEmits<{ activer: [] }>()
       <span
         v-if="detail"
         class="text-mini text-ink-3"
+        :class="compacte ? 'truncate' : undefined"
       >{{ detail }}</span>
     </span>
   </button>

@@ -345,10 +345,10 @@ watch(
              de haut.** Le voile occupe donc sa propre bande, au-dessus du bloc
              opaque, et rien ne s'écrit dedans. -->
         <span
-          class="h-10 shrink-0 bg-linear-to-t from-bg to-transparent"
+          class="h-6 shrink-0 bg-linear-to-t from-bg to-transparent lg:h-10"
           aria-hidden="true"
         />
-        <div class="pointer-events-auto flex flex-col gap-2.5 bg-bg px-6 pb-5.5">
+        <div class="pointer-events-auto flex flex-col gap-2 bg-bg px-5 pb-3 lg:gap-2.5 lg:px-6 lg:pb-5.5">
           <div class="flex items-center justify-between gap-3.5">
             <span class="flex items-center gap-2.5">
               <span
@@ -538,7 +538,7 @@ watch(
     <span
       v-if="accueil.repli === null && seRend(accueil.activites.etat)"
       class="shrink-0 lg:hidden"
-      :class="activitesOuvertes ? 'h-44' : 'h-16'"
+      :class="activitesOuvertes ? 'h-48' : 'h-16'"
       aria-hidden="true"
     />
   </div>
