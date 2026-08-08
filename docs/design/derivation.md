@@ -137,6 +137,18 @@ identifiants refusés, serveur injoignable. Deux contraintes propres, qui vienne
 du motif : **les deux échecs d'authentification rendent la même phrase** (FR-012), et le refus
 hors ligne est annoncé **avant** toute tentative.
 
+**Note du cycle F2 — aucun écran découvert à l'implémentation, et c'est vérifié plutôt que
+supposé.** Le cycle a construit **deux** écrans, `R0` et `R1`, tous deux inscrits ci-dessus avec
+leur route au moment de leur construction. Le quatrième cas de la règle — *« découvert à
+l'implémentation »* — **n'a pas servi** : aucun parcours du cycle ne s'est arrêté faute d'écran.
+
+⚠️ **Un état n'est pas un écran, et la distinction se dit** parce qu'elle serait tentante à
+franchir. `R1` a gagné au cycle un rendu que les quatre maquettes ne montrent pas : celui d'un
+compte **sans aucun établissement** (FR-024) — une seule colonne, l'état vide illustré **11**, et
+la phrase du lexique. C'est un **état de `R1`**, servi par la même route, composé des mêmes
+composants, et non un écran de plus : lui donner un code l'aurait fait entrer au décompte des 46
+pour un cas qui n'a ni parcours propre ni navigation vers lui.
+
 ---
 
 ## Règle opposable — les quatre cas

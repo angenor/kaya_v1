@@ -52,6 +52,22 @@ const MOTIFS_PLATEFORME = [
   { regex: /\bindexedDB\b/g, messageId: 'plateforme' },
   { regex: /\b(USBDevice|BluetoothDevice|MediaDevices|MediaStream)\b/g, messageId: 'plateforme' },
   { regex: /\bcaches\s*\./g, messageId: 'plateforme' },
+  /* ── LE RÉSEAU, AJOUTÉ AU CYCLE F2 (FR-051) ────────────────────────────────
+     ⚠️ **LA PHASE 2 N'ÉMET AUCUN APPEL RÉSEAU, ET RIEN NE L'EMPÊCHAIT.** Toute
+     donnée vient de la couche de simulation ; un `fetch` écrit « juste pour
+     essayer » aurait fonctionné en développement, serait passé au lint, et
+     aurait fait de la phase 3 une chasse plutôt qu'un branchement — c'est
+     exactement le défaut que la COUTURE existe pour empêcher.
+
+     ⚠️ ET C'EST UNE API DE PLATEFORME COMME LES AUTRES : hors ligne, un appel
+     réseau se comporte différemment sur chaque moteur, et sous Capacitor il ne
+     passe pas par la même pile. Il n'y a donc rien à ajouter au régime — la
+     liste (a) le portait déjà pour le stockage et les capteurs.
+
+     `$fetch` de Nuxt est visé au même titre : la frontière `\b` s'arrête sur le
+     `$`, d'où l'alternative explicite. */
+  { regex: /(?:\$fetch|\bfetch)\s*\(/g, messageId: 'plateforme' },
+  { regex: /\b(XMLHttpRequest|WebSocket|EventSource)\b/g, messageId: 'plateforme' },
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════

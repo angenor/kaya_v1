@@ -27,11 +27,17 @@ function chemins(objet: Catalogue, prefixe = ''): string[] {
 
 /** Toutes les valeurs de texte d'un catalogue. */
 function valeurs(objet: Catalogue): string[] {
-  return Object.values(objet).flatMap((valeur) =>
-    valeur !== null && typeof valeur === 'object'
-      ? valeurs(valeur as Catalogue)
-      : [String(valeur)],
-  )
+  return entrees(objet).map(([, valeur]) => valeur)
+}
+
+/** Les couples `chemin → valeur` — le chemin sert à nommer une exemption. */
+function entrees(objet: Catalogue, prefixe = ''): [string, string][] {
+  return Object.entries(objet).flatMap(([cle, valeur]) => {
+    const chemin = prefixe ? `${prefixe}.${cle}` : cle
+    return valeur !== null && typeof valeur === 'object'
+      ? entrees(valeur as Catalogue, chemin)
+      : ([[chemin, String(valeur)]] as [string, string][])
+  })
 }
 
 const cheminsFr = chemins(fr as Catalogue)
@@ -109,6 +115,82 @@ describe('SC-022 · les trois noms d’état internes n’entrent dans aucun cat
       expect(fautives, `valeurs fautives : ${fautives.join(' · ')}`).toEqual([])
     })
   }
+
+  /**
+   * FR-011 ET FR-033 · **LES MOTS DE LA MÉCANIQUE N'ATTEIGNENT AUCUN
+   * CATALOGUE** — le contrôle manquait, et le mécanisme existait déjà.
+   *
+   * ⚠️ CE SONT LES MOTS QUI DISENT **COMMENT LE SYSTÈME LE SAIT**, jamais ce que
+   * la personne peut faire. « Votre session a expiré » n'apprend rien à
+   * quelqu'un debout à la réception ; « rôle » et « permission » lui font une
+   * leçon d'organigramme sur un écran de travail. Le lexique les proscrit ; ce
+   * test le rend opposable, comme il le fait depuis F1 pour les noms d'état.
+   *
+   * ⚠️ **PAR MOT ENTIER, JAMAIS PAR INCLUSION**, et ce n'est pas un raffinement :
+   * « contrôle » contient « rôle », « permission » n'est pas « permis ». Un
+   * contrôle par sous-chaîne aurait interdit des phrases correctes, et on
+   * l'aurait désactivé plutôt que corrigé — c'est ainsi qu'une porte meurt.
+   */
+  const MOTS_DE_MECANIQUE: Readonly<Record<'fr' | 'en', readonly string[]>> = {
+    fr: [
+      'session', 'sessions',
+      'jeton', 'jetons',
+      'rôle', 'rôles',
+      'permission', 'permissions',
+      'synchronisation', 'synchronisations',
+    ],
+    en: [
+      'session', 'sessions',
+      'token', 'tokens',
+      'role', 'roles',
+      'permission', 'permissions',
+      'sync', 'synchronization', 'synchronisation',
+    ],
+  }
+
+  /**
+   * ⚠️ **UNE SEULE EXEMPTION, ET ELLE EST NOMMÉE** : les seize titres du guide
+   * de style. « Témoin de synchronisation » est le **nom du composant 10** tel
+   * que `docs/design/composants.md` le porte, sur un écran qu'aucun exploitant
+   * ne voit — sa route a un trait bas, et le lexique dit explicitement que les
+   * noms des instruments n'entrent pas dans son périmètre. Renommer le composant
+   * pour satisfaire ce test ferait diverger le guide de sa documentation ; le
+   * taire ferait de l'exemption un trou. Elle est donc **déclarée**.
+   */
+  const EXEMPTION = 'guideDeStyle.composant.'
+
+  for (const [langue, catalogue] of [
+    ['fr', fr],
+    ['en', en],
+  ] as const) {
+    it(`${langue} : aucun mot de mécanique — ni « rôle », ni « permission », ni « session »`, () => {
+      const proscrits = MOTS_DE_MECANIQUE[langue]
+      const fautives = entrees(catalogue as Catalogue)
+        .filter(([chemin]) => !chemin.startsWith(EXEMPTION))
+        .filter(([, valeur]) =>
+          (valeur.toLowerCase().match(/\p{L}+/gu) ?? []).some((mot) => proscrits.includes(mot)),
+        )
+        .map(([chemin, valeur]) => `${chemin} → « ${valeur} »`)
+      expect(fautives, `mots de mécanique à l'écran : ${fautives.join(' · ')}`).toEqual([])
+    })
+  }
+
+  it('le contrôle des mots de mécanique attraperait vraiment une faute', () => {
+    // ⚠️ SANS CE PASSAGE, UNE ERREUR DE TOKENISATION RENDRAIT LE CONTRÔLE MUET
+    // et son vert ne voudrait plus rien dire. On lui donne les phrases qu'il
+    // doit refuser — et celles qu'il doit laisser passer.
+    const mots = (valeur: string) => valeur.toLowerCase().match(/\p{L}+/gu) ?? []
+    const contient = (valeur: string, langue: 'fr' | 'en') =>
+      mots(valeur).some((mot) => MOTS_DE_MECANIQUE[langue].includes(mot))
+
+    expect(contient('Votre session a expiré.', 'fr')).toBe(true)
+    expect(contient('Vous n’avez pas la permission.', 'fr')).toBe(true)
+    expect(contient('Deux rôles sur ce site.', 'fr')).toBe(true)
+    expect(contient('Your token is invalid.', 'en')).toBe(true)
+    // Et ce qu'il ne doit PAS attraper : « contrôle » contient « rôle ».
+    expect(contient('Le contrôle est passé.', 'fr')).toBe(false)
+    expect(contient('Vous resterez connectée sur cet appareil.', 'fr')).toBe(false)
+  })
 
   it('les quatre libellés du témoin sont ceux du lexique, mot pour mot', () => {
     const temoinFr = (fr as Catalogue).temoin as Record<string, string>

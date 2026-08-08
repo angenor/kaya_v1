@@ -52,6 +52,69 @@ const memo = localStorage.getItem('x')
     const regles = await reglesDeclenchees(FAUTIF, 'app/core/file/fautif.vue')
     expect(regles).not.toContain('kaya/aucune-api-de-plateforme')
   })
+
+  /**
+   * ⚠️ ÉTENDU AU CYCLE F2 · **LA PHASE 2 N'ÉMET AUCUN APPEL RÉSEAU** (FR-051),
+   * et rien ne l'empêchait. Toute donnée vient de la couche de simulation ; un
+   * `fetch` écrit « juste pour essayer » aurait marché en développement, passé
+   * le lint, et fait de la phase 3 une chasse au lieu d'un branchement.
+   *
+   * ⚠️ **DANS LA MÊME RÈGLE, JAMAIS UN SECOND MÉCANISME.** Un appel réseau est
+   * une API de plateforme comme le stockage : hors ligne il se comporte
+   * autrement sur chaque moteur, et sous Capacitor il ne passe pas par la même
+   * pile. Deux contrôles pour une règle divergent.
+   */
+  const FAUTIF_RESEAU = `<script setup lang="ts">
+const reponse = await fetch('/api/chambres')
+const autre = new XMLHttpRequest()
+const flux = new WebSocket('wss://exemple')
+</script>
+
+<template>
+  <div>{{ reponse }}{{ autre }}{{ flux }}</div>
+</template>
+`
+
+  it('échoue sur fetch, XMLHttpRequest et WebSocket dans une page', async () => {
+    const regles = await reglesDeclenchees(FAUTIF_RESEAU, 'app/pages/fautif-reseau.vue')
+    const signalees = regles.filter((r) => r === 'kaya/aucune-api-de-plateforme')
+    expect(signalees.length, 'les trois appels ne sont pas tous signalés').toBe(3)
+  })
+
+  it('échoue aussi sur `$fetch`, la forme de Nuxt — la frontière de mot ne suffit pas', async () => {
+    const code = `<script setup lang="ts">
+const donnees = await $fetch('/api/chambres')
+</script>
+
+<template>
+  <div>{{ donnees }}</div>
+</template>
+`
+    expect(await reglesDeclenchees(code, 'app/core/accueil/FautifReseau.vue')).toContain(
+      'kaya/aucune-api-de-plateforme',
+    )
+  })
+
+  it("ne dit rien dans app/core/plateforme/, où le réseau a le droit d'exister", async () => {
+    const regles = await reglesDeclenchees(FAUTIF_RESEAU, 'app/core/plateforme/web/reseau.ts')
+    expect(regles).not.toContain('kaya/aucune-api-de-plateforme')
+  })
+
+  it("ne dit rien sur un identifiant qui CONTIENT le mot — « prefetch », « refetch »", async () => {
+    // Une règle qui signale trop se désactive : c'est ainsi qu'une porte meurt.
+    const code = `<script setup lang="ts">
+const prefetchDesactive = true
+function refetchPlusTard() { return prefetchDesactive }
+</script>
+
+<template>
+  <div>{{ refetchPlusTard() }}</div>
+</template>
+`
+    expect(await reglesDeclenchees(code, 'app/pages/conforme-reseau.vue')).not.toContain(
+      'kaya/aucune-api-de-plateforme',
+    )
+  })
 })
 
 describe('aucune chaîne visible en dur', () => {
@@ -198,6 +261,49 @@ const transition = 'opacity 250ms ease-out'
 </template>
 `
     expect(await reglesDeclenchees(code, 'app/pages/exempte.vue')).not.toContain(
+      'kaya/aucune-valeur-hors-jetons',
+    )
+  })
+
+  /**
+   * ⚠️ **LE PÉRIMÈTRE SE PROUVE PAR CHEMIN, PAS PAR LECTURE DE LA
+   * CONFIGURATION** (SC-011, cycle F2). La règle est déclarée sur `app/**` ;
+   * un `ignores:` ajouté un jour pour débloquer un fichier la retirerait
+   * silencieusement de tout un répertoire, et le lint resterait vert. Les trois
+   * chemins nommés ici sont ceux que le cycle a créés — les rubriques de
+   * l'accueil, la coquille, et les pages.
+   */
+  for (const chemin of [
+    'app/core/accueil/FautifJeton.vue',
+    'app/core/coquille/FautifJeton.vue',
+    'app/pages/fautif-jeton.vue',
+  ]) {
+    it(`couvre ${chemin}`, async () => {
+      const code = `<template>
+  <div class="bg-[#21458c]">x</div>
+</template>
+`
+      expect(await reglesDeclenchees(code, chemin)).toContain('kaya/aucune-valeur-hors-jetons')
+    })
+  }
+
+  it('le mode sombre passe par la variante `dark:`, jamais par une seconde palette', async () => {
+    // ⚠️ UNE COULEUR « POUR LE SOMBRE » ÉCRITE À LA MAIN EST LE DÉBUT D'UNE
+    // SECONDE PALETTE : les deux dérivent, et c'est celle qu'on regarde le
+    // moins qui devient fausse. La variante, elle, réemploie le même jeton.
+    const fautif = `<template>
+  <div class="bg-surf dark:bg-[#241c16]">x</div>
+</template>
+`
+    expect(await reglesDeclenchees(fautif, 'app/core/accueil/FautifSombre.vue')).toContain(
+      'kaya/aucune-valeur-hors-jetons',
+    )
+
+    const conforme = `<template>
+  <div class="bg-surf text-ink dark:bg-tile dark:text-ink-2">x</div>
+</template>
+`
+    expect(await reglesDeclenchees(conforme, 'app/core/accueil/ConformeSombre.vue')).not.toContain(
       'kaya/aucune-valeur-hors-jetons',
     )
   })
