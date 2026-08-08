@@ -81,31 +81,31 @@ function estCourante(entree: EntreeNavigation): boolean {
 }
 
 /**
- * LA RUBRIQUE DÉPLIÉE — **une seule à la fois**.
+ * LES RUBRIQUES REPLIÉES — **tout est ouvert, et ce qu'on retient est la
+ * fermeture**.
  *
- * ⚠️ **ET C'EST CELLE DE L'ÉCRAN OUVERT QUI L'EST**, recalculée à chaque
- * navigation. *Sans cela, on arriverait sur `/passage` avec « Hébergement »
- * fermé : l'écran où l'on est ne serait visible nulle part dans la barre qui
- * sert à s'y repérer.* Les groupes sans intitulé — l'accueil, la caisse — n'ont
- * pas d'état : il n'y a rien à replier sur une entrée unique.
+ * ⚠️ **LA BARRE S'OUVRE ENTIÈREMENT DÉPLIÉE, ET C'EST L'ÉTAT PAR DÉFAUT.** La
+ * première version était un accordéon — une seule verticale ouverte à la fois —
+ * et elle avait tort deux fois. *Constaté à l'écran, capture à l'appui* : sur
+ * l'accueil, qui n'est d'aucune verticale, la barre rendait **deux entrées sur
+ * douze**. Et ouvrir « Restaurant » refermait « Hébergement », c'est-à-dire la
+ * verticale où l'on travaillait. **Un menu n'a pas à choisir ce qu'on a le droit
+ * de voir** : ce que l'exploitant peut faire tient en douze lignes, et douze
+ * lignes se lisent d'un regard.
  *
- * ⚠️ **ET UNE RUBRIQUE EST TOUJOURS OUVERTE, MÊME QUAND L'ÉCRAN N'EST DANS
- * AUCUNE.** *Constaté à l'écran, capture à l'appui* : sur l'accueil — qui est
- * hors rubrique — la barre rendait **deux entrées sur douze**, et quatre
- * intitulés fermés. Le premier écran du produit ouvrait donc sur une navigation
- * qui ne montrait rien de ce qu'on peut faire. Le repli par défaut retombe sur
- * la **première verticale déclarée**, qui est celle du MVP.
+ * ⚠️ **ON MÉMORISE DONC CE QUI EST FERMÉ, PAS CE QUI EST OUVERT.** L'ensemble
+ * part vide : toute rubrique — y compris celles d'un module ajouté demain — naît
+ * ouverte, sans rien à déclarer. Mémoriser les ouvertes aurait fait naître
+ * fermée chaque verticale nouvelle.
+ *
+ * ⚠️ **ET L'ÉTAT NE SURVIT PAS AU RECHARGEMENT**, comme le repli du rail
+ * lui-même : c'est un geste du moment, pas un réglage d'appareil.
  */
-const premiereVerticale = computed<string | null>(
-  () => rubriques.value.find((rubrique) => rubrique.titreCle !== null)?.cle ?? null,
-)
-
-const rubriqueOuverte = ref<string | null>(null)
+const rubriquesRepliees = ref<ReadonlySet<string>>(new Set())
 
 /**
  * La rubrique **nommée** qui contient l'écran ouvert. Un groupe sans intitulé
- * n'en est pas une : le désigner refermerait la seule verticale visible pour
- * ouvrir un groupe qui n'a pas de poignée — donc rien.
+ * n'en est pas une : il n'a pas de poignée, donc rien à marquer ni à déplier.
  */
 const rubriqueDeLEcran = computed<string | null>(
   () =>
@@ -115,18 +115,25 @@ const rubriqueDeLEcran = computed<string | null>(
     )?.cle ?? null,
 )
 
+/**
+ * ⚠️ **NAVIGUER ROUVRE LA VERTICALE DE L'ÉCRAN VISÉ.** Sans cela, on arriverait
+ * sur `/passage` avec « Hébergement » refermé à la main tout à l'heure : l'écran
+ * où l'on est ne serait visible nulle part dans la barre qui sert à s'y repérer.
+ */
 watch(
-  [rubriqueDeLEcran, premiereVerticale],
-  ([cle, defaut]) => {
-    if (cle !== null) rubriqueOuverte.value = cle
-    else if (rubriqueOuverte.value === null) rubriqueOuverte.value = defaut
+  rubriqueDeLEcran,
+  (cle) => {
+    if (cle === null || !rubriquesRepliees.value.has(cle)) return
+    const suivant = new Set(rubriquesRepliees.value)
+    suivant.delete(cle)
+    rubriquesRepliees.value = suivant
   },
   { immediate: true },
 )
 
 function estDepliee(rubrique: RubriqueNavigation): boolean {
   // Un groupe sans intitulé n'a pas de poignée, donc pas d'état replié.
-  return rubrique.titreCle === null || rubriqueOuverte.value === rubrique.cle
+  return rubrique.titreCle === null || !rubriquesRepliees.value.has(rubrique.cle)
 }
 
 /**
@@ -159,12 +166,17 @@ function poigneeMarquee(rubrique: RubriqueNavigation): boolean {
  * taper une icône qui ne répond pas.*
  */
 function basculerRubrique(rubrique: RubriqueNavigation): void {
+  const suivant = new Set(rubriquesRepliees.value)
   if (!depliee.value) {
+    // Déplier le rail rend visible ce que la rubrique contient : elle s'ouvre.
     depliee.value = true
-    rubriqueOuverte.value = rubrique.cle
-    return
+    suivant.delete(rubrique.cle)
+  } else if (suivant.has(rubrique.cle)) {
+    suivant.delete(rubrique.cle)
+  } else {
+    suivant.add(rubrique.cle)
   }
-  rubriqueOuverte.value = rubriqueOuverte.value === rubrique.cle ? null : rubrique.cle
+  rubriquesRepliees.value = suivant
 }
 
 /**
@@ -287,12 +299,17 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
           v-for="entree in rubrique.entrees"
           :key="entree.cle"
           type="button"
-          class="relative ml-2 flex h-11 cursor-pointer items-center gap-2.5 rounded-l-2xl px-2.5 text-left transition-colors duration-90"
-          :class="
-            estCourante(entree)
-              ? 'font-semibold text-prim'
-              : 'text-rail-ink hover:bg-rail-2'
-          "
+          class="relative flex h-11 cursor-pointer items-center gap-2.5 rounded-l-2xl px-2.5 text-left transition-colors duration-90"
+          :class="[
+            estCourante(entree) ? 'font-semibold text-prim' : 'text-rail-ink hover:bg-rail-2',
+            // ⚠️ L'INDENTATION DIT L'APPARTENANCE, ET ELLE NE VAUT QUE DÉPLIÉE.
+            // Une entrée décalée sous son intitulé se rattache à lui sans qu'on
+            // ait à le relire. Repliée, la barre n'a plus d'intitulés : décaler
+            // une icône l'écarterait de la colonne où l'œil les cherche — et les
+            // seules entrées rendues à ce moment-là (l'accueil, la caisse) n'ont
+            // de toute façon pas de parent.
+            rubrique.titreCle !== null && depliee ? 'ml-5' : 'ml-2',
+          ]"
           :title="depliee ? undefined : t(entree.libelleCle)"
           :aria-current="estCourante(entree) ? 'page' : undefined"
           :data-entree-nav="entree.cle"

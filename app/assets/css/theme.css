@@ -159,15 +159,21 @@
      délibéré : le rail n'est pas une carte posée sur la page, c'est le bord de
      l'écran. Le distinguer par la valeur — et non par un filet — laisse la page
      entière au travail, et fait lire d'un coup d'œil « ici je me déplace, là je
-     travaille ». La terre reste la terre : ces valeurs sont l'ocre poussé au
-     noir, jamais un gris neutre.
+     travaille ».
+
+     ⚠️ ET C'EST LA SEULE FAMILLE NEUTRE DU SYSTÈME — noir, gris, blanc. Une
+     première version l'avait teintée d'ocre, par cohérence avec Banco : le rail
+     devenait alors une TERRE de plus, en concurrence avec la page qu'il borde.
+     Neutre, il ne dispute rien à ce qu'il encadre — et c'est exactement le rôle
+     d'un bord. La terre reste au contenu.
+
      ⚠️ Ce n'est PAS une seconde palette : les noms sont les mêmes sous .dark,
      seules les valeurs y descendent d'un cran. */
-  --color-rail: #241a13;          /* fond du rail */
-  --color-rail-2: #362619;        /* survol, et rubrique dépliée */
-  --color-rail-ink: #f3e8d8;      /* texte du rail */
-  --color-rail-ink-2: #b4a08a;    /* texte secondaire, intitulé de rubrique */
-  --color-rail-line: #46331f;     /* filet à l'intérieur du rail */
+  --color-rail: #171717;          /* fond du rail */
+  --color-rail-2: #2a2a2a;        /* survol, et rubrique dépliée */
+  --color-rail-ink: #f5f5f5;      /* texte du rail */
+  --color-rail-ink-2: #a3a3a3;    /* texte secondaire, intitulé de rubrique */
+  --color-rail-line: #383838;     /* filet à l'intérieur du rail */
 
   /* ── Ombres ───────────────────────────────────────────────────────────────
      Basses et rares. Le bouton principal porte une ombre pleine de 2 px qui
@@ -260,12 +266,13 @@
   --color-brillance: rgb(233 233 237 / 0.09);
 
   /* Le rail descend d'un cran sous --color-bg (#17120f) : en sombre, un rail à
-     la même valeur que la page ne serait plus un bord, il serait une absence. */
-  --color-rail: #0f0b09;
-  --color-rail-2: #241c16;
-  --color-rail-ink: #f4e9da;
-  --color-rail-ink-2: #a3907e;
-  --color-rail-line: #2c211a;
+     la même valeur que la page ne serait plus un bord, il serait une absence.
+     Neutre ici aussi — c'est la même famille, pas une variante. */
+  --color-rail: #0a0a0a;
+  --color-rail-2: #212121;
+  --color-rail-ink: #f5f5f5;
+  --color-rail-ink-2: #9b9b9b;
+  --color-rail-line: #292929;
 
   --shadow-basse: 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-carte: 0 1px 2px rgb(0 0 0 / 0.35);
