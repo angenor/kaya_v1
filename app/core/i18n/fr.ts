@@ -108,6 +108,10 @@ export default {
     },
     aRegler: { titre: 'À régler' },
     activites: { titre: 'Vos activités' },
+    // ⚠️ LES DEUX SENS SE DISENT, ET LE BOUTON NOMME CE QU'IL VA FAIRE — jamais
+    // ce qu'il montre. « Vos activités » replié, le bouton dit « Afficher ».
+    activitesReduire: 'Réduire',
+    activitesAfficher: 'Afficher',
     chiffres: { titre: "Aujourd'hui", votreService: 'Votre service' },
     // Les six états de la pastille, dits dans les mots de l'exploitant — jamais
     // le nom interne de l'état (SC-022).

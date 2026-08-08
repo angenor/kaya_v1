@@ -258,6 +258,53 @@ for (const schema of ['light', 'dark'] as const) {
       ).toBeLessThanOrEqual(1)
     })
 
+    test('« Vos activités » FLOTTE en bas, et se replie', async ({ page }) => {
+      // ⚠️ LA BARRE EST HORS DU FLUX QUI DÉFILE : elle reste au bas de la
+      // colonne pendant qu'on descend dans la liste. Ce qui se replie, c'est
+      // elle — pas le contenu, qui garde sa réserve de bas de colonne.
+      await poserLeContexte(page, 'compte-adjoua', DELORIA)
+
+      const barre = page.locator('[data-rubrique="activite"]')
+      await expect(barre).toBeVisible()
+      await expect(barre).toHaveAttribute('data-ouvert', 'oui')
+      const avant = (await barre.boundingBox())!
+
+      // Elle ne bouge pas quand le contenu défile.
+      await page.locator('[data-rubrique="tete"]').hover()
+      await page.mouse.wheel(0, 500)
+      await page.waitForTimeout(120)
+      expect(
+        Math.abs((await barre.boundingBox())!.y - avant.y),
+        'la barre est partie avec le contenu',
+      ).toBeLessThanOrEqual(1)
+
+      // ⚠️ **ET LA DERNIÈRE CARTE N'EST JAMAIS SOUS LA BARRE.** Une carte visible
+      // à travers un dégradé mais inatteignable est pire qu'une carte absente :
+      // on la voit, on la touche, et rien ne se passe.
+      const dernier = (await page.locator('[data-rubrique="suite"] > :last-child').boundingBox())!
+      const opaque = (await page.locator('[data-rubrique="activite"] > div').boundingBox())!
+      expect(
+        dernier.y + dernier.height,
+        'le dernier bloc de la liste finit sous la barre',
+      ).toBeLessThanOrEqual(opaque.y + 1)
+
+      // Le repli : les tuiles s'en vont, la poignée reste, et rien n'est grisé.
+      const tuiles = page.locator('[data-rubrique="activite"] [data-surface="activite"] > *')
+      const combien = await tuiles.count()
+      expect(combien, 'aucune tuile à replier — le test ne dirait rien').toBeGreaterThan(0)
+
+      await page.locator('[data-action="basculer-activites"]').click()
+      await expect(barre).toHaveAttribute('data-ouvert', 'non')
+      await expect(tuiles).toHaveCount(0)
+      await expect(barre).toBeVisible()
+      await expect(page.locator('[data-ecran="R1"] [disabled]')).toHaveCount(0)
+
+      // Et on revient : le geste est réversible, comme tout geste d'affichage.
+      await page.locator('[data-action="basculer-activites"]').click()
+      await expect(barre).toHaveAttribute('data-ouvert', 'oui')
+      await expect(tuiles).toHaveCount(combien)
+    })
+
     test('le pas 1 du quickstart · `/` sans session mène à la connexion', async ({ page }) => {
       // ⚠️ REPRIS ICI DEPUIS `connexion.spec.ts`, ET C'EST SA PLACE : tant que la
       // racine redirigeait, le pas ne pouvait pas se vérifier sur `/`. Depuis

@@ -187,7 +187,22 @@ utile, et l'on retirerait le contrôle plutôt que la lenteur.*
    aucun établissement — laissait la session sur le compte précédent : l'en-tête continuait
    d'afficher Adjoua. Le panneau pose désormais un contexte sans site, et retire le sélecteur au
    lieu d'ouvrir un choix sur rien.
-6. **Le contexte ne se résolvait qu'au CHANGEMENT.** Sur un appareil neuf, les réglages portaient
+6. **La page entière défilait, et emportait ce qu'on surveille.** Descendre dans la salle du maquis
+   faisait sortir de l'écran la caisse du soir et les ardoises — c'est-à-dire précisément ce que la
+   colonne latérale existe pour tenir sous le regard, pendant qu'on travaille à gauche. La fenêtre
+   ne défile plus : chaque colonne porte son propre défilement, et l'en-tête n'a plus besoin d'un
+   `sticky` pour rester en place.
+7. **« Vos activités » a été détachée du flux.** Elle flotte désormais au bas de la colonne
+   principale, sur un voile en dégradé qui **dit que la liste continue dessous**, et elle se replie
+   quand un service en cours mérite toute la hauteur. Deux constats de capture au passage : le titre
+   de la barre se lisait par-dessus la liste tant que le dégradé servait de fond au bloc entier, et
+   la dernière carte finissait **sous** la barre — visible, touchable, sans effet. Le voile est
+   maintenant une bande à part, et le contenu porte une réserve de bas de colonne.
+8. **Une colonne flex qui défile comprime ses enfants au lieu de déborder.** Le défilement ne
+   fonctionnait tout simplement pas : `scrollHeight` valait `clientHeight`, les sections s'étant
+   écrasées pour tenir. `shrink-0` sur chaque rubrique le ferme — et rien, à la lecture du code,
+   ne l'aurait signalé.
+9. **Le contexte ne se résolvait qu'au CHANGEMENT.** Sur un appareil neuf, les réglages portaient
    déjà un compte et un site alors que la session était vide : la surface des actions montrait son
    état vide à une gérante qui a huit droits. Constaté en déroulant le pas 9 du quickstart.
 

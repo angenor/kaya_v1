@@ -36,11 +36,17 @@
  * colonne : un item flex refuse sinon de descendre sous la hauteur de son
  * contenu, et c'est la page entière qui déborderait.
  *
- * ⚠️ **ET CHAQUE COLONNE PORTE UN RESSORT.** `<span class="flex-1" />` avant le
- * dernier bloc, plus un `border-t` : c'est ce qui colle « Vos activités » et la
- * note de pied au bas de deux colonnes de hauteur égale, quel que soit le
- * contenu au-dessus. Sans lui, les activités remontent coller à la rubrique
- * précédente et l'écran perd son assise.
+ * ⚠️ **« VOS ACTIVITÉS » FLOTTE, ELLE NE DÉFILE PLUS.** Elle est posée en
+ * position absolue au bas de la colonne principale, sur un dégradé qui monte du
+ * fond vers le transparent — le dégradé n'est pas décoratif, il dit que la liste
+ * **continue dessous** ; sans lui, la barre coupe net et l'on croit avoir fini.
+ * La colonne latérale, elle, garde son ressort `<span class="flex-1" />` : sa
+ * note de pied se colle au bas, comme sur les quatre maquettes.
+ *
+ * ⚠️ ET LA BARRE SE REPLIE — un service en cours prend alors toute la hauteur.
+ * Le contenu défilant porte une **réserve** de bas de colonne dont la hauteur
+ * suit l'état de la barre : sans elle, la dernière carte finirait dessous, vue
+ * et inatteignable.
  *
  * ⚠️ **CETTE PAGE N'EST QU'UN ASSEMBLAGE.** Elle ne filtre pas, ne trie pas, ne
  * décide pas où mène une surface : `composerAccueil` retient, les composants de
@@ -64,6 +70,7 @@ import TuileActivite from '~/core/accueil/TuileActivite.vue'
 import { useAccueil, type EtatRubrique } from '~/core/accueil/composerAccueil'
 import { useEcranCible } from '~/core/coquille/useEcranCible'
 import BandeauAlerte from '~/core/design-system/BandeauAlerte.vue'
+import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import EtatVide from '~/core/design-system/EtatVide.vue'
 import Squelette from '~/core/design-system/Squelette.vue'
 import { useSession } from '~/core/session/useSession'
@@ -79,6 +86,22 @@ const { resoudre } = useEcranCible()
 
 /** L'écran cible touché et pas encore construit — la mention à afficher. */
 const mention = ref<{ titre: string; cycle: string } | null>(null)
+
+/**
+ * LA BARRE « VOS ACTIVITÉS » EST-ELLE DÉPLIÉE.
+ *
+ * ⚠️ **DÉPLIÉE PAR DÉFAUT, ET REPLIABLE À LA MAIN.** Les activités sont ce par
+ * quoi on change de service : les cacher d'entrée obligerait à découvrir un
+ * bouton pour retrouver le pressing. Ce qu'on offre, c'est de **rendre l'écran
+ * quand on travaille dans la liste** — un service en cours prend toute la
+ * hauteur, et la barre s'efface le temps qu'il faut.
+ *
+ * ⚠️ ET L'ÉTAT NE SURVIT PAS AU RECHARGEMENT, délibérément : ce n'est pas un
+ * réglage d'appareil comme le thème, c'est un geste du moment. Le persister
+ * ferait rouvrir l'application sur des activités repliées trois jours plus tard,
+ * sans que personne se souvienne les avoir repliées.
+ */
+const activitesOuvertes = ref(true)
 
 /**
  * L'APPUI D'UNE SURFACE — naviguer, ou **dire**.
@@ -150,164 +173,213 @@ watch(
     </div>
 
     <!-- ── LA COLONNE PRINCIPALE · ce qu'on FAIT ─────────────────────────── -->
-    <!-- ⚠️ `min-h-0` À CÔTÉ DE `overflow-y-auto` : sans lui, un item flex refuse
-         de descendre sous la hauteur de son contenu, et c'est la page entière
-         qui déborderait au lieu de faire défiler cette colonne. -->
+    <!-- ⚠️ DEUX NIVEAUX, ET C'EST CE QUI PERMET À LA BARRE DE FLOTTER : le
+         conteneur tient la hauteur et ne défile pas ; l'enfant défile ; la barre
+         « Vos activités » se pose PAR-DESSUS, en position absolue. -->
     <div
       v-else
-      class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5.5"
+      class="relative flex min-h-0 min-w-0 flex-1 flex-col"
     >
-      <!-- ⚠️ LA MENTION D'UN ÉCRAN À VENIR EST UNE ANNONCE TRANSVERSE, pas une
+      <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5.5">
+        <!-- ⚠️ LA MENTION D'UN ÉCRAN À VENIR EST UNE ANNONCE TRANSVERSE, pas une
            marque sur la surface. Elle dit ce qui manque — de NOTRE côté — et
            quand cela viendra. -->
-      <BandeauAlerte
-        v-if="mention"
-        ton="info"
-        :message="t('accueil.aVenir', { ecran: mention.titre })"
-        :alternative="t('accueil.aVenirCycle', { cycle: mention.cycle })"
-        pleine-largeur
-        data-mention
-      />
+        <BandeauAlerte
+          v-if="mention"
+          ton="info"
+          :message="t('accueil.aVenir', { ecran: mention.titre })"
+          :alternative="t('accueil.aVenirCycle', { cycle: mention.cycle })"
+          pleine-largeur
+          data-mention
+        />
 
-      <!-- ── Ce qui attend maintenant ───────────────────────────────────── -->
-      <section
-        v-if="seRend(accueil.tete.etat)"
-        class="flex flex-col"
-        data-rubrique="tete"
-        :data-etat="accueil.tete.etat"
-      >
-        <!-- ⚠️ LE TITRE DE L'ÉCRAN EST DANS LE BLOC DE TÊTE, en étiquette. Le
+        <!-- ── Ce qui attend maintenant ───────────────────────────────────── -->
+        <section
+          v-if="seRend(accueil.tete.etat)"
+          class="flex shrink-0 flex-col"
+          data-rubrique="tete"
+          :data-etat="accueil.tete.etat"
+        >
+          <!-- ⚠️ LE TITRE DE L'ÉCRAN EST DANS LE BLOC DE TÊTE, en étiquette. Le
              `<h1>` reste dû à l'accessibilité — il est ici, hors flux visuel,
              et porte le nom de l'écran, pas celui de la rubrique. -->
-        <h1 class="sr-only">
-          {{ $t('accueil.titre') }}
-        </h1>
-        <Squelette
-          v-if="accueil.tete.etat === 'chargement'"
-          variante="carte"
-        />
-        <BandeauAlerte
-          v-else-if="accueil.tete.etat === 'horsLigne'"
-          ton="alerte"
-          message-cle="accueil.horsLigne"
-          alternative-cle="accueil.horsLigneAlternative"
-          pleine-largeur
-        />
-        <BandeauAlerte
-          v-else-if="accueil.tete.etat === 'erreur'"
-          ton="danger"
-          message-cle="accueil.erreur"
-          alternative-cle="accueil.erreurAlternative"
-          action-cle="accueil.reessayer"
-          pleine-largeur
-          @agir="composer()"
-        />
-        <div
-          v-else-if="accueil.tete.contenu === null"
-          class="overflow-hidden rounded-xl border border-line bg-surf"
-        >
-          <EtatVide message-cle="accueil.teteVide" />
-        </div>
-        <BlocDeTete
-          v-else
-          :tete="accueil.tete.contenu"
-          :titre-cle="accueil.tete.titreCle"
-          @principale="ouvrir(ecranCibleDe(accueil.tete.contenu.surfaceCle))"
-          @secondaire="ouvrir(ecranCibleDe(accueil.tete.contenu.surfaceCle))"
-        />
-      </section>
+          <h1 class="sr-only">
+            {{ $t('accueil.titre') }}
+          </h1>
+          <Squelette
+            v-if="accueil.tete.etat === 'chargement'"
+            variante="carte"
+          />
+          <BandeauAlerte
+            v-else-if="accueil.tete.etat === 'horsLigne'"
+            ton="alerte"
+            message-cle="accueil.horsLigne"
+            alternative-cle="accueil.horsLigneAlternative"
+            pleine-largeur
+          />
+          <BandeauAlerte
+            v-else-if="accueil.tete.etat === 'erreur'"
+            ton="danger"
+            message-cle="accueil.erreur"
+            alternative-cle="accueil.erreurAlternative"
+            action-cle="accueil.reessayer"
+            pleine-largeur
+            @agir="composer()"
+          />
+          <div
+            v-else-if="accueil.tete.contenu === null"
+            class="overflow-hidden rounded-xl border border-line bg-surf"
+          >
+            <EtatVide message-cle="accueil.teteVide" />
+          </div>
+          <BlocDeTete
+            v-else
+            :tete="accueil.tete.contenu"
+            :titre-cle="accueil.tete.titreCle"
+            @principale="ouvrir(ecranCibleDe(accueil.tete.contenu.surfaceCle))"
+            @secondaire="ouvrir(ecranCibleDe(accueil.tete.contenu.surfaceCle))"
+          />
+        </section>
 
-      <!-- ── Ensuite, dans l'ordre de l'heure ───────────────────────────── -->
-      <section
-        v-if="seRend(accueil.suite.etat)"
-        class="flex flex-col gap-2.5"
-        data-rubrique="suite"
-        :data-etat="accueil.suite.etat"
-      >
-        <span
-          v-if="accueil.suite.titreCle"
-          class="text-etiquette uppercase text-ink-3"
-        >{{ $t(accueil.suite.titreCle) }}</span>
-        <Squelette
-          v-if="accueil.suite.etat === 'chargement'"
-          variante="liste"
-        />
-        <BandeauAlerte
-          v-else-if="accueil.suite.etat === 'horsLigne'"
-          ton="alerte"
-          message-cle="accueil.horsLigne"
-          alternative-cle="accueil.horsLigneAlternative"
-          pleine-largeur
-        />
-        <BandeauAlerte
-          v-else-if="accueil.suite.etat === 'erreur'"
-          ton="danger"
-          message-cle="accueil.erreur"
-          alternative-cle="accueil.erreurAlternative"
-          action-cle="accueil.reessayer"
-          pleine-largeur
-          @agir="composer()"
-        />
-        <div
-          v-else-if="accueil.suite.etat === 'vide'"
-          class="overflow-hidden rounded-xl border border-line bg-surf"
+        <!-- ── Ensuite, dans l'ordre de l'heure ───────────────────────────── -->
+        <section
+          v-if="seRend(accueil.suite.etat)"
+          class="flex shrink-0 flex-col gap-2.5"
+          data-rubrique="suite"
+          :data-etat="accueil.suite.etat"
         >
-          <EtatVide message-cle="accueil.suiteVide" />
-        </div>
-        <!-- ⚠️ LA FORME VIENT DE LA SURFACE, PAS D'UNE VARIANTE D'ÉCRAN. Une
+          <span
+            v-if="accueil.suite.titreCle"
+            class="text-etiquette uppercase text-ink-3"
+          >{{ $t(accueil.suite.titreCle) }}</span>
+          <Squelette
+            v-if="accueil.suite.etat === 'chargement'"
+            variante="liste"
+          />
+          <BandeauAlerte
+            v-else-if="accueil.suite.etat === 'horsLigne'"
+            ton="alerte"
+            message-cle="accueil.horsLigne"
+            alternative-cle="accueil.horsLigneAlternative"
+            pleine-largeur
+          />
+          <BandeauAlerte
+            v-else-if="accueil.suite.etat === 'erreur'"
+            ton="danger"
+            message-cle="accueil.erreur"
+            alternative-cle="accueil.erreurAlternative"
+            action-cle="accueil.reessayer"
+            pleine-largeur
+            @agir="composer()"
+          />
+          <div
+            v-else-if="accueil.suite.etat === 'vide'"
+            class="overflow-hidden rounded-xl border border-line bg-surf"
+          >
+            <EtatVide message-cle="accueil.suiteVide" />
+          </div>
+          <!-- ⚠️ LA FORME VIENT DE LA SURFACE, PAS D'UNE VARIANTE D'ÉCRAN. Une
              table se touche — grille de tuiles compactes ; une arrivée se lit —
              carte à icône. Le même code sert les quatre accueils. -->
-        <GrilleTables
-          v-else-if="presentationDe('suite') === 'grille'"
-          :lignes="accueil.suite.contenu"
-          @activer="(ligne) => ouvrir(ecranCibleDe(ligne.surfaceCle))"
-        />
-        <LigneSuite
-          v-else
-          :lignes="accueil.suite.contenu"
-          @activer="(ligne) => ouvrir(ecranCibleDe(ligne.surfaceCle))"
-        />
-      </section>
+          <GrilleTables
+            v-else-if="presentationDe('suite') === 'grille'"
+            :lignes="accueil.suite.contenu"
+            @activer="(ligne) => ouvrir(ecranCibleDe(ligne.surfaceCle))"
+          />
+          <LigneSuite
+            v-else
+            :lignes="accueil.suite.contenu"
+            @activer="(ligne) => ouvrir(ecranCibleDe(ligne.surfaceCle))"
+          />
+        </section>
 
-      <!-- ⚠️ LE RESSORT : il colle « Vos activités » au bas de la colonne. -->
-      <span class="flex-1" />
+        <!-- ⚠️ LA RÉSERVE DE BAS DE COLONNE — un espace vide, et il est
+             nécessaire : la barre « Vos activités » flotte AU-DESSUS du contenu,
+             donc la dernière carte de la liste finirait sous elle, atteignable
+             par personne. Sa hauteur suit l'état de la barre, et elle n'est PAS
+             animée : ce qui bouge ici est de la mise en page. -->
+        <span
+          v-if="seRend(accueil.activites.etat)"
+          class="shrink-0"
+          :class="activitesOuvertes ? 'h-44' : 'h-16'"
+          aria-hidden="true"
+        />
+      </div>
 
-      <!-- ── Vos activités · DISPARAÎT AVEC SON TITRE quand il n'y en a qu'une -->
+      <!-- ── Vos activités · LA BARRE FLOTTANTE ────────────────────────────
+           ⚠️ **DISPARAÎT AVEC SON TITRE** quand l'établissement n'a qu'une
+           activité — c'est la règle de la famille, et elle passe avant la
+           barre : au maquis, il n'y a rien à poser en bas de l'écran.
+
+           ⚠️ **LE DÉGRADÉ N'EST PAS UNE DÉCORATION.** Il dit que quelque chose
+           continue dessous : sans lui, la barre coupe la liste net et l'on croit
+           l'avoir finie. Il monte du fond de page vers le transparent, sur les
+           JETONS — jamais une couleur littérale.
+
+           ⚠️ **ET LA ZONE DU DÉGRADÉ NE PREND PAS LES CLICS** : `pointer-events`
+           est rendu à la seule partie utile. Une bande transparente qui avale
+           les appuis rend inatteignable ce qu'on voit à travers elle. -->
       <section
         v-if="seRend(accueil.activites.etat)"
-        class="flex flex-col gap-2.5 border-t border-line pt-4.5"
+        class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col"
         data-rubrique="activite"
         :data-etat="accueil.activites.etat"
+        :data-ouvert="activitesOuvertes ? 'oui' : 'non'"
       >
+        <!-- ⚠️ **LE VOILE EST UN BLOC À PART, ET IL LE FAUT.** Posé en fond de la
+             barre elle-même, sa moitié transparente passait DERRIÈRE le titre :
+             « Vos activités » se lisait par-dessus « 5 chambres à nettoyer », et
+             les deux devenaient illisibles. **Constaté sur une capture en 560 px
+             de haut.** Le voile occupe donc sa propre bande, au-dessus du bloc
+             opaque, et rien ne s'écrit dedans. -->
         <span
-          v-if="accueil.activites.titreCle"
-          class="text-etiquette uppercase text-ink-3"
-        >{{ $t(accueil.activites.titreCle) }}</span>
-        <Squelette
-          v-if="accueil.activites.etat === 'chargement'"
-          variante="carte"
+          class="h-10 shrink-0 bg-linear-to-t from-bg to-transparent"
+          aria-hidden="true"
         />
-        <BandeauAlerte
-          v-else-if="accueil.activites.etat === 'horsLigne'"
-          ton="alerte"
-          message-cle="accueil.horsLigne"
-          alternative-cle="accueil.horsLigneAlternative"
-          pleine-largeur
-        />
-        <BandeauAlerte
-          v-else-if="accueil.activites.etat === 'erreur'"
-          ton="danger"
-          message-cle="accueil.erreur"
-          alternative-cle="accueil.erreurAlternative"
-          action-cle="accueil.reessayer"
-          pleine-largeur
-          @agir="composer()"
-        />
-        <TuileActivite
-          v-else
-          :activites="accueil.activites.contenu"
-          @activer="(activite) => ouvrir(ecranCibleDe(activite.surfaceCle))"
-        />
+        <div class="pointer-events-auto flex flex-col gap-2.5 bg-bg px-6 pb-5.5">
+          <div class="flex items-center justify-between gap-3.5">
+            <span
+              v-if="accueil.activites.titreCle"
+              class="text-etiquette uppercase text-ink-3"
+            >{{ $t(accueil.activites.titreCle) }}</span>
+            <!-- ⚠️ L'ACTION DIT CE QU'ELLE FAIT, et son état est porté par
+                 `aria-expanded` : un chevron seul laisse deviner. -->
+            <BoutonDiscret
+              :libelle-cle="activitesOuvertes ? 'accueil.activitesReduire' : 'accueil.activitesAfficher'"
+              :icone="activitesOuvertes ? 'ph-caret-down' : 'ph-caret-up'"
+              :aria-expanded="activitesOuvertes"
+              data-action="basculer-activites"
+              @activer="activitesOuvertes = !activitesOuvertes"
+            />
+          </div>
+          <template v-if="activitesOuvertes">
+            <Squelette
+              v-if="accueil.activites.etat === 'chargement'"
+              variante="carte"
+            />
+            <BandeauAlerte
+              v-else-if="accueil.activites.etat === 'horsLigne'"
+              ton="alerte"
+              message-cle="accueil.horsLigne"
+              alternative-cle="accueil.horsLigneAlternative"
+              pleine-largeur
+            />
+            <BandeauAlerte
+              v-else-if="accueil.activites.etat === 'erreur'"
+              ton="danger"
+              message-cle="accueil.erreur"
+              alternative-cle="accueil.erreurAlternative"
+              action-cle="accueil.reessayer"
+              pleine-largeur
+              @agir="composer()"
+            />
+            <TuileActivite
+              v-else
+              :activites="accueil.activites.contenu"
+              @activer="(activite) => ouvrir(ecranCibleDe(activite.surfaceCle))"
+            />
+          </template>
+        </div>
       </section>
     </div>
 
@@ -324,7 +396,7 @@ watch(
       <!-- ── À régler ──────────────────────────────────────────────────── -->
       <section
         v-if="seRend(accueil.aRegler.etat)"
-        class="flex flex-col gap-2.5"
+        class="flex shrink-0 flex-col gap-2.5"
         data-rubrique="aRegler"
         :data-etat="accueil.aRegler.etat"
       >
@@ -370,7 +442,7 @@ watch(
       <!-- ── Les chiffres ──────────────────────────────────────────────── -->
       <section
         v-if="seRend(accueil.chiffres.etat)"
-        class="flex flex-col gap-2.5"
+        class="flex shrink-0 flex-col gap-2.5"
         data-rubrique="chiffre"
         :data-etat="accueil.chiffres.etat"
       >

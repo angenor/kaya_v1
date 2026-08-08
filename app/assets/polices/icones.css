@@ -36,6 +36,7 @@
 .ph.ph-beer-stein::before { content: "\eb62"; }
 .ph.ph-broom::before { content: "\ec54"; }
 .ph.ph-caret-down::before { content: "\e136"; }
+.ph.ph-caret-up::before { content: "\e13c"; }
 .ph.ph-cash-register::before { content: "\ed80"; }
 .ph.ph-chart-line::before { content: "\e154"; }
 .ph.ph-check-circle::before { content: "\e184"; }

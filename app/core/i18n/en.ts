@@ -81,6 +81,8 @@ export default {
     },
     aRegler: { titre: 'To sort out' },
     activites: { titre: 'Your services' },
+    activitesReduire: 'Collapse',
+    activitesAfficher: 'Show',
     chiffres: { titre: 'Today', votreService: 'Your service' },
     etat: {
       aJour: 'Up to date',
