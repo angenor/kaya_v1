@@ -45,6 +45,24 @@ import { etablissementDe, useSession } from '~/core/session/useSession'
  */
 export type EtatRubrique = 'chargement' | 'nominal' | 'vide' | 'absente' | 'erreur' | 'horsLigne'
 
+/**
+ * UNE ACTIVITÉ, **AVEC CE QU'ELLE A À SIGNALER**.
+ *
+ * ⚠️ `aSignaler` N'EST PAS UNE DONNÉE DE SOURCE, ET IL NE DOIT PAS L'ÊTRE. Le
+ * compteur du composant **05** est **dérivé de ce que l'écran affiche déjà** :
+ * le nombre de cartes « À régler » **retenues** dont la surface porte le même
+ * module. Le faire porter par la simulation aurait produit deux vérités —
+ * une carte filtrée par permission aurait continué de compter, et la bulle
+ * aurait annoncé un travail que personne ne peut voir.
+ *
+ * ⚠️ ET IL VAUT **ZÉRO**, jamais `null` : « le compteur ne s'affiche que s'il y
+ * a du travail en attente, jamais à zéro » (`composants.md` §05). C'est le
+ * composant qui décide de ne rien rendre, pas la composition de mentir.
+ */
+export interface ActiviteComposee extends ActiviteAccueil {
+  readonly aSignaler: number
+}
+
 export interface Rubrique<T> {
   readonly etat: EtatRubrique
   readonly contenu: T
@@ -71,7 +89,7 @@ export interface AccueilCompose {
   readonly tete: Rubrique<TeteAccueil | null>
   readonly suite: Rubrique<readonly LigneSuiteAccueil[]>
   readonly aRegler: Rubrique<readonly CarteAReglerAccueil[]>
-  readonly activites: Rubrique<readonly ActiviteAccueil[]>
+  readonly activites: Rubrique<readonly ActiviteComposee[]>
   readonly chiffres: Rubrique<readonly ChiffreAccueil[]>
 }
 
@@ -149,7 +167,7 @@ function accueilInitial(): AccueilCompose {
     tete: rubriqueInitiale<TeteAccueil | null>(null),
     suite: rubriqueInitiale<readonly LigneSuiteAccueil[]>([]),
     aRegler: rubriqueInitiale<readonly CarteAReglerAccueil[]>([]),
-    activites: rubriqueInitiale<readonly ActiviteAccueil[]>([]),
+    activites: rubriqueInitiale<readonly ActiviteComposee[]>([]),
     chiffres: rubriqueInitiale<readonly ChiffreAccueil[]>([]),
   }
 }
@@ -342,8 +360,42 @@ export function useAccueil() {
       tete: composerTete(tetes),
       suite,
       aRegler,
-      activites,
+      activites: compterCeQuiSignale(activites, aRegler.contenu),
       chiffres,
+    }
+  }
+
+  /**
+   * LE COMPTEUR DE CHAQUE ACTIVITÉ — **compté sur ce que l'écran affiche**.
+   *
+   * ⚠️ IL SE DÉRIVE DES CARTES « À RÉGLER » **RETENUES**, par module. La bulle
+   * du composant 05 dit alors quelque chose de vérifiable : « dans ce service,
+   * il y a N choses à régler », et l'on peut les voir en dépliant la colonne
+   * latérale. Un compteur porté par la source aurait continué de compter des
+   * cartes filtrées par permission — la bulle aurait annoncé un travail
+   * introuvable, et l'on aurait appris à ne plus la regarder.
+   *
+   * ⚠️ ET LE MODULE VIENT DE LA **SURFACE**, jamais de la carte : c'est la
+   * surface qui déclare ce qu'une donnée suppose. `aRegler.stock` relève de la
+   * restauration, `aRegler.caisse` n'est d'aucun service — une caisse est
+   * transverse, et son écart ne se range sous aucune tuile.
+   */
+  function compterCeQuiSignale(
+    activites: Rubrique<readonly ActiviteAccueil[]>,
+    cartes: readonly CarteAReglerAccueil[],
+  ): Rubrique<readonly ActiviteComposee[]> {
+    const parModule = new Map<string, number>()
+    for (const carte of cartes) {
+      const moduleCode = SURFACES_ACCUEIL.find((s) => s.cle === carte.surfaceCle)?.moduleCode
+      if (moduleCode == null) continue
+      parModule.set(moduleCode, (parModule.get(moduleCode) ?? 0) + 1)
+    }
+    return {
+      ...activites,
+      contenu: activites.contenu.map((activite) => ({
+        ...activite,
+        aSignaler: parModule.get(activite.moduleCode) ?? 0,
+      })),
     }
   }
 

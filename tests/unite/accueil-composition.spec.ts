@@ -93,6 +93,53 @@ describe('les deux conditions se cumulent', () => {
   })
 })
 
+describe('le compteur des activités est DÉRIVÉ de ce que l’écran affiche', () => {
+  /**
+   * ⚠️ LE MODULE VIENT DE LA **SURFACE**, jamais de la carte. C'est la règle que
+   * `compterCeQuiSignale` applique, et la recopier ici serait une seconde
+   * vérité — on relit donc `SURFACES_ACCUEIL`, comme le produit.
+   */
+  function aSignalerParModule(cartes: readonly { surfaceCle: string }[]): Map<string, number> {
+    const parModule = new Map<string, number>()
+    for (const carte of cartes) {
+      const moduleCode = SURFACES_ACCUEIL.find((s) => s.cle === carte.surfaceCle)?.moduleCode
+      if (moduleCode == null) continue
+      parModule.set(moduleCode, (parModule.get(moduleCode) ?? 0) + 1)
+    }
+    return parModule
+  }
+
+  it('une carte « À régler » transverse ne se range sous AUCUNE tuile', async () => {
+    // Un écart de caisse n'appartient à aucun service : le compter sous
+    // « Restaurant » ferait chercher au mauvais endroit.
+    const resultat = await simulationAccueil.listerARegler({ etablissementId: DELORIA })
+    expect(resultat.ok).toBe(true)
+    if (!resultat.ok) return
+
+    const parModule = aSignalerParModule(resultat.valeur)
+    expect(parModule.get('RESTAURATION')).toBe(1)
+    expect([...parModule.keys()], 'une carte transverse a été rangée sous un service').toEqual([
+      'RESTAURATION',
+    ])
+  })
+
+  it('une activité sans rien à régler compte ZÉRO — jamais `null`, jamais une bulle', async () => {
+    const [cartes, activites] = await Promise.all([
+      simulationAccueil.listerARegler({ etablissementId: DELORIA }),
+      simulationAccueil.listerActivites({ etablissementId: DELORIA }),
+    ])
+    expect(cartes.ok && activites.ok).toBe(true)
+    if (!cartes.ok || !activites.ok) return
+
+    const parModule = aSignalerParModule(cartes.valeur)
+    const compteurs = activites.valeur.map((a) => parModule.get(a.moduleCode) ?? 0)
+    expect(compteurs.filter((n) => n === 0).length, 'aucune activité à zéro : le cas n’est pas exercé').toBeGreaterThan(0)
+    // C'est le composant 05 qui refuse de rendre un zéro ; la composition, elle,
+    // dit la vérité — y compris quand elle vaut zéro.
+    expect(compteurs.every((n) => Number.isInteger(n) && n >= 0)).toBe(true)
+  })
+})
+
 describe('les quatre variantes sortent du CONTEXTE, jamais d’une branche', () => {
   it('Yao au maquis : « Vos activités » disparaît ENTIÈREMENT', () => {
     // ⚠️ C'EST LA DIFFÉRENCE ENTRE UN ACCUEIL DE MAQUIS ET UN HÔTEL AMPUTÉ. Une

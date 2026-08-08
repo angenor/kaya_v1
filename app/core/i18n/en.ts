@@ -81,6 +81,7 @@ export default {
     },
     aRegler: { titre: 'To sort out' },
     activites: { titre: 'Your services' },
+    activitesASignaler: '{n} to settle across your services',
     activitesReduire: 'Collapse',
     activitesAfficher: 'Show',
     chiffres: { titre: 'Today', votreService: 'Your service' },

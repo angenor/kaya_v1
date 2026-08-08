@@ -104,6 +104,18 @@ const mention = ref<{ titre: string; cycle: string } | null>(null)
 const activitesOuvertes = ref(true)
 
 /**
+ * CE QUI ATTEND DANS LES SERVICES — le total porté par la bulle de la poignée.
+ *
+ * ⚠️ IL SE RECALCULE À CHAQUE COMPOSITION, comme le reste de l'écran : c'est ce
+ * que « en temps réel » veut dire en phase 2, où aucune source ne pousse. Le
+ * jour où le serveur poussera, la bulle suivra sans être retouchée — elle lit la
+ * composition, elle ne compte rien elle-même.
+ */
+const totalASignaler = computed(() =>
+  accueil.value.activites.contenu.reduce((somme, activite) => somme + activite.aSignaler, 0),
+)
+
+/**
  * L'APPUI D'UNE SURFACE — naviguer, ou **dire**.
  *
  * ⚠️ LA SURFACE GARDE L'APPARENCE EXACTE D'UNE SURFACE ABOUTIE : ni
@@ -338,10 +350,31 @@ watch(
         />
         <div class="pointer-events-auto flex flex-col gap-2.5 bg-bg px-6 pb-5.5">
           <div class="flex items-center justify-between gap-3.5">
-            <span
-              v-if="accueil.activites.titreCle"
-              class="text-etiquette uppercase text-ink-3"
-            >{{ $t(accueil.activites.titreCle) }}</span>
+            <span class="flex items-center gap-2.5">
+              <span
+                v-if="accueil.activites.titreCle"
+                class="text-etiquette uppercase text-ink-3"
+              >{{ $t(accueil.activites.titreCle) }}</span>
+              <!-- ⚠️ **LA BULLE RESTE VISIBLE BARRE REPLIÉE, ET C'EST TOUT SON
+                   OBJET.** Replier « Vos activités » libère la hauteur ; sans ce
+                   compteur, cela ferait aussi **perdre de vue** ce qui attend
+                   dans les autres services, et on ne redéplierait plus.
+                   ⚠️ C'EST LE COMPTEUR DU §05, REPRIS TEL QUEL — mêmes jetons,
+                   même règle : **jamais à zéro**. Un « 0 » permanent apprend à
+                   ne plus regarder le compteur. Aucun composant nouveau : la
+                   bulle d'une tuile et celle de la poignée disent la même chose,
+                   à deux échelles.
+                   ⚠️ ET LE NOMBRE SEUL NE SE LIT PAS À VOIX HAUTE : le libellé
+                   accessible dit ce qu'il compte. -->
+              <span
+                v-if="totalASignaler > 0"
+                class="inline-flex h-7 min-w-7 items-center justify-center rounded-pleine bg-alerte px-2 font-mono text-mini font-bold text-ocre-ink"
+                data-activites-a-signaler
+              >
+                <span aria-hidden="true">{{ totalASignaler }}</span>
+                <span class="sr-only">{{ $t('accueil.activitesASignaler', { n: totalASignaler }) }}</span>
+              </span>
+            </span>
             <!-- ⚠️ L'ACTION DIT CE QU'ELLE FAIT, et son état est porté par
                  `aria-expanded` : un chevron seul laisse deviner. -->
             <BoutonDiscret

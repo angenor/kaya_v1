@@ -299,10 +299,45 @@ for (const schema of ['light', 'dark'] as const) {
       await expect(barre).toBeVisible()
       await expect(page.locator('[data-ecran="R1"] [disabled]')).toHaveCount(0)
 
+      // ⚠️ **LA BULLE RESTE VISIBLE BARRE REPLIÉE** — c'est ce qui rend le repli
+      // acceptable. Sans elle, replier ferait perdre de vue ce qui attend dans
+      // les autres services, et personne ne redéplierait.
+      const bulle = page.locator('[data-activites-a-signaler]')
+      await expect(bulle, 'la bulle a disparu avec les tuiles').toBeVisible()
+      await expect(bulle).toContainText(/\d/)
+
       // Et on revient : le geste est réversible, comme tout geste d'affichage.
       await page.locator('[data-action="basculer-activites"]').click()
       await expect(barre).toHaveAttribute('data-ouvert', 'oui')
       await expect(tuiles).toHaveCount(combien)
+    })
+
+    test('la bulle compte ce que l’écran affiche — jamais un chiffre à part', async ({ page }) => {
+      // ⚠️ **LE TOTAL DE LA POIGNÉE EST LA SOMME DES TUILES**, et les tuiles
+      // comptent les cartes « À régler » de leur service. Un compteur qui
+      // vivrait sa propre vie annoncerait un travail introuvable — et l'on
+      // apprendrait à ne plus le regarder.
+      await poserLeContexte(page, 'compte-adjoua', DELORIA)
+
+      const parTuile = await page
+        .locator('[data-rubrique="activite"] [data-a-signaler]')
+        .evaluateAll((tuiles) =>
+          tuiles.map((tuile) => Number(tuile.getAttribute('data-a-signaler') ?? 0)),
+        )
+      const somme = parTuile.reduce((total, n) => total + n, 0)
+      expect(somme, 'aucune activité ne signale rien — la mesure ne dirait rien').toBeGreaterThan(0)
+
+      const bulle = page.locator('[data-activites-a-signaler]')
+      await expect(bulle).toContainText(String(somme))
+
+      // ⚠️ ET JAMAIS À ZÉRO : une tuile sans rien à régler ne porte pas de bulle.
+      // Un « 0 » permanent apprend à ne plus regarder le compteur (§05).
+      const sansRien = parTuile.filter((n) => n === 0).length
+      expect(sansRien, 'toutes les tuiles signalent — le cas « zéro » n’est pas exercé').toBeGreaterThan(0)
+      await expect(
+        page.locator('[data-rubrique="activite"] [data-surface="activite"]').getByText('0', { exact: true }),
+        'une tuile affiche un compteur à zéro',
+      ).toHaveCount(0)
     })
 
     test('le pas 1 du quickstart · `/` sans session mène à la connexion', async ({ page }) => {

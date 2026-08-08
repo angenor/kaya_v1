@@ -110,6 +110,9 @@ export default {
     activites: { titre: 'Vos activités' },
     // ⚠️ LES DEUX SENS SE DISENT, ET LE BOUTON NOMME CE QU'IL VA FAIRE — jamais
     // ce qu'il montre. « Vos activités » replié, le bouton dit « Afficher ».
+    // ⚠️ CE QUE LA BULLE COMPTE, DIT À VOIX HAUTE. Le nombre seul ne se lit
+    // pas : « 3 » sur un lecteur d'écran n'apprend rien.
+    activitesASignaler: '{n} à régler dans vos activités',
     activitesReduire: 'Réduire',
     activitesAfficher: 'Afficher',
     chiffres: { titre: "Aujourd'hui", votreService: 'Votre service' },

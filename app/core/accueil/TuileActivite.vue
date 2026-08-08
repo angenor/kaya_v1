@@ -12,16 +12,21 @@
  * écrase les tuiles quand il y en a deux — or le nombre de services dépend de
  * l'établissement, et il n'est jamais le même.
  *
+ * ⚠️ **LE COMPTEUR DU §05 EST ENFIN ALIMENTÉ.** Le composant le portait depuis
+ * F1 — « il ne s'affiche que s'il y a du travail en attente, jamais à zéro » —
+ * et rien ne le remplissait. Ce qu'il compte est **dérivé de l'écran lui-même** :
+ * les cartes « À régler » retenues qui relèvent de ce service.
+ *
  * ⚠️ ET UNE TUILE NON AUTORISÉE N'EST PAS RENDUE. Il n'y a **aucun** état
  * désactivé : c'est `composerAccueil` qui retire, et le §05 ne porte plus
  * l'état — retiré au cycle F2, avec son motif écrit.
  */
 import TuileAction from '~/core/design-system/TuileAction.vue'
-import type { ActiviteAccueil } from '~/core/donnees/accueil/types'
+import type { ActiviteComposee } from '~/core/accueil/composerAccueil'
 
-defineProps<{ activites: readonly ActiviteAccueil[] }>()
+defineProps<{ activites: readonly ActiviteComposee[] }>()
 
-defineEmits<{ activer: [activite: ActiviteAccueil] }>()
+defineEmits<{ activer: [activite: ActiviteComposee] }>()
 </script>
 
 <template>
@@ -36,7 +41,9 @@ defineEmits<{ activer: [activite: ActiviteAccueil] }>()
       :libelle="activite.libelle"
       :detail="activite.detail"
       :icone="activite.icone"
+      :compteur="activite.aSignaler"
       :data-activite="activite.moduleCode"
+      :data-a-signaler="activite.aSignaler"
       @activer="$emit('activer', activite)"
     />
   </div>
