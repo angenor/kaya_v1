@@ -401,6 +401,17 @@ export default {
     pieceApresLaCleAide:
       'You can hand over the room right away. The line stays to be completed until the till closes.',
     aucuneChambre: 'No room is free for this rate.',
+    cestFait: 'Done',
+    chambreDonnee: 'Room {chambre} given for {duree}',
+    chambreDonneeCourt: 'Given',
+    finPrevue: 'Ends at — say it again to the guest',
+    encaisseEnEspeces: '{montant} · paid in cash',
+    clientSuivant: 'Next guest',
+    imprimerLeRecu: 'Print the receipt',
+    identiteACompleter:
+      'Identity to be completed before the till closes. The guest can go up, the line waits for you here.',
+    annulationPossible: 'Room given. You can still undo this.',
+    annuler: 'Undo',
     horsLigne: 'You have no connection.',
     horsLigneAlternative:
       'The rooms shown date from the last read. You will be able to give a room as soon as the network is back.',

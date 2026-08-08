@@ -469,6 +469,17 @@ export default {
     pieceApresLaCleAide:
       'Vous pouvez donner la chambre tout de suite. La ligne restera à compléter jusqu’à la fermeture de la caisse.',
     aucuneChambre: 'Aucune chambre n’est libre pour cette formule.',
+    cestFait: 'C’est fait',
+    chambreDonnee: 'Chambre {chambre} donnée pour {duree}',
+    chambreDonneeCourt: 'Donnée',
+    finPrevue: 'Fin prévue — à redire au client',
+    encaisseEnEspeces: '{montant} · encaissé en espèces',
+    clientSuivant: 'Client suivant',
+    imprimerLeRecu: 'Imprimer le reçu',
+    identiteACompleter:
+      'Identité à compléter avant la fermeture de la caisse. Le client peut monter, la ligne vous attend ici.',
+    annulationPossible: 'Chambre donnée. Vous pouvez encore annuler.',
+    annuler: 'Annuler',
     horsLigne: 'Vous êtes hors connexion.',
     horsLigneAlternative:
       'Les chambres affichées datent de la dernière lecture. Vous pourrez donner une chambre dès que le réseau revient.',

@@ -37,8 +37,12 @@
  * ⚠️ **UNE SEULE RACINE, ET C'EST UN ÉLÉMENT.**
  */
 import BandeauAlerte from '~/core/design-system/BandeauAlerte.vue'
+import BandeauAnnulation from '~/core/design-system/BandeauAnnulation.vue'
+import BoutonPrincipal from '~/core/design-system/BoutonPrincipal.vue'
+import BoutonSecondaire from '~/core/design-system/BoutonSecondaire.vue'
 import EtatVide from '~/core/design-system/EtatVide.vue'
 import Squelette from '~/core/design-system/Squelette.vue'
+import type { PassageEnregistre } from '~/core/donnees/hebergement/interface'
 import { usePassage, type CaseChambre, type DureeProposee } from '~/core/reception/composerPassage'
 import { formaterHeure } from '~/core/format/instant'
 import { formaterMontant } from '~/core/format/montant'
@@ -51,11 +55,80 @@ const { t } = useI18n()
 useHead({ title: () => t('passage.titre') })
 
 const { session } = useSession()
-const { passage, composer } = usePassage()
+const { passage, composer, donnerLaChambre, annuler } = usePassage()
 const { langue } = useLangue()
 
 /** La chambre retenue — proposée, ou changée d'un tap. */
 const uniteRetenueId = ref<string | null>(null)
+
+/**
+ * CE QUI VIENT D'ÊTRE ENREGISTRÉ — `null` tant que rien ne l'a été.
+ *
+ * ⚠️ **L'ÉTAT ENREGISTRÉ N'EST PAS UNE AUTRE PAGE, ET C'EST DÉLIBÉRÉ.** Naviguer
+ * ferait perdre la grille, donc le contexte : la réceptionniste doit voir, dans
+ * le même écran, que la chambre vient de passer à « Donnée ». Une navigation
+ * coûterait aussi le retour, donc un geste.
+ */
+const enregistre = ref<PassageEnregistre | null>(null)
+
+/**
+ * LE COMPTE À REBOURS D'ANNULATION — **huit secondes, venues du domaine**.
+ *
+ * ⚠️ **IL S'ARRÊTE, MAIS IL NE DÉFAIT RIEN.** Passé le délai, le bandeau
+ * disparaît et l'enregistrement reste : *« toute action destructrice s'exécute
+ * immédiatement et laisse huit secondes »* — le contraire d'une confirmation
+ * préalable, qui n'apprend qu'à répondre oui sans lire.
+ */
+const secondesRestantes = ref(0)
+let rebours: ReturnType<typeof setInterval> | null = null
+
+function arreterLeRebours(): void {
+  if (rebours !== null) clearInterval(rebours)
+  rebours = null
+}
+
+onBeforeUnmount(arreterLeRebours)
+
+/**
+ * LE DERNIER GESTE — un tap sur la durée, et **rien après**.
+ *
+ * ⚠️ **AUCUNE CONFIRMATION N'EST DEMANDÉE ICI.** Ajouter un « Confirmer » entre
+ * ce tap et l'enregistrement ferait rougir P-04 en nommant le budget P1 : trois
+ * taps, zéro frappe. *L'interdiction de FR-001 est mesurée, pas seulement
+ * écrite.*
+ */
+async function choisirLaDuree(duree: DureeProposee): Promise<void> {
+  const resultat = await donnerLaChambre(duree.minutes)
+  if (resultat === null) return
+  enregistre.value = resultat
+  secondesRestantes.value = resultat.fenetreAnnulationSecondes
+  arreterLeRebours()
+  rebours = setInterval(() => {
+    secondesRestantes.value -= 1
+    if (secondesRestantes.value <= 0) arreterLeRebours()
+  }, 1000)
+}
+
+/** Annuler dans les huit secondes — **les cinq effets, jamais un seul**. */
+async function annulerLEnregistrement(): Promise<void> {
+  const courant = enregistre.value
+  if (courant === null) return
+  arreterLeRebours()
+  const defait = await annuler(courant.occupation.id)
+  if (defait) {
+    enregistre.value = null
+    secondesRestantes.value = 0
+  }
+}
+
+/** Passer au client suivant — on repart d'un écran propre. */
+async function clientSuivant(): Promise<void> {
+  arreterLeRebours()
+  enregistre.value = null
+  secondesRestantes.value = 0
+  uniteRetenueId.value = null
+  await composer(null)
+}
 
 const contexteInstant = computed(() => ({
   fuseauHoraire: 'Africa/Abidjan',
@@ -69,6 +142,22 @@ function heure(instant: string): string {
 function montant(duree: DureeProposee): string {
   return formaterMontant(duree.montant, duree.codeDevise)
 }
+
+/**
+ * LA DURÉE DU PASSAGE ENREGISTRÉ, EN HEURES — **lue sur l'occupation**.
+ *
+ * ⚠️ Elle se déduit de la période rendue par le domaine, jamais de ce qui a été
+ * demandé : c'est le serveur qui fait foi, et la différence se verra le jour où
+ * il arrondira autrement.
+ */
+const dureeEnregistree = computed(() => {
+  const courant = enregistre.value
+  if (courant === null) return 0
+  const minutes =
+    (Date.parse(courant.occupation.periode.fin) - Date.parse(courant.occupation.periode.debut)) /
+    60_000
+  return minutes / 60
+})
 
 /** La chambre affichée en grand — celle qu'on va donner. */
 const chambreRetenue = computed<CaseChambre | null>(
@@ -129,8 +218,98 @@ watch(
     />
 
     <div class="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-start">
+      <!-- ── C'EST FAIT · l'état enregistré ────────────────────────────────
+           ⚠️ **LE NUMÉRO DE CHAMBRE ET L'HEURE DE FIN SONT LES DEUX PLUS GRANDS
+           ÉLÉMENTS DE LA PAGE**, aux corps `text-annonce` (68 px) et
+           `text-annonce-l` (88 px). Ce ne sont pas des titres : ce sont les deux
+           nombres que la réceptionniste **dit à voix haute** en tendant la clé,
+           et qu'elle doit pouvoir relire d'un mètre pendant qu'elle parle.
+
+           ⚠️ **« ENCAISSÉ EN ESPÈCES » EST UNE PHRASE DISTINCTE DU MONTANT.**
+           Fondre les deux laisserait croire au paiement là où il n'y aurait
+           qu'un total — et le trou se découvrirait au comptage de caisse, sans
+           qu'on sache à quel séjour le rattacher. -->
+      <section
+        v-if="enregistre"
+        class="flex min-w-0 flex-1 flex-col gap-4 rounded-2xl border border-line bg-surf px-5 py-5"
+        data-rubrique="enregistre"
+      >
+        <div class="flex flex-col gap-1">
+          <span class="text-etiquette uppercase text-succes-fort">{{ $t('passage.cestFait') }}</span>
+          <span class="font-titre text-titre-l font-semibold text-ink">{{
+            $t('passage.chambreDonnee', {
+              chambre: enregistre.codeUnite,
+              duree: $t('passage.heures', { n: dureeEnregistree }),
+            })
+          }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div
+            class="flex flex-col items-center gap-1 rounded-xl border border-line bg-tile px-4 py-4"
+            data-annonce="chambre"
+          >
+            <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.chambreRetenue') }}</span>
+            <span class="font-mono text-annonce font-bold text-ink">{{ enregistre.codeUnite }}</span>
+          </div>
+          <div
+            class="flex flex-col items-center gap-1 rounded-xl border border-line bg-tile px-4 py-4"
+            data-annonce="fin"
+          >
+            <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.finPrevue') }}</span>
+            <!-- ⚠️ **`whitespace-nowrap`, ET LE MOTIF EST UNE CAPTURE.** À
+                 88 px, « 18 h 55 » se coupait après le « h » et l'heure se
+                 lisait sur deux lignes — le nombre qu'on dit à voix haute
+                 devenait deux nombres. Le corps suit la largeur disponible :
+                 `text-annonce` en colonne étroite, `text-annonce-l` dès que la
+                 place existe. Les deux sont des jetons ; aucune valeur
+                 intermédiaire n'est inventée. -->
+            <span class="font-mono text-annonce font-bold whitespace-nowrap text-ink lg:text-annonce-l">{{ heure(enregistre.finPrevue) }}</span>
+          </div>
+        </div>
+
+        <span
+          class="text-mini text-ink-3"
+          data-encaissement
+        >{{
+          $t('passage.encaisseEnEspeces', {
+            montant: formaterMontant(enregistre.montant, enregistre.codeDevise),
+          })
+        }}</span>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <BoutonPrincipal
+            libelle-cle="passage.clientSuivant"
+            data-action="client-suivant"
+            @activer="clientSuivant()"
+          />
+          <!-- ⚠️ L'IMPRESSION PASSE PAR LE `PlatformAdapter` (T025a). Ce cycle
+               branche le geste ; il ne dessine pas le ticket — le gabarit
+               thermique est du cycle F6. -->
+          <BoutonSecondaire
+            libelle-cle="passage.imprimerLeRecu"
+            data-action="imprimer"
+          />
+        </div>
+
+        <!-- ⚠️ « IDENTITÉ À COMPLÉTER », JAMAIS « INCOMPLÈTE » SEUL : la fiche
+             de police émise porte `complete: false`, et c'est le parcours
+             normal du passage. La phrase dit ce qui reste à faire et quand. -->
+        <div
+          class="flex items-start gap-2.5 rounded-xl border border-line-2 bg-tile px-4 py-3.5"
+          data-identite-a-completer
+        >
+          <i
+            class="ph ph-info shrink-0 text-titre-s text-ocre"
+            aria-hidden="true"
+          />
+          <span class="text-mini text-ink-3">{{ $t('passage.identiteACompleter') }}</span>
+        </div>
+      </section>
+
       <!-- ── LA DÉCISION · propre à l'écran ─────────────────────────────── -->
       <section
+        v-else
         class="flex min-w-0 flex-1 flex-col gap-4 rounded-2xl border border-line bg-surf px-5 py-5"
         data-rubrique="decision"
         :data-etat="passage.etat"
@@ -197,6 +376,7 @@ watch(
             class="flex h-38 cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl bg-prim text-prim-ink shadow-bouton-grand transition-[transform,box-shadow] duration-90 ease-entree hover:brightness-105 active:translate-y-0.5 active:shadow-none"
             :data-duree="duree.minutes"
             data-mouvement="tactile"
+            @click="choisirLaDuree(duree)"
           >
             <span class="font-mono text-geste font-bold">{{ $t('passage.heures', { n: duree.minutes / 60 }) }}</span>
             <span class="font-mono text-lead">{{ montant(duree) }}</span>
@@ -255,6 +435,7 @@ watch(
             "
             :data-chambre="chambre.unite.code"
             :data-disponible="chambre.disponible ? 'oui' : 'non'"
+            :data-donnee="chambre.unite.code === enregistre?.codeUnite ? 'oui' : undefined"
             :data-retenue="chambre.unite.id === passage.uniteProposeeId ? 'oui' : undefined"
             @click="changerDeChambre(chambre)"
           >
@@ -266,7 +447,12 @@ watch(
               />
               <span class="font-mono text-lead font-semibold text-ink">{{ chambre.unite.code }}</span>
             </span>
-            <span class="text-mini text-ink-3">{{ detailDe(chambre) }}</span>
+            <!-- ⚠️ **LA CHAMBRE PASSE À « DONNÉE » SANS RECHARGEMENT**, et c'est
+                 ce qui permet de rester sur le même écran : la réceptionniste
+                 voit le résultat de son tap là où elle regardait déjà. -->
+            <span class="text-mini text-ink-3">{{
+              chambre.unite.code === enregistre?.codeUnite ? $t('passage.chambreDonneeCourt') : detailDe(chambre)
+            }}</span>
           </button>
         </div>
       </section>
@@ -276,12 +462,38 @@ watch(
          c'est le numéro que la réceptionniste dit au client en lui tendant la
          clé, et il doit être lisible d'un mètre. -->
     <div
-      v-if="chambreRetenue"
+      v-if="chambreRetenue && !enregistre"
       class="flex flex-col items-center gap-1 rounded-2xl border border-line bg-surf px-5 py-4"
       data-chambre-retenue
     >
       <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.chambreRetenue') }}</span>
       <span class="font-mono text-annonce font-bold text-ink">{{ chambreRetenue.unite.code }}</span>
+    </div>
+
+    <!-- ── LE BANDEAU D'ANNULATION · composant 14 ────────────────────────────
+         ⚠️ **EN SURIMPRESSION, JAMAIS EN FLUX.** Posé dans le flux, il
+         pousserait la page vers le bas au moment précis où la réceptionniste
+         lit un numéro de chambre — et le nombre bougerait sous ses yeux
+         pendant qu'elle le dit à voix haute.
+
+         ⚠️ **ET IL DÉFAIT LES CINQ EFFETS, JAMAIS UN SEUL** : occupation,
+         séjour, note, encaissement, fiche. Annuler la seule occupation en
+         laissant la note arrêtée produirait un trou de caisse que personne ne
+         saurait rattacher à un séjour. -->
+    <div
+      v-if="enregistre && secondesRestantes > 0"
+      class="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center px-5 pb-5"
+      data-bandeau-annulation
+    >
+      <div class="pointer-events-auto w-full max-w-140">
+        <BandeauAnnulation
+          message-cle="passage.annulationPossible"
+          :secondes="secondesRestantes"
+          :secondes-total="enregistre.fenetreAnnulationSecondes"
+          action-cle="passage.annuler"
+          @annuler="annulerLEnregistrement()"
+        />
+      </div>
     </div>
   </div>
 </template>

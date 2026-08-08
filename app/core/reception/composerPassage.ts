@@ -1,8 +1,11 @@
+import { v7 as uuidV7 } from 'uuid'
+
 import type { EtatRubrique } from '~/core/accueil/composerAccueil'
 import type { EtatPastille } from '~/core/design-system/etatsPastille'
 import type { EchecDomaine, ResultatDomaine } from '~/core/donnees/contrat'
 import { fournisseur } from '~/core/donnees/fournisseur'
-import { decale, instantAutorite } from '~/core/donnees/horloge'
+import { decale, instantAutorite, maintenantAppareil } from '~/core/donnees/horloge'
+import type { PassageEnregistre } from '~/core/donnees/hebergement/interface'
 import type { BaremePalier, Formule, Unite } from '~/core/donnees/hebergement/types'
 import { dureesProposees, prixDeLaDuree } from '~/core/reception/bareme'
 import { etablissementDe, useSession } from '~/core/session/useSession'
@@ -134,62 +137,71 @@ export function usePassage() {
     }
     if (!categories.ok) return
 
-    // ⚠️ **LA FORMULE DE PASSAGE VIENT DU RÉFÉRENTIEL, jamais d'un identifiant
-    // écrit dans l'écran.** Un établissement sans formule de passage n'a rien à
-    // montrer ici — et il le dit, au lieu d'afficher quatre boutons muets.
-    const formules = await Promise.all(
-      categories.valeur.map((categorie) => hebergement.listerFormules(categorie.id)),
+    // ⚠️ **UNE FORMULE DE PASSAGE PAR CATÉGORIE, ET LA GRILLE LES MONTRE
+    // TOUTES.** Une première version ne retenait qu'une formule et n'affichait
+    // donc que les chambres d'une seule catégorie — trois sur dix-sept.
+    // **Constaté sur une capture** : la maquette en dessine douze, et une
+    // réceptionniste à qui l'on refuserait quatorze chambres sur dix-sept
+    // reprendrait son cahier. C'est **la chambre qui décide de la formule**,
+    // jamais l'inverse : on choisit une chambre, et son type de chambre porte
+    // son tarif de passage.
+    const formules = (
+      await Promise.all(categories.valeur.map((categorie) => hebergement.listerFormules(categorie.id)))
     )
-    const formule =
-      formules
-        .flatMap((resultat) => (resultat.ok ? [...resultat.valeur] : []))
-        .find((candidate) => candidate.type === 'PASSAGE' && candidate.actif) ?? null
-    if (formule === null) {
+      .flatMap((resultat) => (resultat.ok ? [...resultat.valeur] : []))
+      .filter((candidate) => candidate.type === 'PASSAGE' && candidate.actif)
+    if (formules.length === 0) {
       passage.value = { ...PASSAGE_VIDE, etat: 'vide' }
       return
     }
 
     const depuis = instantAutorite()
-    const bareme = await hebergement.lireBareme(formule.id)
-    if (!bareme.ok) {
-      passage.value = { ...PASSAGE_VIDE, etat: etatDe(bareme) ?? 'erreur' }
-      return
-    }
-    const durees = proposerDurees(bareme.valeur, formule, depuis)
-    if (durees.length === 0) {
-      passage.value = { ...PASSAGE_VIDE, etat: 'vide', formule }
-      return
-    }
 
-    // ⚠️ **LA DISPONIBILITÉ SE LIT SUR LA PLUS COURTE DURÉE.** Une chambre libre
-    // une heure mais pas quatre reste proposable : c'est au tap sur « 4 h »
-    // qu'elle sera refusée, avec sa raison. L'inverse — lire sur la plus longue
-    // — masquerait des chambres qu'on aurait pu donner.
-    const periode = { debut: depuis, fin: durees[0]!.fin }
-    const [unites, disponibles] = await Promise.all([
-      hebergement.listerUnites(portee),
-      reception.listerUnitesDisponibles(portee, formule.id, periode),
-    ])
-    const mauvais = etatDe(unites) ?? etatDe(disponibles)
-    if (mauvais !== null) {
-      passage.value = { ...PASSAGE_VIDE, etat: mauvais }
+    // ⚠️ **LA DISPONIBILITÉ SE LIT SUR LA PLUS COURTE DURÉE DU BARÈME.** Une
+    // chambre libre une heure mais pas quatre reste proposable : c'est au tap
+    // sur « 4 h » qu'elle sera refusée, avec sa raison. L'inverse — lire sur la
+    // plus longue — masquerait des chambres qu'on aurait pu donner.
+    const unites = await hebergement.listerUnites(portee)
+    const mauvaisesUnites = etatDe(unites)
+    if (mauvaisesUnites !== null) {
+      passage.value = { ...PASSAGE_VIDE, etat: mauvaisesUnites }
       return
     }
-    if (!unites.ok || !disponibles.ok) return
+    if (!unites.ok) return
 
-    const parId = new Map(disponibles.valeur.map((d) => [d.unite.id, d]))
-    const chambres: readonly CaseChambre[] = unites.valeur
-      .filter((unite) => unite.categorieId === formule.categorieId)
-      .map((unite) => {
+    const chambres: CaseChambre[] = []
+    const baremeParFormule = new Map<string, readonly BaremePalier[]>()
+    for (const formuleCandidate of formules) {
+      const bareme = await hebergement.lireBareme(formuleCandidate.id)
+      if (!bareme.ok) continue
+      baremeParFormule.set(formuleCandidate.id, bareme.valeur)
+      const duree = dureesProposees(bareme.valeur)[0]
+      if (duree === undefined) continue
+      const periode = { debut: depuis, fin: decale(depuis, duree) }
+      const disponibles = await reception.listerUnitesDisponibles(
+        portee,
+        formuleCandidate.id,
+        periode,
+      )
+      if (!disponibles.ok) continue
+      const parId = new Map(disponibles.valeur.map((d) => [d.unite.id, d]))
+      for (const unite of unites.valeur) {
+        if (unite.categorieId !== formuleCandidate.categorieId) continue
         const libre = parId.get(unite.id)
-        return {
+        chambres.push({
           unite,
           disponible: libre !== undefined,
           etat: libre !== undefined ? 'libre' : 'enCours',
           libreA: null,
           libreJusqua: libre?.libreJusqua ?? null,
-        }
-      })
+        })
+      }
+    }
+
+    if (chambres.length === 0) {
+      passage.value = { ...PASSAGE_VIDE, etat: 'vide' }
+      return
+    }
 
     // ⚠️ **LA CHAMBRE CHOISIE À LA MAIN PRIME SUR LA PROPOSITION**, et elle ne
     // se perd pas au rechargement : sans cela, changer de chambre puis toucher
@@ -198,8 +210,17 @@ export function usePassage() {
     const choisie = chambres.find((c) => c.unite.id === uniteChoisieId && c.disponible)
     const proposee = choisie ?? chambres.find((c) => c.disponible) ?? null
 
+    // ⚠️ **LE TARIF SUIT LA CHAMBRE.** Les quatre boutons portent le barème de
+    // la catégorie de la chambre retenue : changer de chambre peut donc changer
+    // les prix, et c'est le comportement juste — une Supérieure B ne se loue pas
+    // au tarif d'une Standard.
+    const formule =
+      formules.find((f) => f.categorieId === proposee?.unite.categorieId) ?? formules[0]!
+    const bareme = baremeParFormule.get(formule.id) ?? []
+    const durees = proposerDurees(bareme, formule, depuis)
+
     passage.value = {
-      etat: chambres.every((c) => !c.disponible) ? 'vide' : 'nominal',
+      etat: durees.length === 0 || chambres.every((c) => !c.disponible) ? 'vide' : 'nominal',
       durees,
       chambres,
       uniteProposeeId: proposee?.unite.id ?? null,
@@ -217,5 +238,61 @@ export function usePassage() {
     passage.value = { ...passage.value, refus: echec }
   }
 
-  return { passage, composer, poserRefus }
+  /**
+   * DONNER LA CHAMBRE — **le dernier geste, et il enregistre**.
+   *
+   * ⚠️ **AUCUNE CONFIRMATION.** Ce tap crée l'occupation, ouvre et arrête la
+   * note, encaisse et émet la fiche. Ce qui protège n'est pas une question
+   * posée avant, c'est **la fenêtre d'annulation de huit secondes** posée
+   * après : *demander « êtes-vous sûre ? » vingt fois par jour n'apprend qu'à
+   * répondre oui sans lire.*
+   *
+   * ⚠️ **LE REFUS SE DÉCIDE AU MOMENT DU TAP, JAMAIS AU MOMENT DE
+   * L'AFFICHAGE.** La grille montre l'état d'il y a quelques secondes ; entre
+   * les deux, un autre poste a pu donner la chambre. C'est la couture qui
+   * tranche, à cet instant-là.
+   */
+  async function donnerLaChambre(dureeMinutes: number): Promise<PassageEnregistre | null> {
+    const compose = passage.value
+    const etablissementId = etablissementDe(session.value)
+    if (compose.formule === null || compose.uniteProposeeId === null || etablissementId === null) {
+      return null
+    }
+
+    const resultat = await fournisseur().ecrituresReception.enregistrerPassage({
+      // ⚠️ UUID **v7**, jamais v4 : les 48 bits de tête portent l'horodatage, et
+      // c'est ce qui rend le rejeu ordonnable et le dédoublonnage inoffensif.
+      id: uuidV7(),
+      etablissementId,
+      uniteId: compose.uniteProposeeId,
+      formuleId: compose.formule.id,
+      dureeMinutes,
+      clientId: null,
+      horodatageClient: maintenantAppareil().toISOString(),
+    })
+
+    if (!resultat.ok) {
+      poserRefus(resultat.echec)
+      // On recompose : la chambre qui vient d'être prise par un autre poste doit
+      // disparaître des cibles **maintenant**, pas au rechargement suivant.
+      await composer(compose.uniteProposeeId)
+      poserRefus(resultat.echec)
+      return null
+    }
+    poserRefus(null)
+    return resultat.valeur
+  }
+
+  /** Défait les cinq effets — bornée par la fenêtre d'annulation. */
+  async function annuler(occupationId: string): Promise<boolean> {
+    const resultat = await fournisseur().ecrituresReception.annulerPassage(occupationId)
+    if (!resultat.ok) {
+      poserRefus(resultat.echec)
+      return false
+    }
+    await composer(null)
+    return true
+  }
+
+  return { passage, composer, poserRefus, donnerLaChambre, annuler }
 }
