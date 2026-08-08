@@ -448,6 +448,72 @@ export default {
     reessayer: 'Réessayer',
   },
 
+  // ── R4 · le passage ────────────────────────────────────────────────────────
+  // ⚠️ « CHECK-IN » N'ATTEINT NI L'INTERFACE NI UNE ROUTE (lexique). On donne
+  // une chambre ; on ne « check-in » personne.
+  passage: {
+    titre: 'Le passage',
+    surtitre: 'Passage · chambre à l’heure',
+    question: 'Combien de temps ?',
+    heures: '{n} h',
+    jusqua: 'jusqu’à {heure}',
+    propositionAutomatique: 'La chambre {chambre} est prête — touchez la grille pour en changer.',
+    motifChoisie: 'Chambre {chambre} — celle que vous avez choisie.',
+    chambreRetenue: 'Chambre',
+    chambresTitre: 'Les chambres',
+    chambresAide: 'Un tap pour changer. Rien d’autre à faire.',
+    chambreLibre: 'Libre',
+    chambreLibreJusqua: 'Libre jusqu’à {heure}',
+    chambreOccupee: 'Occupée',
+    pieceApresLaCle: 'Pièce d’identité : après la clé, pas avant',
+    pieceApresLaCleAide:
+      'Vous pouvez donner la chambre tout de suite. La ligne restera à compléter jusqu’à la fermeture de la caisse.',
+    aucuneChambre: 'Aucune chambre n’est libre pour cette formule.',
+    horsLigne: 'Vous êtes hors connexion.',
+    horsLigneAlternative:
+      'Les chambres affichées datent de la dernière lecture. Vous pourrez donner une chambre dès que le réseau revient.',
+    erreur: 'Les chambres n’ont pas pu être lues.',
+    erreurAlternative: 'Réessayez : rien de ce qui est enregistré n’est perdu.',
+    reessayer: 'Réessayer',
+  },
+
+  // ── Les refus de la réception · branchés sur le CODE, jamais sur un message
+  // ⚠️ CHAQUE REFUS PORTE SON VERSANT POSITIF, et ce n'est pas une politesse :
+  // « cette chambre est prise » est vrai et inutile à quelqu'un debout au
+  // comptoir. C'est la différence entre un refus qu'Adjoua peut EXPLIQUER au
+  // client et un refus qu'elle contournera.
+  refus: {
+    UNITE_DEJA_OCCUPEE: 'La chambre {unite} est déjà prise de {debut} à {fin}.',
+    UNITE_DEJA_OCCUPEEAlternative: 'Touchez une autre chambre de la grille : les libres portent un carré vert.',
+    CONFLIT_OCCUPATION_SUIVANTE: 'La chambre {unite} est tenue à partir de {heure}.',
+    CONFLIT_OCCUPATION_SUIVANTEAlternative: 'Libres dans le même type : {chambresLibres}.',
+    UNITE_CIBLE_OCCUPEE: 'La chambre {unite} n’est pas libre sur la période restante.',
+    UNITE_CIBLE_OCCUPEEAlternative: 'Choisissez une autre chambre, ou raccourcissez le séjour.',
+    PLAGE_NON_FRACTIONNABLE: 'Une demi-journée se loue en entier : {plage1} ou {plage2}.',
+    PLAGE_NON_FRACTIONNABLEAlternative: 'Prenez la plage entière, ou passez à l’heure.',
+    INTERVALLE_INVALIDE: 'La fin doit être après le début.',
+    INTERVALLE_INVALIDEAlternative: 'Reprenez la durée : le prix est sur le bouton.',
+    DUREE_HORS_CONTRAINTE: 'Cette formule se loue de {min} h à {max} h.',
+    DUREE_HORS_CONTRAINTEAlternative: 'Au-delà, le tarif passe à la nuitée — nous vous l’annoncerons avant.',
+    FORMULE_HORS_CATEGORIE: 'Cette formule ne s’applique pas à cette chambre.',
+    FORMULE_HORS_CATEGORIEAlternative: 'Choisissez une chambre du même type, ou changez de formule.',
+    SEJOUR_DEJA_CLOS: 'Ce séjour est déjà terminé.',
+    SEJOUR_DEJA_CLOSAlternative: 'Ouvrez un nouveau séjour pour ce client.',
+    SEJOUR_CLOS: 'On ne prolonge pas un séjour terminé.',
+    SEJOUR_CLOSAlternative: 'Ouvrez un nouveau séjour : l’ancien reste consultable.',
+    NOTE_ARRETEE: 'La note est arrêtée : plus rien ne peut s’y ajouter.',
+    NOTE_ARRETEEAlternative: 'Notez la consommation à part : elle sera rattachée après vérification.',
+    BASCULE_FORMULE_NON_CONFIRMEE: 'Au-delà de {seuilHeures} h, le tarif passe à la nuitée : {montant}.',
+    BASCULE_FORMULE_NON_CONFIRMEEAlternative: 'Confirmez pour appliquer, ou raccourcissez la durée.',
+    HORS_LIGNE: 'Cette action nécessite internet.',
+    HORS_LIGNEAlternative:
+      'Vous pourrez la faire dès que le réseau revient. Ce qui est déjà enregistré sur cet appareil n’est pas perdu.',
+    ECHEC_RESEAU: 'Ça n’est pas parti. Recommencez quand le réseau revient.',
+    ECHEC_RESEAUAlternative: 'Rien n’a été enregistré : vous pouvez recommencer sans risque de doublon.',
+    INTROUVABLE: 'Cet élément n’existe plus.',
+    INTROUVABLEAlternative: 'Revenez à la vue du jour : elle montre l’état actuel de la maison.',
+  },
+
   essai: {
     noteInterne: "Note interne",
     encaissement: "Encaissement",
