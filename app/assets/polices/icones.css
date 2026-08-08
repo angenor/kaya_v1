@@ -71,3 +71,4 @@
 .ph.ph-users-three::before { content: "\e68e"; }
 .ph.ph-warning::before { content: "\e4e0"; }
 .ph.ph-warning-circle::before { content: "\e4e2"; }
+.ph.ph-x::before { content: "\e4f6"; }

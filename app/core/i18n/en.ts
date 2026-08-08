@@ -486,6 +486,8 @@ export default {
     titre: 'Go to',
     replier: 'Collapse the menu',
     deplier: 'Expand the menu',
+    ouvrir: 'Open the menu',
+    fermer: 'Close the menu',
     // The business lines, in the operator's own words.
     hebergement: 'Rooms',
     restaurant: 'Restaurant',

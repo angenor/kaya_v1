@@ -38,6 +38,7 @@
 import BandeauCoquille from '~/core/coquille/BandeauCoquille.vue'
 import EnTeteContexte from '~/core/coquille/EnTeteContexte.vue'
 import NavigationLaterale from '~/core/coquille/NavigationLaterale.vue'
+import { useNavigationMobile } from '~/core/coquille/useNavigationMobile'
 import { useFile } from '~/core/file/useFile'
 import { useScenarios } from '~/core/scenarios/useScenarios'
 
@@ -49,6 +50,21 @@ import { useScenarios } from '~/core/scenarios/useScenarios'
 // et lui épargne une attente sur le chemin du premier écran.
 useScenarios()
 const { reprendre: reprendreFile } = useFile()
+
+/**
+ * LE TIROIR DE NAVIGATION, SOUS `sm` — **et il se referme tout seul**.
+ *
+ * ⚠️ **SUR TÉLÉPHONE, LE RAIL EST MASQUÉ** : à 390 px, 15 rem de colonne fixe ne
+ * laissent rien à l'écran de travail. Il revient en tiroir, par-dessus, ouvert
+ * depuis l'en-tête — le seul coin que l'œil cherche pour sortir d'un écran.
+ *
+ * ⚠️ **ET IL SE FERME À LA NAVIGATION.** Un tiroir qui reste ouvert sur l'écran
+ * qu'on vient d'atteindre cache exactement ce qu'on est venu voir, et fait
+ * chercher un second geste pour le ranger.
+ */
+const { ouverte: navigationOuverte } = useNavigationMobile()
+const route = useRoute()
+watch(() => route.path, () => { navigationOuverte.value = false })
 
 onNuxtReady(() => {
   void reprendreFile()
@@ -90,6 +106,33 @@ onNuxtReady(() => {
       <main class="flex min-h-0 min-w-0 flex-1 overflow-y-auto">
         <slot />
       </main>
+    </div>
+
+    <!-- ⚠️ **LE TIROIR DE TÉLÉPHONE — LA MÊME NAVIGATION, PAR-DESSUS.** C'est
+         `NavigationLaterale` et rien d'autre : une seconde implémentation « pour
+         le mobile » aurait divergé au premier écran ajouté, et l'une des deux
+         aurait fini par ne plus montrer ce que l'autre montre.
+
+         ⚠️ **LE VOILE SE TOUCHE, ET IL LE FAUT.** Un tiroir qui ne se ferme
+         qu'au bouton oblige à viser un coin ; toucher à côté est le geste que
+         tout le monde fait d'abord. -->
+    <div
+      v-if="navigationOuverte"
+      class="fixed inset-0 z-30 flex sm:hidden"
+      data-tiroir-navigation
+    >
+      <NavigationLaterale
+        tiroir
+        class="flex shadow-panneau"
+        @fermer="navigationOuverte = false"
+      />
+      <button
+        type="button"
+        class="flex-1 cursor-pointer bg-voile"
+        :aria-label="$t('navigation.fermer')"
+        data-action="fermer-navigation"
+        @click="navigationOuverte = false"
+      />
     </div>
   </div>
 </template>

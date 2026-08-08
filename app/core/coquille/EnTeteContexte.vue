@@ -41,6 +41,7 @@
 import IdentitePersonne from '~/core/coquille/IdentitePersonne.vue'
 import ReglagesCoquille from '~/core/coquille/ReglagesCoquille.vue'
 import { useContexte } from '~/core/coquille/useContexte'
+import { useNavigationMobile } from '~/core/coquille/useNavigationMobile'
 import type { EtablissementAffichable } from '~/core/design-system/SelecteurEtablissement.vue'
 import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import SelecteurEtablissement from '~/core/design-system/SelecteurEtablissement.vue'
@@ -63,6 +64,8 @@ const {
 } = useContexte()
 
 watch(() => session.value.compteId, () => void chargerLesEtablissements(), { immediate: true })
+
+const { ouverte: navigationOuverte } = useNavigationMobile()
 
 /**
  * ⚠️ LA COMMUNE TOUJOURS, LE POSTE SEULEMENT S'IL EST UNIQUE. Les deux formes —
@@ -191,17 +194,28 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
   <header
     class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2.5 border-b border-line bg-surf px-3 lg:gap-3.5 lg:px-5"
   >
-    <!-- ⚠️ **LA MARQUE, PREMIER ÉLÉMENT DE L'EN-TÊTE** (contrat de grammaire §1).
-         Elle est OCRE, jamais indigo : « l'indigo est un signal — ce qui est
-         indigo se touche », et la marque ne se touche pas. Elle manquait
-         jusqu'au cycle F2 ; le sélecteur portait l'initiale de l'établissement à
-         sa place, ce qui faisait changer le premier repère de l'écran à chaque
-         bascule de site. Un repère qui change n'en est plus un. -->
-    <span
-      class="hidden size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-soft md:inline-flex"
-      data-marque
-      aria-hidden="true"
-    >K</span>
+    <!-- ⚠️ **L'OUVERTURE DE LA NAVIGATION, ET ELLE N'EXISTE QUE SOUS `sm`.**
+         *Constaté à l'usage* : sur un téléphone, le rail latéral est masqué —
+         il prendrait la moitié de l'écran — et **rien ne permettait de
+         l'ouvrir**. Un produit dont on ne peut pas changer d'écran sur le
+         terminal que le personnel a dans la poche est un produit qu'on quitte.
+         Au-delà de `sm`, le rail est là : un second chemin vers lui serait un
+         bouton qui double une barre déjà visible.
+
+         ⚠️ ET ELLE PREND LA PLACE DE LA MARQUE. Le « K » ocre occupait ce coin
+         depuis le cycle F2 ; il a été **retiré au cycle F3**. Il n'apprenait
+         rien — on sait quel logiciel on ouvre —, il n'était atteignable par
+         aucun geste, et il tenait la seule position que l'œil cherche quand il
+         veut sortir de l'écran. -->
+    <BoutonDiscret
+      icone="ph-list"
+      :libelle-cle="undefined"
+      :aria-label="t('navigation.ouvrir')"
+      :aria-expanded="navigationOuverte"
+      class="sm:hidden"
+      data-action="ouvrir-navigation"
+      @activer="navigationOuverte = true"
+    />
 
     <!-- Composant 09 · sélecteur d'établissement.
          « Toujours en haut à gauche, il ne bouge jamais de place. »

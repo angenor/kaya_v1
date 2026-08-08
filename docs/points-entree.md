@@ -98,6 +98,7 @@ champ séparé, donc l'exclusion, elle, se calcule.
 | `app/core/coquille/useCoquille.ts#useCoquille` | branché | navigateur | core/coquille/BandeauCoquille.vue · pages/scenarios.vue · plugins/coquille.client.ts |
 | `app/core/coquille/useEcranCible.ts#useEcranCible` | branché | navigateur | pages/index.vue — **naviguer, ou dire** ; le titre et le cycle sont lus à l'index |
 | `app/core/coquille/useInstallation.ts#useInstallation` | branché | navigateur | core/coquille/BandeauCoquille.vue · pages/scenarios.vue |
+| `app/core/coquille/useNavigationMobile.ts#useNavigationMobile` | branché | navigateur | core/coquille/EnTeteContexte.vue · layouts/defaut.vue — le bouton et le tiroir ne sont pas au même endroit ; c'est ce qui rend l'état partagé nécessaire |
 | `app/core/coquille/usePersistanceAnnoncee.ts#usePersistanceAnnoncee` | branché | navigateur | pages/connexion.vue — le verdict est **mémorisé pour la session**, l'annonce ne clignote pas |
 | `app/core/design-system/BandeauAlerte.vue` | branché | navigateur | core/coquille/BandeauCoquille.vue · pages/ecrans.vue · pages/guide-de-style.vue |
 | `app/core/design-system/BandeauAnnulation.vue` | branché | navigateur | pages/guide-de-style.vue |

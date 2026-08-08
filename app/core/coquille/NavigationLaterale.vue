@@ -41,6 +41,18 @@ import {
 } from '~/core/coquille/rubriques'
 import { useAutorisation } from '~/core/session/useAutorisation'
 
+/**
+ * ⚠️ **LA VARIANTE TIROIR EST LA MÊME BARRE, PAS UNE SECONDE.** Sur téléphone,
+ * le rail est masqué — 15 rem de colonne fixe ne laissent rien à l'écran de
+ * travail à 390 px — et il revient par-dessus, ouvert depuis l'en-tête. *Écrire
+ * une navigation « pour le mobile » aurait divergé au premier écran ajouté, et
+ * l'une des deux aurait fini par ne plus montrer ce que l'autre montre.* Deux
+ * choses seulement changent : elle ne se replie pas en icônes — on n'économise
+ * pas une largeur qu'on recouvre déjà — et sa poignée de tête **ferme**.
+ */
+const { tiroir = false } = defineProps<{ tiroir?: boolean }>()
+const emit = defineEmits<{ fermer: [] }>()
+
 const { t } = useI18n()
 const route = useRoute()
 const { resoudre } = useEcranCible()
@@ -53,8 +65,15 @@ const { autorise } = useAutorisation()
  * réglage d'appareil comme le thème : c'est un geste du moment. Le persister
  * rouvrirait l'application sur un rail replié trois jours plus tard, sans que
  * personne se souvienne l'avoir replié.
+ *
+ * ⚠️ **ET EN TIROIR, ELLE NE SE REPLIE PAS** : le tiroir recouvre déjà l'écran,
+ * il n'y a aucune largeur à rendre. Un rail d'icônes flottant au-dessus du
+ * contenu serait un panneau qui cache sans rien donner.
  */
 const depliee = ref(true)
+
+/** Le repli est refusé en tiroir — voir ci-dessus. */
+const estDeplie = computed(() => tiroir || depliee.value)
 
 /** Les rubriques dont au moins une entrée est autorisée ici, pour ce compte. */
 const rubriques = computed<RubriqueNavigation[]>(() =>
@@ -154,7 +173,7 @@ function estDepliee(rubrique: RubriqueNavigation): boolean {
  */
 function poigneeMarquee(rubrique: RubriqueNavigation): boolean {
   if (rubriqueDeLEcran.value !== rubrique.cle) return false
-  return !(depliee.value && estDepliee(rubrique))
+  return !(estDeplie.value && estDepliee(rubrique))
 }
 
 /**
@@ -167,7 +186,7 @@ function poigneeMarquee(rubrique: RubriqueNavigation): boolean {
  */
 function basculerRubrique(rubrique: RubriqueNavigation): void {
   const suivant = new Set(rubriquesRepliees.value)
-  if (!depliee.value) {
+  if (!estDeplie.value) {
     // Déplier le rail rend visible ce que la rubrique contient : elle s'ouvre.
     depliee.value = true
     suivant.delete(rubrique.cle)
@@ -191,6 +210,9 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
   mention.value = null
   const cible = resoudre(entree.ecranCible)
   if (cible.etat === 'construit') {
+    // ⚠️ EN TIROIR, NAVIGUER FERME. Un tiroir resté ouvert sur l'écran qu'on
+    // vient d'atteindre cache exactement ce qu'on est venu voir.
+    emit('fermer')
     await navigateTo(cible.route)
     return
   }
@@ -201,28 +223,34 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
 <template>
   <nav
     class="relative flex shrink-0 flex-col gap-0.5 overflow-y-auto bg-rail py-3 text-rail-ink transition-[width] duration-160 ease-deplace"
-    :class="depliee ? 'w-60' : 'w-14'"
-    :data-navigation="depliee ? 'depliee' : 'repliee'"
+    :class="estDeplie ? 'w-60' : 'w-14'"
+    :data-navigation="estDeplie ? 'depliee' : 'repliee'"
     :aria-label="t('navigation.titre')"
   >
     <!-- ⚠️ LA POIGNÉE EST EN TÊTE, ET SON ÉTAT EST PORTÉ PAR `aria-expanded` :
-         un chevron seul laisse deviner. -->
+         un chevron seul laisse deviner.
+
+         ⚠️ **EN TIROIR, ELLE FERME — ET ELLE LE DIT.** Elle ne porte alors PAS
+         `aria-expanded` : le tiroir n'est pas un repli, c'est un panneau ouvert
+         par-dessus l'écran. Annoncer « déplié/replié » sur un bouton qui ferme
+         décrirait l'état d'autre chose que ce qu'il fait. -->
+
     <button
       type="button"
       class="mx-2 mb-1 flex h-11 shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-rail-ink-2 transition-colors duration-90 hover:bg-rail-2 hover:text-rail-ink"
-      :aria-expanded="depliee"
-      data-action="basculer-navigation"
-      @click="depliee = !depliee"
+      :aria-expanded="tiroir ? undefined : depliee"
+      :data-action="tiroir ? 'fermer-navigation' : 'basculer-navigation'"
+      @click="tiroir ? emit('fermer') : (depliee = !depliee)"
     >
       <i
         class="ph shrink-0 text-titre-s"
-        :class="depliee ? 'ph-sidebar-simple' : 'ph-list'"
+        :class="tiroir ? 'ph-x' : depliee ? 'ph-sidebar-simple' : 'ph-list'"
         aria-hidden="true"
       />
       <span
-        v-if="depliee"
+        v-if="estDeplie"
         class="truncate font-titre text-corps font-medium"
-      >{{ t('navigation.replier') }}</span>
+      >{{ t(tiroir ? 'navigation.fermer' : 'navigation.replier') }}</span>
       <span
         v-else
         class="sr-only"
@@ -251,7 +279,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
             : 'mr-2 rounded-lg text-rail-ink-2 hover:bg-rail-2 hover:text-rail-ink'
         "
         :aria-expanded="estDepliee(rubrique)"
-        :title="depliee ? undefined : t(rubrique.titreCle)"
+        :title="estDeplie ? undefined : t(rubrique.titreCle)"
         :data-poignee-rubrique="rubrique.cle"
         @click="basculerRubrique(rubrique)"
       >
@@ -267,7 +295,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
           aria-hidden="true"
         />
         <span
-          v-if="depliee"
+          v-if="estDeplie"
           class="relative min-w-0 flex-1 truncate font-titre text-etiquette uppercase"
         >{{ t(rubrique.titreCle) }}</span>
         <span
@@ -275,7 +303,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
           class="sr-only"
         >{{ t(rubrique.titreCle) }}</span>
         <i
-          v-if="depliee"
+          v-if="estDeplie"
           class="ph ph-caret-down shrink-0 text-mini transition-transform duration-160 ease-deplace"
           :class="estDepliee(rubrique) ? '' : '-rotate-90'"
           aria-hidden="true"
@@ -294,7 +322,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
            tous les écrans s'effaçait précisément quand la barre se réduit à
            l'essentiel. Ces groupes n'ont pas de poignée : s'ils ne se montrent
            pas eux-mêmes, rien ne les montre. -->
-      <template v-if="rubrique.titreCle === null || (depliee && estDepliee(rubrique))">
+      <template v-if="rubrique.titreCle === null || (estDeplie && estDepliee(rubrique))">
         <button
           v-for="entree in rubrique.entrees"
           :key="entree.cle"
@@ -308,9 +336,9 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
             // une icône l'écarterait de la colonne où l'œil les cherche — et les
             // seules entrées rendues à ce moment-là (l'accueil, la caisse) n'ont
             // de toute façon pas de parent.
-            rubrique.titreCle !== null && depliee ? 'ml-5' : 'ml-2',
+            rubrique.titreCle !== null && estDeplie ? 'ml-5' : 'ml-2',
           ]"
-          :title="depliee ? undefined : t(entree.libelleCle)"
+          :title="estDeplie ? undefined : t(entree.libelleCle)"
           :aria-current="estCourante(entree) ? 'page' : undefined"
           :data-entree-nav="entree.cle"
           @click="ouvrir(entree)"
@@ -328,7 +356,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
           />
           <span
             class="relative truncate font-titre text-corps"
-            :class="depliee ? '' : 'sr-only'"
+            :class="estDeplie ? '' : 'sr-only'"
           >{{ t(entree.libelleCle) }}</span>
         </button>
       </template>
@@ -338,7 +366,7 @@ async function ouvrir(entree: EntreeNavigation): Promise<void> {
          L'ENTRÉE. Elle dit ce qui manque — de NOTRE côté — et quand cela
          viendra. Portée par l'entrée, elle serait un badge « bientôt ». -->
     <span
-      v-if="mention && depliee"
+      v-if="mention && estDeplie"
       class="mx-3 mt-3 rounded-lg border border-rail-line px-3 py-2 text-mini text-rail-ink-2"
       data-mention-nav
     >{{ t('accueil.aVenir', { ecran: mention.titre }) }} · {{ t('accueil.aVenirCycle', { cycle: mention.cycle }) }}</span>

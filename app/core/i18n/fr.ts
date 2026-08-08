@@ -560,6 +560,8 @@ export default {
     titre: 'Aller à',
     replier: 'Replier le menu',
     deplier: 'Déplier le menu',
+    ouvrir: 'Ouvrir le menu',
+    fermer: 'Fermer le menu',
     // Les verticales. Ce sont les mots du métier de l'exploitant, pas les nôtres :
     // « Hébergement », pas « module HEBERGEMENT ».
     hebergement: 'Hébergement',

@@ -346,6 +346,24 @@ relecture** :
   est-elle visible ? » — la première version posait la mauvaise question et laissait passer un cas
   sur deux.
 
+**Sur téléphone, la navigation n'était atteignable par aucun geste.** Le rail est masqué sous `sm`
+— 15 rem de colonne fixe ne laissent rien à un écran de 390 px —, et **rien ne permettait de
+l'ouvrir**. Un produit dont on ne peut pas changer d'écran sur le terminal que le personnel a dans
+la poche est un produit qu'on quitte. Il revient en **tiroir**, ouvert depuis l'en-tête, refermé au
+voile comme à la navigation — et c'est **le même composant**, jamais une seconde navigation « pour
+le mobile », qui aurait divergé au premier écran ajouté.
+
+**Et la marque a quitté l'en-tête.** Le « K » ocre y était depuis le cycle F2, en tête du contrat de
+grammaire. Il n'apprenait rien — on sait quel logiciel on ouvre —, il n'était atteignable par aucun
+geste, et il tenait la **seule position que l'œil cherche pour sortir d'un écran**. C'est le bouton
+d'ouverture du menu qui l'occupe désormais, sous `sm`. *Un repère qui ne repère rien coûte la place
+d'un repère qui en vaut un.*
+
+**Le témoin de synchronisation se réduit à sa pastille sous `sm`**, et son libellé passe en
+`sr-only` — **jamais `hidden`** : le témoin porte `role="status"` et `aria-live`, et un lecteur
+d'écran doit continuer d'annoncer « douze en attente d'envoi ». *Le masquer pour de bon rendrait
+muet, sur téléphone, le composant qui dit si le travail est en sécurité.*
+
 **Et le pressing exigeait la permission du restaurant.** `ventes.commande.prendre` appartient au
 module `RESTAURATION` ; l'accueil comme la navigation s'en servaient pour le pressing. Chez un
 exploitant qui a un pressing et **pas** de restaurant, le pressing disparaissait de l'écran —

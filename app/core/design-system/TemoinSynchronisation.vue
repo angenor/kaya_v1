@@ -64,7 +64,7 @@ const marque = computed(() => {
 <template>
   <span
     class="inline-flex items-center gap-2 rounded-pleine border border-line bg-tile"
-    :class="compact ? 'h-8 px-3' : 'h-9 px-3.5'"
+    :class="compact ? 'h-8 px-2.5 sm:px-3' : 'h-9 px-3.5'"
     role="status"
     aria-live="polite"
   >
@@ -84,9 +84,18 @@ const marque = computed(() => {
         :class="marque.pastille"
       />
     </span>
+    <!-- ⚠️ **SOUS `sm`, LE LIBELLÉ SE RETIRE DU REGARD — PAS DU DOCUMENT.**
+         `sr-only` et non `hidden` : le témoin porte `role="status"` et
+         `aria-live`, et un lecteur d'écran doit continuer d'annoncer « douze en
+         attente d'envoi ». *Le masquer pour de bon rendrait muet, sur téléphone,
+         le composant qui dit si le travail est en sécurité.*
+
+         ⚠️ ET C'EST LA PASTILLE QUI RESTE, jamais la couleur seule : sa FORME
+         porte l'état (pleine, cerclée, avec ou sans pouls) — règle du composant
+         04. Un rond de couleur sans forme ne dirait rien en niveaux de gris. -->
     <span
       class="font-titre text-mini font-semibold whitespace-nowrap"
-      :class="marque.encre"
+      :class="[marque.encre, compact ? 'sr-only sm:not-sr-only' : '']"
     >{{ $t(libelle.cle, { n: libelle.n }) }}</span>
   </span>
 </template>
