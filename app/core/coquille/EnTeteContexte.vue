@@ -48,6 +48,7 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
 import { CLE_SEUIL_LATENCE_DEGRADEE, lireParametreEntier } from '~/core/configuration/configuration'
 import { useFile } from '~/core/file/useFile'
 import { formaterDateLongue, formaterHeure } from '~/core/format/instant'
+import { maintenantAutorite } from '~/core/donnees/horloge'
 import { useLangue } from '~/core/i18n/useLangue'
 import { useScenarios } from '~/core/scenarios/useScenarios'
 
@@ -155,15 +156,22 @@ const etatReseau = computed(() => {
  * ⚠️ ET LE FUSEAU VIENT DE L'ÉTABLISSEMENT, pas de l'appareil. Un poste dont
  * l'horloge est réglée ailleurs — le cas ordinaire d'un terminal partagé —
  * afficherait sinon une heure qui n'est celle de personne.
+ *
+ * ⚠️ **L'INSTANT VIENT DE LA COUTURE, ET NON PLUS DE `new Date()`.** Corrigé au
+ * cycle F3, où la règle ESLint (e) l'a signalé : l'en-tête affichait l'heure de
+ * l'APPAREIL, c'est-à-dire celle qu'un membre du personnel peut changer. Elle
+ * affiche désormais **l'heure d'autorité** — la même que celle qui facture —, et
+ * l'écart entre les deux devient un fait que l'écran peut annoncer au lieu d'un
+ * fait que personne ne voit.
  */
 const { langue } = useLangue()
-const maintenant = ref(new Date())
+const maintenant = ref(maintenantAutorite())
 let battement: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   // Une fois par minute : l'en-tête affiche des minutes, pas des secondes.
   battement = setInterval(() => {
-    maintenant.value = new Date()
+    maintenant.value = maintenantAutorite()
   }, 60_000)
 })
 onBeforeUnmount(() => {

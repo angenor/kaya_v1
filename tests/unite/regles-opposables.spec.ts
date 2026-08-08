@@ -4,7 +4,7 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 /**
- * Les quatre règles opposables du lint, PROUVÉES PAR UN FICHIER FAUTIF.
+ * Les CINQ règles opposables du lint, PROUVÉES PAR UN FICHIER FAUTIF.
  *
  * ⚠️ UNE RÈGLE CONFIGURÉE ET JAMAIS ÉPROUVÉE EST UNE RÈGLE QU'ON CROIT ACTIVE.
  * C'est le même raisonnement qu'un test négatif de porte : une règle qui ne
@@ -415,5 +415,59 @@ const pret = true
     expect(
       await reglesDeclenchees(code, 'app/core/design-system/Fragment.vue'),
     ).not.toContain('kaya/racine-de-page-stable')
+  })
+})
+
+describe("(e) aucune horloge lue dans un composant", () => {
+  const FAUTIF = `<script setup lang="ts">
+const debut = Date.now()
+const maintenant = new Date()
+const marque = performance.now()
+</script>
+
+<template>
+  <div>{{ debut }}{{ maintenant }}{{ marque }}</div>
+</template>
+`
+
+  it('échoue dans une page — un montant dépendrait du réglage de l’appareil', async () => {
+    // ⚠️ RÈGLE D'ARGENT, PAS D'HYGIÈNE. Un passage se facture à la durée ;
+    // l'horloge d'un terminal partagé se règle à la main (cadrage §11.4).
+    const regles = await reglesDeclenchees(FAUTIF, 'app/pages/fautif-horloge.vue')
+    expect(regles).toContain('kaya/aucune-horloge-dans-un-composant')
+  })
+
+  it("échoue aussi dans un composant de core/ — la garde ne s'arrête pas aux pages", async () => {
+    const regles = await reglesDeclenchees(FAUTIF, 'app/core/reception/FautifHorloge.vue')
+    expect(regles).toContain('kaya/aucune-horloge-dans-un-composant')
+  })
+
+  it("ne dit rien dans core/donnees/, qui EST la couture de l'instant", async () => {
+    const code = `export function maintenant(): Date {
+  return new Date()
+}
+`
+    const regles = await reglesDeclenchees(code, 'app/core/donnees/horloge.ts')
+    expect(regles).not.toContain('kaya/aucune-horloge-dans-un-composant')
+  })
+
+  it("ne dit rien dans core/format/instant.ts, qui MET EN FORME sans dire l'heure", async () => {
+    const code = `export function ecrire(instant: Date): string {
+  const secours = new Date()
+  return instant.toISOString() + secours.toISOString()
+}
+`
+    const regles = await reglesDeclenchees(code, 'app/core/format/instant.ts')
+    expect(regles).not.toContain('kaya/aucune-horloge-dans-un-composant')
+  })
+
+  it("ne dit rien sur `new Date(valeur)`, qui LIT un instant au lieu de le prendre", async () => {
+    // ⚠️ La distinction est tout le sujet : `new Date(iso)` interprète une
+    // valeur reçue du domaine ; `new Date()` interroge l'appareil.
+    const code = `const debut = new Date('2026-08-08T14:00:00.000Z')
+export const heure = debut.getUTCHours()
+`
+    const regles = await reglesDeclenchees(code, 'app/core/reception/lecture.ts')
+    expect(regles).not.toContain('kaya/aucune-horloge-dans-un-composant')
   })
 })

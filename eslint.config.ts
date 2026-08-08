@@ -134,6 +134,30 @@ export default tseslint.config(
     rules: { 'kaya/aucune-api-de-plateforme': 'error' },
   },
 
+  // (e) — AUCUNE HORLOGE LUE DANS UN COMPOSANT.
+  //
+  // ⚠️ RÈGLE D'ARGENT, PAS D'HYGIÈNE. Un passage se facture à la durée, et le
+  // cadrage §11.4 est formel : « les horloges des terminaux ne sont pas
+  // fiables — un téléphone d'entrée de gamme dérive, et le personnel change
+  // l'heure ». Une horloge lue dans une page ferait changer un MONTANT en
+  // changeant un réglage d'appareil, sans que rien ne le signale.
+  //
+  // DEUX EXEMPTIONS, ET ELLES SONT NOMMÉES ICI :
+  //   — `core/donnees/horloge.ts` EST la couture de l'instant. C'est le fichier
+  //     qu'on remplacera en phase 3 par l'en-tête `Date` de la réponse serveur ;
+  //   — `core/format/instant.ts` MET EN FORME un instant qu'on lui donne, et ne
+  //     dit jamais lequel il est. Elle relève de l'exemption « rendu de
+  //     l'instant perçu » du principe 4.
+  //
+  // ⚠️ ET LA COUTURE SIMULÉE EN FAIT PARTIE : `core/donnees/` et
+  // `core/scenarios/` disparaissent au branchement. Une garde qui les
+  // couvrirait ferait interdire à la simulation de simuler le temps.
+  {
+    files: ['app/pages/**/*.vue', 'app/layouts/**/*.vue', 'app/core/**/*.{ts,vue}'],
+    ignores: ['app/core/donnees/**', 'app/core/scenarios/**', 'app/core/format/instant.ts'],
+    rules: { 'kaya/aucune-horloge-dans-un-composant': 'error' },
+  },
+
   // (b) — un composant ne connaît JAMAIS la provenance de ses données.
   //       « Un composant qui saurait qu'un scénario existe serait un composant à
   //       réécrire en phase 3. »

@@ -1,6 +1,7 @@
 import { v7 as uuidV7 } from 'uuid'
 
 import type { ClasseHorsLigne } from '~/core/donnees/contrat'
+import { maintenantAppareil } from '~/core/donnees/horloge'
 import { accepteHorsLigne, classeOuDefautStrict } from '~/core/file/classes'
 import { reglagesCourants } from '~/core/scenarios/reglages'
 import { MAGASIN_FILE, ecrire, lireTout, supprimer, viderMagasin } from '~/core/stockage/base'
@@ -91,7 +92,12 @@ export function useFile() {
 
     const element: ElementFile = {
       id: uuidV7(),
-      horodatageClient: new Date().toISOString(),
+      // ⚠️ **L'HORODATAGE CLIENT EST, PAR DÉFINITION, CELUI DE L'APPAREIL** —
+      // et il le dit désormais explicitement. Corrigé au cycle F3, où la règle
+      // ESLint (e) a signalé le `new Date()` : le nom de la fonction rend le
+      // choix lisible, et le levier de dérive s'y applique. *C'est ce qui rend
+      // le décalage observable dans la file, là où il se constatera en vrai.*
+      horodatageClient: maintenantAppareil().toISOString(),
       classe,
       operation,
       charge,

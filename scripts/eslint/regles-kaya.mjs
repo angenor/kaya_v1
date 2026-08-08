@@ -108,6 +108,34 @@ const MOTIFS_JETONS = [
 const MOTIF_ARBITRAIRE = /\b[a-z][a-z0-9:-]*-?\[[^\]\s]+\]/g
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   (e) · AUCUNE HORLOGE LUE DANS UN COMPOSANT
+   ═══════════════════════════════════════════════════════════════════════════
+   « Toute logique métier, tout calcul fiscal et TOUT CALCUL DE DURÉE DE PASSAGE
+   s'appuient sur l'horodatage d'autorité » (constitution, principe 4 ; cadrage
+   §11.4).
+
+   ⚠️ CE N'EST PAS UNE RÈGLE D'HYGIÈNE, C'EST UNE RÈGLE D'ARGENT. Un passage se
+   facture à la durée, et la durée est une soustraction d'instants. « Les
+   horloges des terminaux ne sont pas fiables : un téléphone d'entrée de gamme
+   dérive, et LE PERSONNEL CHANGE L'HEURE. » Une horloge lue dans un composant
+   fait donc changer un montant en changeant un réglage d'appareil — et personne
+   ne le verrait, puisque l'écran afficherait sagement le résultat.
+
+   ⚠️ ET ELLE A ÉTÉ ÉCRITE PARCE QUE LE PLAN L'AFFIRMAIT SANS QU'ELLE EXISTE.
+   Le contrôle de constitution du cycle F3 portait « interdit par une règle
+   ESLint » — coché, deux fois, sans tâche. *Un contrôle affirmé et absent fait
+   cocher une case, ce qui est pire que son absence.*
+
+   CE QUI RESTE PERMIS, ET OÙ : `app/core/donnees/horloge.ts` — la couture —, et
+   `app/core/format/instant.ts`, qui MET EN FORME un instant qu'on lui donne
+   sans jamais dire lequel il est. La configuration nomme les deux. */
+const MOTIFS_HORLOGE = [
+  { regex: /\bDate\s*\.\s*now\s*\(/g, messageId: 'horloge' },
+  { regex: /\bnew\s+Date\s*\(\s*\)/g, messageId: 'horloge' },
+  { regex: /\bperformance\s*\.\s*now\s*\(/g, messageId: 'horloge' },
+]
+
+/* ═══════════════════════════════════════════════════════════════════════════
    (d) · UNE PAGE A UNE SEULE RACINE, ET C'EST UN ÉLÉMENT
    ═══════════════════════════════════════════════════════════════════════════
    ⚠️ AUCUNE RÈGLE INSTALLÉE NE COUVRE LE CAS, et c'est exactement ce que
@@ -228,6 +256,28 @@ export default {
         return {
           Program() {
             signaler(context, context.sourceCode.text, MOTIFS_PLATEFORME)
+          },
+        }
+      },
+    },
+
+    'aucune-horloge-dans-un-composant': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            "refuse la lecture d'une horloge hors de la couture : l'instant vient de l'horodatage d'autorité",
+        },
+        schema: [],
+        messages: {
+          horloge:
+            "« {{objet}} » lit l'horloge de l'APPAREIL. Un passage se facture à la durée, et l'horloge d'un terminal partagé se règle à la main : l'instant vient de `core/donnees/horloge.ts`, jamais d'ici (constitution, principe 4).",
+        },
+      },
+      create(context) {
+        return {
+          Program() {
+            signaler(context, context.sourceCode.text, MOTIFS_HORLOGE)
           },
         }
       },
