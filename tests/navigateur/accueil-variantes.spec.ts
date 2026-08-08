@@ -221,6 +221,43 @@ for (const schema of ['light', 'dark'] as const) {
       })
     }
 
+    test('la colonne latérale NE DÉFILE PAS avec le contenu', async ({ page }) => {
+      // ⚠️ **CE QU'ON SURVEILLE RESTE SOUS LES YEUX PENDANT QU'ON TRAVAILLE.**
+      // Tant que le document défilait d'un bloc, descendre dans la salle du
+      // maquis faisait sortir de l'écran la caisse du soir et les ardoises —
+      // c'est-à-dire précisément ce que la colonne latérale existe pour tenir
+      // sous le regard. La barre du haut partait avec, retenue par un seul
+      // `sticky`.
+      await poserLeContexte(page, 'compte-yao', MAQUIS)
+
+      const principale = page.locator('[data-ecran="R1"] [data-rubrique="tete"]')
+      const laterale = page.locator('[data-ecran="R1"] [data-colonne="laterale"]')
+      const avant = (await laterale.boundingBox())!
+      const enTeteAvant = (await page.locator('header').boundingBox())!
+
+      // On défile DANS la colonne principale, comme la main le ferait.
+      await principale.hover()
+      await page.mouse.wheel(0, 600)
+      await page.waitForTimeout(120)
+
+      // ⚠️ LA FENÊTRE, ELLE, N'A PAS BOUGÉ D'UN PIXEL. C'est la propriété
+      // demandée : le contenu défile, la page non.
+      expect(
+        await page.evaluate(() => window.scrollY),
+        'le document a défilé — la page entière bouge au lieu de son contenu',
+      ).toBe(0)
+
+      const apres = (await laterale.boundingBox())!
+      expect(
+        Math.abs(apres.y - avant.y),
+        'la colonne latérale est partie avec le contenu',
+      ).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs((await page.locator('header').boundingBox())!.y - enTeteAvant.y),
+        "l'en-tête a bougé de place",
+      ).toBeLessThanOrEqual(1)
+    })
+
     test('le pas 1 du quickstart · `/` sans session mène à la connexion', async ({ page }) => {
       // ⚠️ REPRIS ICI DEPUIS `connexion.spec.ts`, ET C'EST SA PLACE : tant que la
       // racine redirigeait, le pas ne pouvait pas se vérifier sur `/`. Depuis

@@ -17,6 +17,19 @@
  * la barre, la première qui oublierait la rendrait vide, et personne ne le
  * verrait avant la démonstration.
  *
+ * ⚠️ **LA FENÊTRE NE DÉFILE PAS, LE CONTENU DÉFILE** — `h-screen` et non
+ * `min-h-screen`, `overflow-hidden` sur la racine, et le défilement porté par le
+ * `<main>`. La barre du haut est un repère d'orientation : « toujours en haut à
+ * gauche, elle ne bouge jamais de place ». Tant que le document entier défilait,
+ * elle ne tenait que par un `sticky` — et l'écran à deux colonnes emportait sa
+ * colonne latérale avec lui dès qu'on descendait dans la liste, alors que cette
+ * colonne porte précisément ce qu'on SURVEILLE pendant qu'on travaille à gauche.
+ *
+ * ⚠️ LE DÉFILEMENT DESCEND D'UN CRAN, IL NE DISPARAÎT PAS : le `<main>` le porte
+ * pour tous les écrans d'une seule colonne — le guide de style, l'index, le
+ * panneau. Un écran qui veut découper le sien, comme `R1`, remplit exactement la
+ * hauteur et gère ses colonnes lui-même.
+ *
  * ⚠️ ET L'EN-TÊTE VIT DANS SON PROPRE FICHIER DEPUIS F2 —
  * `app/core/coquille/EnTeteContexte.vue`. Le gabarit le MONTE, il ne le
  * rédige pas : ce que six cycles vont hériter mérite un fichier qu'on lit, pas
@@ -42,7 +55,7 @@ onNuxtReady(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-bg font-texte text-ink">
+  <div class="flex h-screen flex-col overflow-hidden bg-bg font-texte text-ink">
     <EnTeteContexte />
 
     <!-- ⚠️ LE BANDEAU DE LA COQUILLE EST DANS LE GABARIT, PAS DANS UNE PAGE.
@@ -56,8 +69,14 @@ onNuxtReady(() => {
          écran à deux colonnes voit sa colonne latérale s'arrêter à la hauteur de
          son contenu, au milieu de l'écran, avec son fond et son filet coupés
          net. Le `flex-1` donne la hauteur au `<main>` ; le `flex` la transmet à
-         la page. **Constaté sur une capture de `R1`.** -->
-    <main class="flex flex-1">
+         la page. **Constaté sur une capture de `R1`.**
+
+         ⚠️ `min-h-0` EST OBLIGATOIRE À CÔTÉ DE `flex-1`, et son absence ne se
+         voit qu'à l'usage : un item flex a `min-height: auto`, donc il refuse de
+         descendre sous la hauteur de son contenu — le `<main>` déborderait de la
+         fenêtre au lieu de faire défiler, et la barre du haut sortirait de
+         l'écran malgré tout. -->
+    <main class="flex min-h-0 flex-1 overflow-y-auto">
       <slot />
     </main>
   </div>

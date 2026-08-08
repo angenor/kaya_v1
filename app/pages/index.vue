@@ -26,6 +26,16 @@
  * que la variante décidait de la longueur du contenu. Une barre latérale dont
  * la position dépend du contenu n'est pas une barre latérale.
  *
+ * ⚠️ **L'ÉCRAN REMPLIT LA FENÊTRE ET NE LA DÉPASSE PAS** — `h-full` et
+ * `overflow-hidden` sur la racine, `overflow-y-auto` sur chaque colonne. C'est
+ * ce qui permet aux deux de défiler **chacune de son côté** : à gauche ce qu'on
+ * fait, et qui peut être long ; à droite ce qu'on surveille, et qui doit rester
+ * sous les yeux **pendant** qu'on travaille à gauche. Tant que le document
+ * défilait d'un bloc, descendre dans la salle du maquis faisait sortir de
+ * l'écran la caisse du soir et les ardoises. `min-h-0` accompagne chaque
+ * colonne : un item flex refuse sinon de descendre sous la hauteur de son
+ * contenu, et c'est la page entière qui déborderait.
+ *
  * ⚠️ **ET CHAQUE COLONNE PORTE UN RESSORT.** `<span class="flex-1" />` avant le
  * dernier bloc, plus un `border-t` : c'est ce qui colle « Vos activités » et la
  * note de pied au bas de deux colonnes de hauteur égale, quel que soit le
@@ -112,7 +122,7 @@ watch(
 
 <template>
   <div
-    class="flex min-h-full w-full items-stretch"
+    class="flex h-full w-full items-stretch overflow-hidden"
     data-ecran="R1"
     :data-zone="zone"
     :data-repli="accueil.repli ?? undefined"
@@ -140,9 +150,12 @@ watch(
     </div>
 
     <!-- ── LA COLONNE PRINCIPALE · ce qu'on FAIT ─────────────────────────── -->
+    <!-- ⚠️ `min-h-0` À CÔTÉ DE `overflow-y-auto` : sans lui, un item flex refuse
+         de descendre sous la hauteur de son contenu, et c'est la page entière
+         qui déborderait au lieu de faire défiler cette colonne. -->
     <div
       v-else
-      class="flex min-w-0 flex-1 flex-col gap-4 px-6 py-5.5"
+      class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5.5"
     >
       <!-- ⚠️ LA MENTION D'UN ÉCRAN À VENIR EST UNE ANNONCE TRANSVERSE, pas une
            marque sur la surface. Elle dit ce qui manque — de NOTRE côté — et
@@ -299,9 +312,13 @@ watch(
     </div>
 
     <!-- ── LA COLONNE LATÉRALE · ce qu'on SURVEILLE ──────────────────────── -->
+    <!-- ⚠️ ELLE NE DÉFILE **QU'À SON PROPRE COMPTE**, et jamais avec la colonne
+         principale : trois cartes de chiffre et deux cartes « À régler » tiennent
+         dans la fenêtre, mais une sixième ne doit pas rendre la colonne
+         inatteignable pour autant. -->
     <div
       v-if="accueil.repli === null"
-      class="flex w-84 shrink-0 flex-col gap-5.5 border-l border-line bg-surf px-5 py-5.5"
+      class="flex min-h-0 w-84 shrink-0 flex-col gap-5.5 overflow-y-auto border-l border-line bg-surf px-5 py-5.5"
       data-colonne="laterale"
     >
       <!-- ── À régler ──────────────────────────────────────────────────── -->
