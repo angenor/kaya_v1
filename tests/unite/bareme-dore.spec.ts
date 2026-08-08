@@ -23,7 +23,15 @@ import {
  * à quel passage rattacher l'écart.
  */
 
-const BAREME = deloria.baremePaliers
+/**
+ * ⚠️ **LE BARÈME EST FILTRÉ SUR LA FORMULE, ET C'EST NÉCESSAIRE.** Deloria porte
+ * désormais le même barème relevé sur ses **cinq catégories** — sans quoi
+ * quatorze chambres sur dix-sept seraient invendables au passage. Un test qui
+ * lirait `baremePaliers` entier verrait vingt-cinq lignes et cinq paliers « 1 h ».
+ */
+const BAREME = deloria.baremePaliers.filter(
+  (palier) => palier.formuleId === 'deloria-formule-standard-passage',
+)
 const FORMULE_PASSAGE = deloria.formules.find(
   (formule) => formule.id === 'deloria-formule-standard-passage',
 )!

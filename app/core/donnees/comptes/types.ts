@@ -16,6 +16,20 @@ export interface Personne {
   readonly email: string | null
   readonly typePiece: string | null
   readonly numeroPiece: string | null
+  /**
+   * QUAND LA PIÈCE A ÉTÉ RELEVÉE. `null` tant qu'elle ne l'a pas été.
+   *
+   * ⚠️ **AJOUTÉE AU CYCLE F3, ET C'EST SON CYCLE.** Elle était exemptée au
+   * cycle F1 avec le motif « donnée de MOUVEMENT : la pièce se capture à
+   * l'arrivée, et c'est le cycle SEJ qui la peuple » — nous y sommes. Sans
+   * elle, `R4` ne pourrait pas dire **ce qui est déjà connu et ne sera pas
+   * redemandé**, qui est précisément ce qui fait tenir le parcours du client
+   * reconnu en 5 taps.
+   *
+   * ⚠️ **ET ELLE PORTE LA RÉTENTION.** TRX-06 exige une purge à 90 jours ; sans
+   * date de capture, il n'y a rien à purger — on ne saurait pas ce qui est vieux.
+   */
+  readonly pieceCaptureeLe: string | null
 }
 
 export const TYPES_IDENTIFIANT = ['TELEPHONE', 'EMAIL', 'CODE'] as const

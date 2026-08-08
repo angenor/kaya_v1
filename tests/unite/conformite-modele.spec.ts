@@ -37,8 +37,11 @@ const NON_REPRISES: Readonly<Record<string, Readonly<Record<string, string>>>> =
       'AUCUN SECRET DANS LE PAQUET SERVI AU NAVIGATEUR (cadrage §12.1, FR-094). La colonne réapparaîtra côté serveur en phase 3, et jamais dans une réponse',
   },
   personne: {
-    piece_capturee_le:
-      "donnée de MOUVEMENT : la pièce se capture à l'arrivée, et c'est le cycle SEJ qui la peuple. Ce cycle porte le référentiel",
+    // ⚠️ `piece_capturee_le` A QUITTÉ CETTE LISTE AU CYCLE F3, et c'est le
+    // service qu'on attend d'elle : elle portait « c'est le cycle SEJ qui la
+    // peuple », et le cycle SEJ est arrivé. `Personne.pieceCaptureeLe` existe
+    // désormais — sans elle, `R4` ne pourrait pas dire ce qui est déjà connu et
+    // ne sera pas redemandé.
     consentement_le:
       'même motif : le consentement se recueille devant le client, au moment du séjour, pas au référentiel',
   },
@@ -181,14 +184,21 @@ describe('les décomptes du jeu de Deloria', () => {
   })
 
   it('le barème de passage, à paliers dégressifs', () => {
-    const paliers = deloria.baremePaliers.filter((p) => !p.estHeureSupplementaire)
+    // ⚠️ SUR LA FORMULE STANDARD : le cycle F3 a étendu le MÊME barème relevé
+    // aux cinq catégories (cadrage §5.3, « éditable par catégorie »). Sans ce
+    // filtre, le test compterait cinq fois les mêmes quatre paliers.
+    const paliers = deloria.baremePaliers.filter(
+      (p) => !p.estHeureSupplementaire && p.formuleId === 'deloria-formule-standard-passage',
+    )
     expect(paliers.map((p) => [p.dureeMinutes, p.prix])).toEqual([
       [60, 1500],
       [120, 2800],
       [180, 4000],
       [240, 5000],
     ])
-    const supplementaire = deloria.baremePaliers.find((p) => p.estHeureSupplementaire)
+    const supplementaire = deloria.baremePaliers.find(
+      (p) => p.estHeureSupplementaire && p.formuleId === 'deloria-formule-standard-passage',
+    )
     expect([supplementaire?.dureeMinutes, supplementaire?.prix]).toEqual([60, 1200])
     // Aucun palier ne porte les 500 F : le passage n'est pas assujetti.
     for (const palier of deloria.baremePaliers) {
@@ -197,13 +207,22 @@ describe('les décomptes du jeu de Deloria', () => {
   })
 
   it('les plages de demi-journée et les temps de remise en état', () => {
-    expect(deloria.plagesDemiJournee.map((p) => [p.heureDebut, p.heureFin])).toEqual([
-      ['08:00', '12:00'],
-      ['13:00', '16:00'],
-    ])
-    expect(deloria.tempsRemiseEnEtat.map((t) => t.dureeMinutes).sort((a, b) => a - b)).toEqual([
-      30, 60, 120,
-    ])
+    // ⚠️ LES DEUX RÉFÉRENTIELS VALENT POUR LES CINQ CATÉGORIES depuis le cycle
+    // F3 : ce sont les VALEURS DISTINCTES qui portent le sens, pas leur nombre
+    // de lignes. Et `temps_remise_en_etat` porte désormais SES DEUX
+    // rattachements — le SQL les déclare NOT NULL tous les deux, et l'unicité
+    // porte sur le couple ; le jeu F1 laissait `categorieId` à null.
+    const plages = [
+      ...new Set(deloria.plagesDemiJournee.map((p) => `${p.heureDebut}-${p.heureFin}`)),
+    ].sort()
+    expect(plages).toEqual(['08:00-12:00', '13:00-16:00'])
+    expect(
+      [...new Set(deloria.tempsRemiseEnEtat.map((t) => t.dureeMinutes))].sort((a, b) => a - b),
+    ).toEqual([30, 60, 120])
+    for (const ligne of deloria.tempsRemiseEnEtat) {
+      expect(ligne.categorieId, `${ligne.id} : categorie_id est NOT NULL`).not.toBeNull()
+      expect(ligne.formuleId, `${ligne.id} : formule_id est NOT NULL`).not.toBeNull()
+    }
   })
 
   it('au moins 30 articles, et taux_tva en CHAÎNE décimale (SC-011)', () => {

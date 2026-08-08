@@ -258,13 +258,19 @@ libres de la même catégorie » — devrait être recomposée par l'écran, don
 | Chambre **entièrement prise** à l'instant courant | 12/12 | `R4-passage-complet.html` — l'état vide illustré |
 | **Deux occupations chevauchantes** à la seconde près | 1 paire | le refus `UNITE_DEJA_OCCUPEE` |
 | Une chambre libre **dont la remise en état couvre la demande** | 1 | le refus voisin — celui qu'on oublie, parce que la chambre *paraît* libre |
-| Séjour de 4 nuits, 2 personnes, 13 lignes | 1 | `R7-note-depart.html` — et **500 F de taxe**, pas 4 000 |
+| Séjour de 4 nuits, 2 personnes, **14 lignes** | 1 | `R7-note-depart.html` — et **500 F de taxe**, pas 4 000 |
 | Séjour **déjà terminé** | 1 | les deux phrases distinctes du lexique |
 | Note **arrêtée** recevant une consommation | 1 | le refus d'ajout, ancêtre du cas orphelin |
 | Passage **dont la durée réelle a dépassé son palier** | 1 | la rebascule et sa ligne de motif |
 | Passage **au-delà du seuil de bascule** (480 min) | 1 | l'annonce avant application |
 | Client connu, 7ᵉ passage, chambre habituelle | 1 | `R4-passage-connu.html` |
 | Fiches clients pour la mesure de recherche | 10 000 | SEJ-01 — **jeu séparé**, jamais le jeu nominal |
+
+⚠️ **QUATORZE LIGNES, ET NON TREIZE — LE DOCUMENT EST CORRIGÉ.** La maquette `R7-note-depart.html`
+écrit « 13 lignes » en pied et en **dessine onze** de prestation plus **trois** de taxe. Le jeu
+reproduit ce qu'elle dessine — 4 nuitées, 3 restaurant, 2 bar, 2 divers, puis TVA, taxe de séjour et
+taxe de développement touristique. *Le pied de la note compte les lignes réellement présentes plutôt
+que d'afficher un nombre : c'est ce qui a fait voir l'écart.*
 
 ⚠️ **Toutes les dates du jeu sont relatives à l'horloge de la couture**, jamais absolues. *Un jeu
 daté en dur cesse d'exercer ses cas le lendemain, et le test devient vert en ne testant plus rien.*
