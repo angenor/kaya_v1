@@ -88,7 +88,7 @@ C'est le tableau qui rend sûr le fait de coder directement : chaque écran déc
 | Écran | Hérite de | Ce qui change |
 |---|---|---|
 | `R0` Connexion — **route `/connexion`**, construit au cycle **F2** | `G2` | Formulaire minimal ; états d'erreur et vides de `S3`. ⚠️ **Le seul écran du produit SANS en-tête de contexte** (FR-009) : avant l'entrée, il n'y a ni établissement, ni poste, ni personne — un sélecteur vide y serait un mensonge. Il emploie le gabarit `vierge`, qui porte le `<main>` et le bandeau de coquille, et **aucun second `<header>`** |
-| `R2` Vue du jour | `R1` + composant 14 | Grille d'unités au lieu de tuiles |
+| `R2` Vue du jour — **codé au cycle F3**, route `/jour` | `R1` + composant 14 | Grille d'unités au lieu de tuiles. ⚠️ **Le composant 14 arrive avec le statut de ménage (HEB-06, phase 11)** : un bandeau d'annulation n'a de sens que derrière une écriture, et la seule écriture de cet écran est de classe A. L'inscrire avant qu'il existe aurait fait mentir ce document |
 | `R3` Arrivée — **terme du lexique, « check-in » est écarté** ; route `/arrivee` | `R4` | Parcours long : plus de champs, même grammaire |
 | `R5` Fiche client et recherche — route `/clients` | `R7` | Liste + fiche, pas de total |
 | `R6` Note temps réel | `R7` | Sans l'action finale |
@@ -258,7 +258,7 @@ valeurs, on réimplémente. Seule exception : `docs/design/theme.css`, copié te
 
 ## Notes de conception sur quatre écrans de la réception
 
-`R4` **Le passage** est maquetté, dans ses cinq états. Il est en **zone de vitesse** et ne se
+`R4` **Le passage** est **codé au cycle F3**, route `/passage`. Il est maquetté, dans ses cinq états. Il est en **zone de vitesse** et ne se
 compose jamais : `docs/Kaya_Design.md` §1 est formel, et `R4` porte une intention dessinée qu'un
 assemblage ne retrouverait pas — les tailles de la durée et de l'heure de fin, la place du prix sur
 le bouton.
@@ -311,6 +311,22 @@ Le rapprochement manuel qui le résout appartient au cycle F6 ; `R7` le **nomme*
 l'absence du bloc de total est le point qui se paierait si on l'oubliait : additionner les séjours
 d'un client afficherait un chiffre qui **ressemble à un solde**, et l'exploitant y chercherait ce
 que le client doit.
+
+### Ce que le cycle F3 a trouvé en codant `R4`, et qui n'était écrit nulle part
+
+**La grille montre TOUTES les chambres, et le tarif suit la chambre.** Une première implémentation
+ne retenait **qu'une** formule de passage — donc **une seule catégorie**, donc **trois chambres sur
+dix-sept**. La maquette en dessine douze ; *constaté sur une capture*, et corrigé : c'est **la
+chambre qui décide de la formule**, jamais l'inverse. Une réceptionniste à qui l'on refuserait
+quatorze chambres sur dix-sept reprendrait son cahier.
+
+**La garde de chambre court à partir de la LIBÉRATION, pas de maintenant.** Posée à l'instant
+courant, elle se heurtait à l'occupation en cours — c'est-à-dire à celle qui la rend nécessaire —,
+et se refusait elle-même **sur le seul écran où elle sert**. *Trouvé à l'écran, pas dans le code.*
+
+**L'heure de fin ne se coupe pas.** À 88 px, « 18 h 55 » se cassait après le `h` : le nombre qu'on
+dit à voix haute devenait deux nombres. `whitespace-nowrap`, et le corps suit la largeur disponible
+entre deux jetons existants — aucune valeur intermédiaire n'est inventée.
 
 ⚠️ **Une ligne de ce document ne se marque « codé » que dans le changement qui livre l'écran.**
 Ce fichier est **opposable** : il autorise un écran sans maquette. Y inscrire « codé » sur un écran

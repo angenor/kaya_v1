@@ -64,7 +64,7 @@ export interface EntreeEcran {
 export const ECRANS_PRODUIT: readonly EntreeEcran[] = [
   // ── Les onze maquettés ───────────────────────────────────────────────────
   { code: 'R1', titre: "L'accueil", route: '/', cas: 'maquette', avancement: 'CONSTRUIT', cycle: null, reference: 'docs/design/html/R1-accueil.html' },
-  { code: 'R4', titre: 'Le passage', route: '/passage', cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'docs/design/html/R4-passage.html' },
+  { code: 'R4', titre: 'Le passage', route: '/passage', cas: 'maquette', avancement: 'CONSTRUIT', cycle: null, reference: 'docs/design/html/R4-passage.html' },
   { code: 'R7', titre: 'La note et le départ', route: '/depart', cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'docs/design/html/R7-note-depart.html' },
   { code: 'C4', titre: 'La clôture de caisse', route: null, cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F5', reference: 'docs/design/html/C4-cloture.html' },
   { code: 'F2', titre: 'Le registre fiscal', route: null, cas: 'maquette', avancement: 'PAS_COMMENCE', cycle: 'F6', reference: 'docs/design/html/F2-registre-grave.html' },
@@ -77,7 +77,7 @@ export const ECRANS_PRODUIT: readonly EntreeEcran[] = [
 
   // ── Les trente-deux dérivés ──────────────────────────────────────────────
   { code: 'R0', titre: 'Connexion', route: '/connexion', cas: 'derive', avancement: 'CONSTRUIT', cycle: null, reference: 'hérite de G2 et S3' },
-  { code: 'R2', titre: 'Vue du jour', route: null, cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R1 + composant 14' },
+  { code: 'R2', titre: 'Vue du jour', route: '/jour', cas: 'derive', avancement: 'CONSTRUIT', cycle: null, reference: 'hérite de R1 + composant 14' },
   { code: 'R3', titre: 'Arrivée', route: '/arrivee', cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R4' },
   { code: 'R5', titre: 'Fiche client et recherche', route: '/clients', cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R7' },
   { code: 'R6', titre: 'Note temps réel', route: null, cas: 'derive', avancement: 'PAS_COMMENCE', cycle: 'F3', reference: 'hérite de R7' },
