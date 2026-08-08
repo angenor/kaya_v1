@@ -18,6 +18,14 @@
  * première version le faisait, mêle les deux et fait descendre les chiffres du
  * jour sous cinq tuiles de service.
  *
+ * ⚠️ **`w-full` SUR LA RACINE, ET CE N'EST PAS REDONDANT.** La page est un
+ * enfant flex du `<main>` : sans largeur imposée, un enfant flex se dimensionne
+ * sur son CONTENU, et la colonne latérale s'arrête là où le texte s'arrête —
+ * au milieu de l'écran, pas au bord. **Constaté sur une capture** : la même
+ * page rendait sa colonne à des largeurs différentes selon la variante, parce
+ * que la variante décidait de la longueur du contenu. Une barre latérale dont
+ * la position dépend du contenu n'est pas une barre latérale.
+ *
  * ⚠️ **ET CHAQUE COLONNE PORTE UN RESSORT.** `<span class="flex-1" />` avant le
  * dernier bloc, plus un `border-t` : c'est ce qui colle « Vos activités » et la
  * note de pied au bas de deux colonnes de hauteur égale, quel que soit le
@@ -104,7 +112,7 @@ watch(
 
 <template>
   <div
-    class="flex min-h-full items-stretch"
+    class="flex min-h-full w-full items-stretch"
     data-ecran="R1"
     :data-zone="zone"
   >

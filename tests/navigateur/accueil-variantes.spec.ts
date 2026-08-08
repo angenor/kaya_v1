@@ -163,6 +163,18 @@ for (const schema of ['light', 'dark'] as const) {
           'la colonne latérale est sous le contenu, pas à sa droite',
         ).toBeGreaterThan(boiteTete!.x + boiteTete!.width - 1)
 
+        // ⚠️ ET ELLE TOUCHE LE BORD DROIT. Une première version ne posait pas
+        // `w-full` sur la racine : la page, enfant flex du `<main>`, se
+        // dimensionnait sur son CONTENU, et la colonne s'arrêtait au milieu de
+        // l'écran — à une position **différente selon la variante**, puisque la
+        // variante décide de la longueur du contenu. Une barre latérale dont la
+        // position dépend du contenu n'est pas une barre latérale.
+        const largeurFenetre = page.viewportSize()!.width
+        expect(
+          boiteLaterale!.x + boiteLaterale!.width,
+          'la colonne latérale ne touche pas le bord droit de la fenêtre',
+        ).toBeGreaterThan(largeurFenetre - 2)
+
         // ⚠️ COMPARAISON SANS CASSE : les étiquettes de carte sont rendues en
         // `uppercase` par le jeton de typographie, et `innerText` rend ce que
         // l'œil voit. Comparer à la casse ferait rougir un test sur une règle
