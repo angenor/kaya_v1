@@ -132,6 +132,7 @@ export default {
       commander: 'Commander',
       noterCommande: 'Noter la commande',
       voir: 'Voir',
+      preparer: 'Préparer',
     },
     chiffre: {
       recetteDepuisOuverture: "Recette depuis l'ouverture",
@@ -146,6 +147,17 @@ export default {
     },
     // ⚠️ CE QUI MANQUE EST DE NOTRE CÔTÉ, ET LE DIRE EST HONNÊTE. La surface
     // garde l'apparence exacte d'une surface aboutie ; c'est l'appui qui parle.
+    // ⚠️ LES TROIS NOTES DE PIED DISENT LA **PORTÉE** DE CE QU'ON VIENT DE LIRE.
+    // Elles expliquent une ABSENCE que l'écran ne peut pas montrer : sans elles,
+    // une serveuse croirait l'application incomplète plutôt que restreinte.
+    note: {
+      uneSeuleActivite: 'Une seule activité : tout ce qui s’affiche ici concerne la salle.',
+      chiffresAJour: 'Les chiffres se remettent à jour tout seuls, sans recharger la page.',
+      vosTablesSeulement:
+        'Vous ne voyez que vos tables. La caisse et les chiffres de l’hôtel ne vous sont pas demandés.',
+      lectureSeule:
+        'Vous ne pouvez rien saisir depuis cet écran : aucune de vos actions ne modifie une caisse.',
+    },
     aVenir: '« {ecran} » n’est pas encore construit.',
     aVenirCycle: 'Cet écran arrive au cycle {cycle}.',
     horsLigne: "Cet appareil n'a pas de réseau.",

@@ -53,6 +53,11 @@ export interface Rubrique<T> {
 }
 
 export interface AccueilCompose {
+  /**
+   * LA NOTE DE PIED DE LA COLONNE LATÉRALE — `null` quand aucune surface de
+   * tête n'est retenue. Elle vient de la SURFACE, jamais d'une branche.
+   */
+  readonly noteCle: string | null
   readonly tete: Rubrique<TeteAccueil | null>
   readonly suite: Rubrique<readonly LigneSuiteAccueil[]>
   readonly aRegler: Rubrique<readonly CarteAReglerAccueil[]>
@@ -86,12 +91,50 @@ const FAMILLES_QUI_DISPARAISSENT_VIDES: readonly FamilleSurface[] = ['activite']
 /** ⚠️ JAMAIS PLUS DE TROIS CARTES — règle du composant 07, portée ici. */
 const MAXIMUM_A_REGLER = 3
 
+/**
+ * LA NOTE DE PIED DE LA COLONNE LATÉRALE — **dérivée de faits, jamais d'une
+ * variante**.
+ *
+ * ⚠️ ELLE DIT LA PORTÉE DE CE QU'ON VIENT DE LIRE, et ce n'est pas une
+ * décoration : elle explique une **absence que l'écran ne peut pas montrer**.
+ * Sans elle, une serveuse croirait l'application incomplète plutôt que
+ * restreinte — et le dirait à son gérant.
+ *
+ * ⚠️ ET ELLE NE PEUT PAS VENIR DE LA SURFACE DE TÊTE, comme une première version
+ * le faisait : la serveuse et le gérant du maquis retiennent **la même** surface
+ * de service, et leurs notes disent l'inverse l'une de l'autre. Sur le maquis,
+ * « vous ne voyez que vos tables » était faux — Yao en est le gérant et voit
+ * tout ce qu'il y a à voir. La note se dérive donc de trois faits observables,
+ * dans cet ordre :
+ *
+ *   1. **un seul module actif ici** → tout ce qui s'affiche concerne ce service ;
+ *   2. **aucune surface d'écriture retenue**, alors qu'on lit des chiffres →
+ *      lecture seule ;
+ *   3. **aucune surface de pilotage** → on ne voit que son propre périmètre.
+ *
+ * Aucun de ces trois n'est un nom de compte ni un nom de variante.
+ */
+function noteDerivee(
+  nbModulesActifs: number,
+  surfaces: readonly SurfaceAccueil[],
+): string | null {
+  if (surfaces.length === 0) return null
+  if (nbModulesActifs === 1) return 'accueil.note.uneSeuleActivite'
+
+  const ecritUneCaisse = surfaces.some((s) => s.permission.startsWith('caisse.'))
+  const lisLesChiffres = surfaces.some((s) => s.permission === 'pilotage.lire')
+  if (lisLesChiffres && !ecritUneCaisse) return 'accueil.note.lectureSeule'
+  if (!lisLesChiffres) return 'accueil.note.vosTablesSeulement'
+  return 'accueil.note.chiffresAJour'
+}
+
 function rubriqueInitiale<T>(contenu: T): Rubrique<T> {
   return { etat: 'chargement', contenu, titreCle: null }
 }
 
 function accueilInitial(): AccueilCompose {
   return {
+    noteCle: null,
     tete: rubriqueInitiale<TeteAccueil | null>(null),
     suite: rubriqueInitiale<readonly LigneSuiteAccueil[]>([]),
     aRegler: rubriqueInitiale<readonly CarteAReglerAccueil[]>([]),
@@ -143,6 +186,18 @@ export function useAccueil() {
    * déduite d'une variante. `liste` par défaut : c'est la forme ordinaire, et
    * la grille est ce qu'on demande explicitement.
    */
+  /**
+   * LA ZONE DE MOUVEMENT DE L'ÉCRAN — **déclarée par la surface de tête**.
+   *
+   * ⚠️ AUCUNE BRANCHE SUR UNE VARIANTE. Servir une salle est un geste de
+   * comptoir, consulter des chiffres ne l'est pas : c'est la NATURE DU TRAVAIL
+   * qui décide du régime de mouvement, et la surface la porte. `charme` par
+   * défaut — le régime ordinaire, celui qu'on ne demande pas.
+   */
+  const zone = computed<'charme' | 'vitesse'>(
+    () => surfacesRendues.value.find((s) => s.famille === 'tete')?.zone ?? 'charme',
+  )
+
   function presentationDe(famille: FamilleSurface): 'liste' | 'grille' {
     return (
       surfacesRendues.value.find((surface) => surface.famille === famille)?.presentation ?? 'liste'
@@ -211,6 +266,7 @@ export function useAccueil() {
 
     if (etablissementId === null) {
       accueil.value = {
+        noteCle: null,
         tete: { etat: 'vide', contenu: null, titreCle: titreDe('tete') },
         suite: { etat: 'vide', contenu: [], titreCle: titreDe('suite') },
         aRegler: { etat: 'vide', contenu: [], titreCle: titreDe('aRegler') },
@@ -232,6 +288,7 @@ export function useAccueil() {
     const modules = await fournisseur().etablissements.listerModulesActifs(portee)
     if (jeton.value !== monJeton) return
     if (modules.ok) definirModulesActifs(modules.valeur)
+    const nbModulesActifs = modules.ok ? modules.valeur.length : 0
 
     const [tetes, suite, aRegler, activites, chiffres] = await Promise.all([
       source.listerTetes(portee),
@@ -244,7 +301,14 @@ export function useAccueil() {
     // ⚠️ LA RÉPONSE TARDIVE EST JETÉE ICI, APRÈS L'ATTENTE ET AVANT L'ÉCRITURE.
     if (jeton.value !== monJeton) return
 
-    accueil.value = { tete: composerTete(tetes), suite, aRegler, activites, chiffres }
+    accueil.value = {
+      noteCle: noteDerivee(nbModulesActifs, surfacesRendues.value),
+      tete: composerTete(tetes),
+      suite,
+      aRegler,
+      activites,
+      chiffres,
+    }
   }
 
   /** La tête : **une seule**, la première candidate dont la surface est rendue. */
@@ -268,6 +332,7 @@ export function useAccueil() {
     surfacesRendues,
     titreDe,
     presentationDe,
+    zone,
     ecranCibleDe,
     composer,
   }

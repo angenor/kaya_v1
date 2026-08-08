@@ -61,6 +61,18 @@ export interface SurfaceAccueil extends ActionAutorisable {
    * d'une icône. Vérifié composant par composant contre `composants.md`.
    */
   readonly presentation?: 'liste' | 'grille'
+  /**
+   * LA ZONE DE MOUVEMENT DE L'ÉCRAN, quand cette surface est celle de tête.
+   *
+   * ⚠️ **DÉCLARÉE PAR LA SURFACE, JAMAIS BRANCHÉE SUR UNE VARIANTE.** Les
+   * maquettes serveuse et maquis portent `data-zone="vitesse"` ; la générique et
+   * celle du propriétaire sont en `charme`. Ce qui les sépare n'est pas le
+   * compte, c'est **la nature du travail** : servir une salle est un geste de
+   * comptoir — une main, vite, debout —, consulter des chiffres ne l'est pas.
+   * La surface de service porte donc `vitesse`, et n'importe quel compte qui la
+   * retient obtient l'écran rapide, sans qu'on ait à le nommer.
+   */
+  readonly zone?: 'charme' | 'vitesse'
 }
 
 /**
@@ -77,9 +89,9 @@ export interface SurfaceAccueil extends ActionAutorisable {
  */
 export const SURFACES_ACCUEIL: readonly SurfaceAccueil[] = [
   // ── Le bloc de tête · UNE SEULE action principale par écran ───────────────
-  { cle: 'tete.depart', permission: 'hebergement.sejour.depart', moduleCode: 'HEBERGEMENT', ecranCible: 'R7', famille: 'tete', titreCle: 'accueil.tete.aFaireMaintenant' },
-  { cle: 'tete.service', permission: 'ventes.commande.prendre', moduleCode: 'RESTAURATION', ecranCible: 'P2', famille: 'tete', titreCle: 'accueil.tete.votreService' },
-  { cle: 'tete.pilotage', permission: 'pilotage.lire', moduleCode: null, ecranCible: 'M4', famille: 'tete', titreCle: 'accueil.tete.laSeuleChose' },
+  { cle: 'tete.depart', permission: 'hebergement.sejour.depart', moduleCode: 'HEBERGEMENT', ecranCible: 'R7', famille: 'tete', titreCle: 'accueil.tete.aFaireMaintenant', zone: 'charme' },
+  { cle: 'tete.service', permission: 'ventes.commande.prendre', moduleCode: 'RESTAURATION', ecranCible: 'P2', famille: 'tete', titreCle: 'accueil.tete.votreService', zone: 'vitesse' },
+  { cle: 'tete.pilotage', permission: 'pilotage.lire', moduleCode: null, ecranCible: 'M4', famille: 'tete', titreCle: 'accueil.tete.laSeuleChose', zone: 'charme' },
 
   // ── La suite · ordonnée PAR L'HEURE, jamais par importance supposée ───────
   { cle: 'suite.arrivees', permission: 'hebergement.sejour.arrivee', moduleCode: 'HEBERGEMENT', ecranCible: 'R3', famille: 'suite', titreCle: 'accueil.suite.titre' },

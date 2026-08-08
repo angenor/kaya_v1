@@ -159,6 +159,18 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
   <header
     class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3.5 border-b border-line bg-surf px-5"
   >
+    <!-- ⚠️ **LA MARQUE, PREMIER ÉLÉMENT DE L'EN-TÊTE** (contrat de grammaire §1).
+         Elle est OCRE, jamais indigo : « l'indigo est un signal — ce qui est
+         indigo se touche », et la marque ne se touche pas. Elle manquait
+         jusqu'au cycle F2 ; le sélecteur portait l'initiale de l'établissement à
+         sa place, ce qui faisait changer le premier repère de l'écran à chaque
+         bascule de site. Un repère qui change n'en est plus un. -->
+    <span
+      class="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-soft"
+      data-marque
+      aria-hidden="true"
+    >K</span>
+
     <!-- Composant 09 · sélecteur d'établissement.
          « Toujours en haut à gauche, il ne bouge jamais de place. »
          Sa liste vient des ÉTABLISSEMENTS OÙ CE COMPTE A DES DROITS : avec un

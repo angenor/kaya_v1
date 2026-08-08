@@ -103,6 +103,7 @@ export default {
       commander: 'Order',
       noterCommande: 'Note the order',
       voir: 'See',
+      preparer: 'Prepare',
     },
     chiffre: {
       recetteDepuisOuverture: 'Takings since opening',
@@ -114,6 +115,13 @@ export default {
       vosTablesOuvertes: 'Your open tables',
       totalDeVosTables: 'Total of your tables',
       commandesServies: 'Orders served',
+    },
+    note: {
+      uneSeuleActivite: 'A single service: everything shown here concerns the room.',
+      chiffresAJour: 'The figures refresh on their own, with no page reload.',
+      vosTablesSeulement:
+        'You only see your own tables. The till and the hotel figures are not asked of you.',
+      lectureSeule: 'You cannot enter anything from this screen: none of your actions changes a till.',
     },
     aVenir: '“{ecran}” is not built yet.',
     aVenirCycle: 'This screen arrives in cycle {cycle}.',

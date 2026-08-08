@@ -67,7 +67,7 @@ pas une action de produit (« Plus tard »).
 **Rôle.** Les actions de bord : trier, filtrer, modifier une ligne, ouvrir un détail.
 
 **États.** repos · survol · danger · désactivé · icône seule (repos / survol / actif) ·
-lien de retour.
+lien de retour · **variante à contour** (ton `neutre` · `prim` · `danger` · `alerte` · `info`).
 
 ```html
 <button class="h-9 px-3.5 rounded-md text-ink-2 font-titre text-mini font-semibold
@@ -77,6 +77,28 @@ lien de retour.
 **Règles.** Sans fond ni contour au repos ; il ne quitte jamais son bloc. En icône seule il
 passe à `size-11` (44 px) même s'il paraît plus petit. L'état actif d'un filtre est
 `bg-prim-soft text-prim` — pas un fond plein.
+
+**La variante à contour** — `border-[1.5px]` du ton, texte du ton, survol sur le `-soft`
+correspondant :
+
+```html
+<button class="h-9 px-3.5 rounded-md border-[1.5px] border-prim bg-transparent text-prim
+  font-titre text-mini font-semibold hover:bg-prim-soft">
+```
+
+> ⚠️ **Ajoutée au cycle F2, sur constat de maquette.** Les quatre `R1-accueil*.html` la
+> posent sur les actions de bord de « Ensuite » et de « À régler ». Le motif se lit sur le
+> dessin : ces boutons vivent **à l'intérieur d'une carte déjà bordée**, où un bouton sans
+> contour se confond avec le texte qui l'entoure. La forme de base reste celle du registre,
+> où la ligne fournit déjà la séparation — les deux coexistent parce qu'elles répondent à
+> deux situations, pas parce qu'on a hésité.
+>
+> **Le ton reprend celui de la carte porteuse**, et ce n'est pas décoratif : un bouton
+> indigo sur une carte de danger dirait que l'action est ordinaire alors que la carte dit
+> l'inverse. **Le ton `neutre`** (`border-line text-ink-2`) est celui de l'action secondaire
+> du bloc de tête : elle est offerte sans réclamer le regard que l'indigo réclame — deux
+> indigos superposés annuleraient la hiérarchie que le bouton principal vient d'établir. Il garde `h-9` — `tokens.md` §3 l'autorise pour un bouton discret, « hors
+> chemin critique uniquement », ce qu'une action de bord est par définition.
 
 ## 04 · Pastille d'état
 

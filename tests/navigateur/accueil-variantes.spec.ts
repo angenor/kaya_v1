@@ -115,7 +115,53 @@ for (const schema of ['light', 'dark'] as const) {
         await poserLeContexte(page, variante.compteId, variante.etablissement)
 
         // ── L'action principale nomme ce qui attend MAINTENANT ────────────
-        await expect(page.locator('[data-rubrique="tete"] h1')).toHaveText(variante.titre)
+        // L'étiquette est DANS le bloc de tête, première ligne — le `<h1>` porte
+        // le nom de l'écran, hors flux visuel, pour l'accessibilité.
+        await expect(page.locator('[data-rubrique="tete"] [data-etiquette]')).toHaveText(
+          variante.titre,
+        )
+
+        // ── ⚠️ LA GÉOMÉTRIE — ET C'EST SON ABSENCE QUI A LAISSÉ PASSER
+        //      L'ÉCART LE PLUS VISIBLE DU CYCLE. La première version de cet
+        //      écran empilait les cinq rubriques dans une colonne unique, là où
+        //      les quatre maquettes posent DEUX colonnes. Tous les contrôles
+        //      étaient verts : ils vérifiaient la présence, l'absence et les
+        //      titres — jamais qu'une rubrique se tienne à droite d'une autre.
+        //      **Un écran entièrement aplati passait.**
+        await expect(
+          page.locator('[data-ecran="R1"] [data-colonne="laterale"]'),
+          "la colonne latérale n'existe pas — l'écran est aplati en une seule colonne",
+        ).toBeVisible()
+
+        // « À régler » et les chiffres sont DANS la latérale ; « Vos activités »
+        // dans la principale. Le partage n'est pas décoratif : à gauche ce qu'on
+        // FAIT, à droite ce qu'on SURVEILLE.
+        for (const rubrique of ['aRegler', 'chiffre']) {
+          const dansLaterale = page.locator(
+            `[data-colonne="laterale"] [data-rubrique="${rubrique}"]`,
+          )
+          const presente = await page.locator(`[data-rubrique="${rubrique}"]`).count()
+          if (presente > 0) {
+            await expect(
+              dansLaterale,
+              `« ${rubrique} » n'est pas dans la colonne latérale`,
+            ).toHaveCount(1)
+          }
+        }
+        if (variante.activites > 0) {
+          await expect(
+            page.locator('[data-colonne="laterale"] [data-rubrique="activite"]'),
+            '« Vos activités » a glissé dans la colonne latérale',
+          ).toHaveCount(0)
+        }
+
+        // La latérale est bien À DROITE, et pas simplement présente plus bas.
+        const boiteTete = await page.locator('[data-rubrique="tete"]').boundingBox()
+        const boiteLaterale = await page.locator('[data-colonne="laterale"]').boundingBox()
+        expect(
+          boiteLaterale!.x,
+          'la colonne latérale est sous le contenu, pas à sa droite',
+        ).toBeGreaterThan(boiteTete!.x + boiteTete!.width - 1)
 
         // ⚠️ COMPARAISON SANS CASSE : les étiquettes de carte sont rendues en
         // `uppercase` par le jeton de typographie, et `innerText` rend ce que

@@ -5,11 +5,12 @@
  * RÉFÉRENCE VISUELLE : cas (a) — « Vos activités » de `R1-accueil.html`.
  * Composant : **05** tuile d'action. **Aucun composant nouveau.**
  *
- * ⚠️ LA GRILLE DE TABLES DES ACCUEILS SERVEUSE ET MAQUIS EST **CE MÊME
- * COMPOSANT EN VARIANTE COMPACTE**, portant une pastille **04** au lieu d'une
- * icône — c'est le seul écart relevé contre `composants.md`, et il est couvert
- * par la variante compacte que le §05 déclare déjà. Inventer un dix-septième
- * composant pour une grille de tables aurait ouvert la porte au dix-huitième.
+ * ⚠️ **UN FLUX QUI S'ENROULE, PAS UNE GRILLE À COLONNES FIXES.** La maquette
+ * pose `flex flex-wrap gap-2.5` avec des tuiles `flex-1 min-w-38` : elles se
+ * partagent la largeur disponible et passent à la ligne quand il n'y en a plus.
+ * Une grille à trois colonnes laisse un trou quand il y a cinq services, et
+ * écrase les tuiles quand il y en a deux — or le nombre de services dépend de
+ * l'établissement, et il n'est jamais le même.
  *
  * ⚠️ ET UNE TUILE NON AUTORISÉE N'EST PAS RENDUE. Il n'y a **aucun** état
  * désactivé : c'est `composerAccueil` qui retire, et le §05 ne porte plus
@@ -25,12 +26,13 @@ defineEmits<{ activer: [activite: ActiviteAccueil] }>()
 
 <template>
   <div
-    class="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+    class="flex flex-wrap gap-2.5"
     data-surface="activite"
   >
     <TuileAction
       v-for="activite in activites"
       :key="activite.surfaceCle"
+      class="min-w-38 flex-1"
       :libelle="activite.libelle"
       :detail="activite.detail"
       :icone="activite.icone"

@@ -65,6 +65,17 @@ export interface LigneSuiteAccueil {
   readonly detail: string
   readonly montant: Montant | null
   readonly etat: EtatPastille
+  /**
+   * ⚠️ L'ICÔNE VIENT DE LA **DONNÉE**, PAS DE LA MISE EN PAGE. Une arrivée n'a
+   * pas la même icône qu'un ménage ou qu'une table ouverte, et c'est ce qui
+   * permet de reconnaître la nature du fait sans lire son libellé. La déduire
+   * d'un ton donnerait trois fois le même pictogramme.
+   */
+  readonly icone: string
+  /** La teinte du carré d'icône — elle suit la nature du fait, pas sa gravité. */
+  readonly teinte: 'prim' | 'alerte' | 'ocre' | 'info'
+  /** Clé i18n de l'action de bord. Jamais une chaîne. */
+  readonly actionCle: string
 }
 
 /**
@@ -80,6 +91,15 @@ export interface CarteAReglerAccueil {
   readonly libelle: string
   readonly detail: string
   readonly actionCle: string
+  /**
+   * ⚠️ L'ICÔNE VIENT DU FAIT, JAMAIS DU NIVEAU. Une facture non transmise porte
+   * `ph-file-x`, un écart de caisse `ph-scales`, un réapprovisionnement
+   * `ph-package`. Déduire l'icône du ton donnerait trois avertissements
+   * identiques — et l'icône cesserait d'informer.
+   */
+  readonly icone: string
+  /** Le montant en jeu, quand il y en a un — « 3 ardoises · 18 000 F ». */
+  readonly montant: Montant | null
 }
 
 /** Une tuile de « Vos activités » — composant 05, variante pleine. */
@@ -100,4 +120,11 @@ export interface ChiffreAccueil {
   readonly montant: Montant | null
   readonly valeur: string | null
   readonly comparaison: string
+  /**
+   * ⚠️ LE TON DE LA COMPARAISON VIENT DU **FAIT**, pas de la mise en page.
+   * « + 18 % » est un succès, « 2 départs et 4 tables ouvertes » une alerte,
+   * « 3 arrivées attendues » un simple constat. Les rendre toutes grises ferait
+   * perdre la moitié de ce que la maquette dit d'un coup d'œil.
+   */
+  readonly tonComparaison: 'neutre' | 'succes' | 'alerte'
 }

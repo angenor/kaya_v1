@@ -52,26 +52,30 @@ const TETES_MAQUIS: readonly TeteAccueil[] = [
 ]
 
 const SUITE_MAQUIS: readonly LigneSuiteAccueil[] = [
-  { surfaceCle: 'suite.tables', id: 'table-1', instant: instant('20:50'), libelle: 'Table 1', detail: '4 personnes · 1 h 20', montant: { montantMineur: 18500, codeDevise: XOF }, etat: 'enCours' },
-  { surfaceCle: 'suite.tables', id: 'table-2', instant: instant('22:10'), libelle: 'Table 2', detail: '', montant: null, etat: 'libre' },
-  { surfaceCle: 'suite.tables', id: 'table-3', instant: instant('21:45'), libelle: 'Table 3', detail: '2 personnes · 25 min', montant: { montantMineur: 6000, codeDevise: XOF }, etat: 'enCours' },
-  { surfaceCle: 'suite.tables', id: 'table-4', instant: instant('22:10'), libelle: 'Table 4', detail: '', montant: null, etat: 'libre' },
-  { surfaceCle: 'suite.tables', id: 'table-5', instant: instant('21:20'), libelle: 'Table 5', detail: 'Poisson en cuisine', montant: { montantMineur: 9500, codeDevise: XOF }, etat: 'attente' },
-  { surfaceCle: 'suite.tables', id: 'table-6', instant: instant('19:30'), libelle: 'Table 6', detail: 'Ardoise — M. Sylla', montant: { montantMineur: 12000, codeDevise: XOF }, etat: 'casse' },
-  { surfaceCle: 'suite.tables', id: 'table-7', instant: instant('22:10'), libelle: 'Table 7', detail: '', montant: null, etat: 'libre' },
-  { surfaceCle: 'suite.tables', id: 'table-8', instant: instant('22:10'), libelle: 'Table 8', detail: '', montant: null, etat: 'libre' },
-  { surfaceCle: 'suite.tables', id: 'table-comptoir', instant: instant('21:05'), libelle: 'Comptoir', detail: '5 personnes debout', montant: { montantMineur: 16000, codeDevise: XOF }, etat: 'enCours' },
+  // ⚠️ RENDUES EN GRILLE DE TUILES, PAS EN CARTES : la présentation vient de
+  // la SURFACE (`suite.tables` porte `presentation: 'grille'`), jamais d'une
+  // branche sur la variante. Une table se touche — c'est une cible ; une
+  // arrivée se lit — c'est une ligne.
+  { surfaceCle: 'suite.tables', id: 'table-1', instant: instant('20:50'), libelle: 'Table 1', detail: '4 personnes · 1 h 20', montant: { montantMineur: 18500, codeDevise: XOF }, etat: 'enCours', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-2', instant: instant('22:10'), libelle: 'Table 2', detail: '', montant: null, etat: 'libre', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-3', instant: instant('21:45'), libelle: 'Table 3', detail: '2 personnes · 25 min', montant: { montantMineur: 6000, codeDevise: XOF }, etat: 'enCours', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-4', instant: instant('22:10'), libelle: 'Table 4', detail: '', montant: null, etat: 'libre', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-5', instant: instant('21:20'), libelle: 'Table 5', detail: 'Poisson en cuisine', montant: { montantMineur: 9500, codeDevise: XOF }, etat: 'attente', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-6', instant: instant('19:30'), libelle: 'Table 6', detail: 'Ardoise — M. Sylla', montant: { montantMineur: 12000, codeDevise: XOF }, etat: 'casse', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-7', instant: instant('22:10'), libelle: 'Table 7', detail: '', montant: null, etat: 'libre', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-8', instant: instant('22:10'), libelle: 'Table 8', detail: '', montant: null, etat: 'libre', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'table-comptoir', instant: instant('21:05'), libelle: 'Comptoir', detail: '5 personnes debout', montant: { montantMineur: 16000, codeDevise: XOF }, etat: 'enCours', icone: 'ph-fork-knife', teinte: 'ocre', actionCle: 'accueil.action.voir' },
 ]
 
 const A_REGLER_MAQUIS: readonly CarteAReglerAccueil[] = [
-  { surfaceCle: 'aRegler.caisse', id: 'ardoises', niveau: 'alerte', libelle: '3 ardoises à encaisser', detail: 'M. Sylla, Tante Awa, table 6 · les plus anciennes de 4 jours', actionCle: 'accueil.action.voir' },
-  { surfaceCle: 'aRegler.stock', id: 'biere', niveau: 'info', libelle: '4 casiers de bière', detail: 'Au rythme de ce soir, vous tenez jusqu’à jeudi. Le livreur passe mercredi matin.', actionCle: 'accueil.action.noterCommande' },
+  { surfaceCle: 'aRegler.caisse', id: 'ardoises', niveau: 'alerte', libelle: '3 ardoises à encaisser', detail: 'M. Sylla, Tante Awa, table 6 · les plus anciennes de 4 jours', actionCle: 'accueil.action.voir', icone: 'ph-notebook', montant: { montantMineur: 18000, codeDevise: XOF } },
+  { surfaceCle: 'aRegler.stock', id: 'biere', niveau: 'info', libelle: '4 casiers de bière', detail: 'Au rythme de ce soir, vous tenez jusqu’à jeudi. Le livreur passe mercredi matin.', actionCle: 'accueil.action.noterCommande', icone: 'ph-package', montant: null },
 ]
 
 const CHIFFRES_MAQUIS: readonly ChiffreAccueil[] = [
-  { surfaceCle: 'chiffre.recette', id: 'encaisse-ce-soir', etiquetteCle: 'accueil.chiffre.encaisseCeSoir', montant: { montantMineur: 62000, codeDevise: XOF }, valeur: null, comparaison: '− 9 % par rapport à hier même heure' },
-  { surfaceCle: 'chiffre.recette', id: 'ardoises', etiquetteCle: 'accueil.chiffre.ardoisesEnCours', montant: { montantMineur: 18000, codeDevise: XOF }, valeur: null, comparaison: '3 clients · la plus vieille de 4 jours' },
-  { surfaceCle: 'chiffre.recette', id: 'plat', etiquetteCle: 'accueil.chiffre.platLePlusVendu', montant: null, valeur: '14', comparaison: 'Poisson braisé · 2 portions restantes' },
+  { surfaceCle: 'chiffre.recette', id: 'encaisse-ce-soir', etiquetteCle: 'accueil.chiffre.encaisseCeSoir', montant: { montantMineur: 62000, codeDevise: XOF }, valeur: null, comparaison: '− 9 % par rapport à hier même heure', tonComparaison: 'alerte' },
+  { surfaceCle: 'chiffre.recette', id: 'ardoises', etiquetteCle: 'accueil.chiffre.ardoisesEnCours', montant: { montantMineur: 18000, codeDevise: XOF }, valeur: null, comparaison: '3 clients · la plus vieille de 4 jours', tonComparaison: 'alerte' },
+  { surfaceCle: 'chiffre.recette', id: 'plat', etiquetteCle: 'accueil.chiffre.platLePlusVendu', montant: null, valeur: '14', comparaison: 'Poisson braisé · 2 portions restantes', tonComparaison: 'neutre' },
 ]
 
 // ── Résidence Hôtel Deloria ────────────────────────────────────────────────
@@ -110,15 +114,18 @@ const TETES_DELORIA: readonly TeteAccueil[] = [
 ]
 
 const SUITE_DELORIA: readonly LigneSuiteAccueil[] = [
-  { surfaceCle: 'suite.arrivees', id: 'arrivees', instant: instant('14:00'), libelle: '3 arrivées attendues', detail: 'La première à 14 h 00 · 2 chambres déjà prêtes', montant: null, etat: 'attente' },
-  { surfaceCle: 'suite.arrivees', id: 'menage', instant: instant('12:30'), libelle: '5 chambres à nettoyer', detail: 'Dont 2 attendues pour 14 h', montant: null, etat: 'enCours' },
-  { surfaceCle: 'suite.tables', id: 'tables-bar', instant: instant('10:00'), libelle: '4 tables ouvertes au bar', detail: 'Ouvertes depuis hier soir · Aminata en salle', montant: { montantMineur: 23000, codeDevise: XOF }, etat: 'enCours' },
+  // ⚠️ L'ORDRE DU TABLEAU N'EST PAS L'ORDRE D'AFFICHAGE : c'est `instant` qui
+  // ordonne, et le composant trie. Écrire le tableau dans l'ordre voulu ferait
+  // dépendre l'écran d'une position, donc d'un oubli au premier ajout.
+  { surfaceCle: 'suite.arrivees', id: 'arrivees', instant: instant('11:00'), libelle: '3 arrivées attendues', detail: 'La première à 14 h 00 · 2 chambres déjà prêtes', montant: null, etat: 'attente', icone: 'ph-door-open', teinte: 'prim', actionCle: 'accueil.action.preparer' },
+  { surfaceCle: 'suite.arrivees', id: 'menage', instant: instant('11:30'), libelle: '5 chambres à nettoyer', detail: 'Dont 2 attendues pour 14 h', montant: null, etat: 'enCours', icone: 'ph-broom', teinte: 'alerte', actionCle: 'accueil.action.voir' },
+  { surfaceCle: 'suite.tables', id: 'tables-bar', instant: instant('12:00'), libelle: '4 tables ouvertes au bar', detail: 'Ouvertes depuis hier soir · Aminata en salle', montant: { montantMineur: 23000, codeDevise: XOF }, etat: 'enCours', icone: 'ph-beer-stein', teinte: 'ocre', actionCle: 'accueil.action.voir' },
 ]
 
 const A_REGLER_DELORIA: readonly CarteAReglerAccueil[] = [
-  { surfaceCle: 'aRegler.fiscal', id: 'factures', niveau: 'danger', libelle: '6 factures pas encore transmises', detail: 'Elles datent de samedi. Au-delà de 72 heures, la DGI peut les refuser.', actionCle: 'accueil.action.transmettre' },
-  { surfaceCle: 'aRegler.caisse', id: 'ecart-caisse', niveau: 'alerte', libelle: 'Caisse d’hier : 6 500 F de moins', detail: 'Comptée à 22 h 15. L’écart porte sur le bar.', actionCle: 'accueil.action.verifier' },
-  { surfaceCle: 'aRegler.stock', id: 'biere', niveau: 'info', libelle: 'Bière Flag : 8 casiers', detail: 'Au rythme des trois derniers jours, il en reste pour deux jours.', actionCle: 'accueil.action.commander' },
+  { surfaceCle: 'aRegler.fiscal', id: 'factures', niveau: 'danger', libelle: '6 factures pas encore transmises', detail: 'Elles datent de samedi. Au-delà de 72 heures, la DGI peut les refuser.', actionCle: 'accueil.action.transmettre', icone: 'ph-file-x', montant: null },
+  { surfaceCle: 'aRegler.caisse', id: 'ecart-caisse', niveau: 'alerte', libelle: 'Caisse d’hier : 6 500 F de moins', detail: 'Comptée à 22 h 15. L’écart porte sur le bar.', actionCle: 'accueil.action.verifier', icone: 'ph-scales', montant: null },
+  { surfaceCle: 'aRegler.stock', id: 'biere', niveau: 'info', libelle: 'Bière Flag : 8 casiers', detail: 'Au rythme des trois derniers jours, il en reste pour deux jours.', actionCle: 'accueil.action.commander', icone: 'ph-package', montant: null },
 ]
 
 const ACTIVITES_DELORIA: readonly ActiviteAccueil[] = [
@@ -126,19 +133,19 @@ const ACTIVITES_DELORIA: readonly ActiviteAccueil[] = [
   { surfaceCle: 'activite.restauration', moduleCode: 'RESTAURATION', libelle: 'Restaurant', detail: 'Service à 12 h', icone: 'ph-fork-knife' },
   { surfaceCle: 'activite.bar', moduleCode: 'BAR', libelle: 'Bar', detail: '4 tables ouvertes', icone: 'ph-beer-bottle' },
   { surfaceCle: 'activite.pressing', moduleCode: 'PRESSING', libelle: 'Pressing', detail: '3 sacs en cours', icone: 'ph-t-shirt' },
-  { surfaceCle: 'activite.salleReunion', moduleCode: 'SALLE_REUNION', libelle: 'Salle de réunion', detail: 'Libre aujourd’hui', icone: 'ph-projector-screen' },
+  { surfaceCle: 'activite.salleReunion', moduleCode: 'SALLE_REUNION', libelle: 'Salle de réunion', detail: 'Libre aujourd’hui', icone: 'ph-users-three' },
 ]
 
 const CHIFFRES_DELORIA: readonly ChiffreAccueil[] = [
-  { surfaceCle: 'chiffre.recette', id: 'recette', etiquetteCle: 'accueil.chiffre.recetteDepuisOuverture', montant: { montantMineur: 184000, codeDevise: XOF }, valeur: null, comparaison: '+ 18 % par rapport à hier même heure' },
-  { surfaceCle: 'chiffre.recette', id: 'occupation', etiquetteCle: 'accueil.chiffre.chambresOccupees', montant: null, valeur: '12 / 20', comparaison: '3 arrivées attendues cet après-midi' },
-  { surfaceCle: 'chiffre.recette', id: 'reste', etiquetteCle: 'accueil.chiffre.resteAEncaisser', montant: { montantMineur: 71500, codeDevise: XOF }, valeur: null, comparaison: '2 départs et 4 tables ouvertes' },
+  { surfaceCle: 'chiffre.recette', id: 'recette', etiquetteCle: 'accueil.chiffre.recetteDepuisOuverture', montant: { montantMineur: 184000, codeDevise: XOF }, valeur: null, comparaison: '+ 18 % par rapport à hier même heure', tonComparaison: 'succes' },
+  { surfaceCle: 'chiffre.recette', id: 'occupation', etiquetteCle: 'accueil.chiffre.chambresOccupees', montant: null, valeur: '12 / 20', comparaison: '3 arrivées attendues cet après-midi', tonComparaison: 'neutre' },
+  { surfaceCle: 'chiffre.recette', id: 'reste', etiquetteCle: 'accueil.chiffre.resteAEncaisser', montant: { montantMineur: 71500, codeDevise: XOF }, valeur: null, comparaison: '2 départs et 4 tables ouvertes', tonComparaison: 'alerte' },
   // ⚠️ CES DEUX-LÀ SONT CEUX D'AMINATA, et ils vivent sous la surface du
   // service : une serveuse voit le total de SES tables, jamais la recette de
   // l'hôtel. Le filtrage s'en charge — il n'y a pas deux jeux de données.
-  { surfaceCle: 'chiffre.service', id: 'mes-tables', etiquetteCle: 'accueil.chiffre.vosTablesOuvertes', montant: null, valeur: '4', comparaison: 'La plus ancienne depuis 1 h 05' },
-  { surfaceCle: 'chiffre.service', id: 'total-tables', etiquetteCle: 'accueil.chiffre.totalDeVosTables', montant: { montantMineur: 38500, codeDevise: XOF }, valeur: null, comparaison: 'Encaissement à la caisse' },
-  { surfaceCle: 'chiffre.service', id: 'commandes-servies', etiquetteCle: 'accueil.chiffre.commandesServies', montant: null, valeur: '11', comparaison: 'Depuis le début du service' },
+  { surfaceCle: 'chiffre.service', id: 'mes-tables', etiquetteCle: 'accueil.chiffre.vosTablesOuvertes', montant: null, valeur: '4', comparaison: 'La plus ancienne depuis 1 h 05', tonComparaison: 'neutre' },
+  { surfaceCle: 'chiffre.service', id: 'total-tables', etiquetteCle: 'accueil.chiffre.totalDeVosTables', montant: { montantMineur: 38500, codeDevise: XOF }, valeur: null, comparaison: 'Encaissement à la caisse', tonComparaison: 'neutre' },
+  { surfaceCle: 'chiffre.service', id: 'commandes-servies', etiquetteCle: 'accueil.chiffre.commandesServies', montant: null, valeur: '11', comparaison: 'Depuis le début du service', tonComparaison: 'neutre' },
 ]
 
 // ── Ce que chaque établissement porte ──────────────────────────────────────

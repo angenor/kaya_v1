@@ -52,7 +52,12 @@ onNuxtReady(() => {
          l'exploitant passe sa journée. -->
     <BandeauCoquille />
 
-    <main class="flex-1">
+    <!-- ⚠️ `flex` SUR LE `<main>`, ET CE N'EST PAS COSMÉTIQUE. Sans lui, un
+         écran à deux colonnes voit sa colonne latérale s'arrêter à la hauteur de
+         son contenu, au milieu de l'écran, avec son fond et son filet coupés
+         net. Le `flex-1` donne la hauteur au `<main>` ; le `flex` la transmet à
+         la page. **Constaté sur une capture de `R1`.** -->
+    <main class="flex flex-1">
       <slot />
     </main>
   </div>

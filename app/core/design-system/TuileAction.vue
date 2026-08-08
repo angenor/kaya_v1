@@ -56,13 +56,18 @@ defineEmits<{ activer: [] }>()
   <button
     type="button"
     data-mouvement="tactile"
-    class="flex cursor-pointer flex-col items-start justify-between gap-3.5 rounded-lg border border-line bg-surf p-4 text-left shadow-basse transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
+    class="flex cursor-pointer flex-col items-start gap-2.5 rounded-xl border border-line bg-surf px-4 py-3.5 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
     :class="compacte ? 'min-h-20' : 'min-h-28'"
     @click="$emit('activer')"
   >
+    <!-- ⚠️ L'ICÔNE EST **OCRE ET AU-DESSUS DU TEXTE**, pas indigo et en ligne
+         avec un compteur. C'est la forme des quatre `R1-accueil*.html`, et le
+         motif est celui du système : « l'indigo est un signal — ce qui est
+         indigo se touche ». Ici c'est la TUILE ENTIÈRE qui se touche ; une
+         icône indigo à l'intérieur ferait chercher une seconde cible. -->
     <span class="flex w-full items-start justify-between gap-3">
       <i
-        :class="['ph', icone, 'text-titre-l text-prim']"
+        :class="['ph', icone, 'text-chiffre text-ocre']"
         aria-hidden="true"
       />
       <span
@@ -71,7 +76,7 @@ defineEmits<{ activer: [] }>()
       >{{ compteur }}</span>
     </span>
     <span class="flex flex-col gap-0.5">
-      <span class="font-titre text-titre-s font-semibold text-ink">{{
+      <span class="font-titre text-action font-semibold text-ink">{{
         libelleCle ? $t(libelleCle) : libelle
       }}</span>
       <span

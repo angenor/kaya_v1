@@ -14,6 +14,19 @@
  * même règle que la pastille d'état. Et il DISPARAÎT en zone de vitesse
  * (mouvement.md, patron P4) : au comptoir, la valeur est déjà juste quand l'œil
  * arrive, la comparaison est du bruit.
+ *
+ * ⚠️ LA VARIANTE **CREUX** EST AJOUTÉE AU CYCLE F2, SUR CONSTAT DE MAQUETTE.
+ * Posées dans la colonne latérale des quatre `R1-accueil*.html`, les cartes de
+ * chiffre passent sur `bg-tile` **sans ombre** : la colonne est déjà en `bg-surf`,
+ * et une carte de surface sur une surface se voit comme un empilement d'ombres.
+ * Le creux inverse le rapport — la carte est en retrait, la colonne la porte.
+ *
+ * ⚠️ ET LA COMPARAISON A DEUX FORMES, PAS UNE. Un ÉCART se lit avec son triangle
+ * et son ton (`+ 18 %`) ; une NOTE est une phrase qui n'indique aucune direction
+ * (« 3 arrivées attendues »), et elle porte son propre ton — neutre, alerte ou
+ * succès selon le fait. Les maquettes emploient les deux dans la même rangée :
+ * les fondre ferait poser un repère de direction sur une phrase qui n'en indique
+ * pas, ce qui apprend à ne plus le lire.
  */
 withDefaults(
   defineProps<{
@@ -33,6 +46,10 @@ withDefaults(
     note?: string
     /** Le contrefort Banco : un seul côté porte 4 px de couleur. */
     contrefort?: boolean
+    /** La variante creux : `bg-tile` sans ombre, pour une colonne en `bg-surf`. */
+    creux?: boolean
+    /** Le ton de la note — le fait décide, jamais la mise en page. */
+    tonNote?: 'neutre' | 'succes' | 'alerte'
     enChargement?: boolean
   }>(),
   {
@@ -41,15 +58,27 @@ withDefaults(
     deltaPositif: true,
     note: undefined,
     contrefort: false,
+    creux: false,
+    tonNote: 'neutre',
     enChargement: false,
   },
 )
+
+/** Écrits en toutes lettres : Tailwind élague ce qu'il ne voit pas. */
+const TONS_NOTE = {
+  neutre: 'text-ink-3',
+  succes: 'text-succes-fort',
+  alerte: 'text-alerte-fort',
+} as const
 </script>
 
 <template>
   <div
-    class="flex flex-col gap-1.5 border border-line bg-surf p-4 shadow-basse"
-    :class="contrefort ? 'rounded-r-xl rounded-l-xs border-l-4 border-l-prim' : 'rounded-xl'"
+    class="flex flex-col border border-line"
+    :class="[
+      contrefort ? 'rounded-r-xl rounded-l-xs border-l-4 border-l-prim' : 'rounded-xl',
+      creux ? 'gap-1 bg-tile px-4 py-3.5' : 'gap-1.5 bg-surf p-4 shadow-basse',
+    ]"
   >
     <span class="text-etiquette uppercase text-ink-3">{{ $t(etiquetteCle) }}</span>
 
@@ -64,7 +93,8 @@ withDefaults(
     </span>
     <span
       v-else
-      class="font-mono text-chiffre-l font-bold whitespace-nowrap text-ink"
+      class="font-mono font-bold whitespace-nowrap text-ink"
+      :class="creux ? 'text-chiffre' : 'text-chiffre-l'"
       data-valeur
     >{{ valeur }}</span>
 
@@ -88,7 +118,8 @@ withDefaults(
 
     <span
       v-if="note && !enChargement"
-      class="text-mini text-ink-3"
+      class="text-mini"
+      :class="TONS_NOTE[tonNote]"
       data-note
     >{{ note }}</span>
   </div>

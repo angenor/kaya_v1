@@ -4,7 +4,14 @@
  *
  * Rôle : l'action qui fait avancer la journée. UN SEUL PAR ÉCRAN.
  * États : repos · survol · appui · focus clavier · en cours · désactivé ·
- *         pleine largeur · variante danger.
+ *         pleine largeur · variante danger · **variante accueil**.
+ *
+ * ⚠️ LA VARIANTE ACCUEIL EST AJOUTÉE AU CYCLE F2, SUR CONSTAT DE MAQUETTE :
+ * `h-15` et `shadow-bouton-grand` sur les quatre `R1-accueil*.html`. Ce n'est
+ * pas un bouton plus gros pour faire joli — c'est **le seul geste que l'accueil
+ * propose**, et il doit se trouver sans lire, à un mètre, sur un écran qu'on
+ * consulte debout. Le `h-11` ordinaire le rendait équivalent au bouton discret
+ * posé juste en dessous.
  *
  * ⚠️ L'OMBRE PLEINE DE 2 px TOMBE À L'APPUI — seul relief du système, et SEUL
  * MOUVEMENT JAMAIS RÉDUIT (mouvement.md, patron P5). Sous « réduire les
@@ -29,6 +36,8 @@ withDefaults(
     danger?: boolean
     /** `h-12 w-full` : téléphone et comptoir. */
     comptoir?: boolean
+    /** `h-15` + relief accentué : l'action unique de l'accueil. */
+    accueil?: boolean
   }>(),
   {
     libelleEnCoursCle: undefined,
@@ -36,6 +45,7 @@ withDefaults(
     desactive: false,
     danger: false,
     comptoir: false,
+    accueil: false,
   },
 )
 
@@ -47,12 +57,15 @@ defineEmits<{ activer: [] }>()
     type="button"
     :disabled="desactive || enCours"
     data-mouvement="tactile"
-    class="inline-flex cursor-pointer items-center justify-center gap-2.5 rounded-lg px-5 font-titre text-action font-semibold transition-[transform,box-shadow,background-color] duration-90 ease-entree active:translate-y-0.5"
+    class="inline-flex cursor-pointer items-center justify-center gap-2.5 px-5 font-titre font-semibold transition-[transform,box-shadow,background-color] duration-90 ease-entree active:translate-y-0.5"
     :class="[
-      comptoir ? 'h-12 w-full' : 'h-11 min-w-42',
+      comptoir ? 'h-12 w-full' : accueil ? 'h-15 w-full px-6' : 'h-11 min-w-42',
+      accueil ? 'rounded-xl text-titre-s' : 'rounded-lg text-action',
       danger
         ? 'bg-danger text-prim-ink shadow-bouton-danger hover:brightness-110'
-        : 'bg-prim text-prim-ink shadow-bouton hover:bg-prim-dk',
+        : accueil
+          ? 'bg-prim text-prim-ink shadow-bouton-grand hover:brightness-105'
+          : 'bg-prim text-prim-ink shadow-bouton hover:bg-prim-dk',
       'active:shadow-bouton-appui',
     ]"
     @click="$emit('activer')"

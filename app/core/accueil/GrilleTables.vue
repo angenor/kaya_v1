@@ -17,6 +17,16 @@
  *
  * ⚠️ ORDONNÉE PAR L'HEURE, comme la liste. La grille change la forme, jamais
  * l'ordre : ce qui vient ensuite reste ce qui vient ensuite.
+ *
+ * ⚠️ **UN FLUX QUI S'ENROULE, PAS UNE GRILLE À COLONNES FIXES** — même motif que
+ * « Vos activités ». Le nombre de tables dépend de l'établissement : neuf au
+ * maquis, une seule ligne agrégée à Deloria. Une grille à quatre colonnes
+ * écrasait la tuile unique sur un quart de la largeur, ce qui la rendait
+ * illisible pour la seule variante qui n'a pas de tables au jeu.
+ *
+ * ⚠️ ET UNE TABLE LIBRE PASSE SUR `bg-tile`, SANS OMBRE. La maquette la pose en
+ * retrait : ce qui est libre n'appelle pas le regard, ce qui est occupé si.
+ * C'est le fond qui le dit, en plus de la pastille — jamais la couleur seule.
  */
 import PastilleEtat from '~/core/design-system/PastilleEtat.vue'
 import type { LigneSuiteAccueil } from '~/core/donnees/accueil/types'
@@ -49,7 +59,7 @@ function montantEcrit(ligne: LigneSuiteAccueil): string | null {
 
 <template>
   <div
-    class="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4"
+    class="flex flex-wrap gap-2.5"
     data-surface="suite"
     data-presentation="grille"
   >
@@ -58,7 +68,8 @@ function montantEcrit(ligne: LigneSuiteAccueil): string | null {
       :key="ligne.id"
       type="button"
       data-mouvement="tactile"
-      class="flex min-h-20 cursor-pointer flex-col items-start justify-between gap-3.5 rounded-lg border border-line bg-surf p-4 text-left shadow-basse transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
+      class="flex min-h-20 min-w-38 flex-1 cursor-pointer flex-col items-start justify-between gap-2.5 rounded-xl border border-line px-4 py-3.5 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
+      :class="ligne.montant === null ? 'bg-tile' : 'bg-surf'"
       :data-table="ligne.id"
       @click="$emit('activer', ligne)"
     >
