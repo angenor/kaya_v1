@@ -37,6 +37,7 @@
  */
 import BandeauCoquille from '~/core/coquille/BandeauCoquille.vue'
 import EnTeteContexte from '~/core/coquille/EnTeteContexte.vue'
+import NavigationLaterale from '~/core/coquille/NavigationLaterale.vue'
 import { useFile } from '~/core/file/useFile'
 import { useScenarios } from '~/core/scenarios/useScenarios'
 
@@ -76,8 +77,19 @@ onNuxtReady(() => {
          descendre sous la hauteur de son contenu — le `<main>` déborderait de la
          fenêtre au lieu de faire défiler, et la barre du haut sortirait de
          l'écran malgré tout. -->
-    <main class="flex min-h-0 flex-1 overflow-y-auto">
-      <slot />
-    </main>
+    <!-- ⚠️ **LA NAVIGATION EST DANS LE GABARIT, PAS DANS UNE PAGE.** « Présent
+         partout » ne se délègue pas : la première page qui oublierait de la
+         poser serait celle d'où l'on ne pourrait plus sortir — et c'est
+         exactement ce qui est arrivé à `/jour` avant qu'elle existe.
+
+         ⚠️ ET ELLE EST **HORS DU `<main>`** : le `<main>` porte le contenu de
+         l'écran, la navigation porte le déplacement entre les écrans. Les
+         mêler ferait défiler la navigation avec la page. -->
+    <div class="flex min-h-0 flex-1 overflow-hidden">
+      <NavigationLaterale class="hidden sm:flex" />
+      <main class="flex min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <slot />
+      </main>
+    </div>
   </div>
 </template>

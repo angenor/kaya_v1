@@ -378,17 +378,29 @@ watch(
               class="flex items-center justify-between gap-3 rounded-xl border border-line bg-surf px-4 py-3"
               :data-liberation="liberation.codeUnite"
             >
-              <span class="flex flex-col gap-0.5">
+              <span class="flex min-w-0 flex-col gap-0.5">
                 <span class="font-mono text-lead font-semibold text-ink">{{ liberation.codeUnite }}</span>
+                <!-- ⚠️ **LES DEUX BORNES, ET LA PREMIÈRE EST LA PLUS
+                     IMPORTANTE.** *Constaté à l'usage* : « Tenue jusqu'à
+                     19 h 03 » posé à côté d'une chambre occupée se lisait « je
+                     garde une chambre occupée » — ce qui n'a pas de sens. On
+                     tient **celle qui va se libérer**, et la phrase le dit. -->
                 <span class="text-mini text-ink-3">{{
-                  liberation.tenueJusqua
-                    ? $t('passage.tenueJusqua', { heure: heure(liberation.tenueJusqua) })
-                    : $t('passage.libreA', { heure: heure(liberation.libreA) })
+                  liberation.tenueDe && liberation.tenueJusqua
+                    ? $t('passage.tenueDeA', {
+                      de: heure(liberation.tenueDe),
+                      a: heure(liberation.tenueJusqua),
+                    })
+                    : $t('passage.occupeeSeLibereA', { heure: heure(liberation.libreA) })
                 }}</span>
               </span>
+              <!-- ⚠️ **LE BOUTON PORTE L'HEURE**, et ce n'est pas un détail de
+                   libellé : « Garder la chambre » seul laissait croire qu'on
+                   agit sur l'occupation en cours. « Garder pour 18 h 48 » dit
+                   ce qu'on tient, et à partir de quand. -->
               <BoutonSecondaire
                 v-if="!liberation.tenueJusqua"
-                libelle-cle="passage.garderLaChambre"
+                :libelle="$t('passage.garderPour', { heure: heure(liberation.libreA) })"
                 :data-action="`garder-${liberation.codeUnite}`"
                 @activer="garderLaChambre(liberation.uniteId)"
               />
@@ -427,19 +439,53 @@ watch(
              faire un préalable — ferait basculer le parcours à ≈ 41 s et
              remettrait la saisie d'identité avant la remise de la clé, ce que
              le terrain ne fait pas. -->
+        <!-- ⚠️ **LA GRAMMAIRE DE LA MAQUETTE : UNE LIGNE, PAS UN
+             EMPILEMENT.** L'icône, la phrase et **les deux gestes** tiennent
+             sur une même rangée, les gestes poussés à droite par `ml-auto`.
+             Empilés, ils se lisaient comme une consigne à exécuter — alors que
+             ce bloc dit exactement le contraire : *vous pouvez donner la
+             chambre tout de suite*.
+
+             ⚠️ **LES DEUX GESTES SONT SECONDAIRES, ET LEUR RANG SE VOIT.**
+             « Scanner » porte son icône et une bordure marquée ; « Saisir » est
+             plus discret. Aucun des deux n'est le geste principal — celui-là
+             est le tap sur la durée, au-dessus. -->
         <div
-          class="flex flex-col gap-2.5 rounded-xl border border-line-2 bg-tile px-4 py-3.5"
+          class="flex flex-col gap-3 rounded-xl border border-line-2 bg-tile px-4 py-3.5 xl:flex-row xl:items-center"
           data-piece-apres-la-cle
         >
-          <span class="flex items-start gap-2.5">
-            <i
-              class="ph ph-info shrink-0 text-titre-s text-ocre"
-              aria-hidden="true"
-            />
-            <span class="flex flex-col gap-1">
-              <span class="font-titre text-corps font-semibold text-ink-2">{{ $t('passage.pieceApresLaCle') }}</span>
-              <span class="text-mini text-ink-3">{{ $t('passage.pieceApresLaCleAide') }}</span>
-            </span>
+          <i
+            class="ph ph-info shrink-0 text-titre-s text-ocre"
+            aria-hidden="true"
+          />
+          <span class="flex min-w-0 flex-col gap-1">
+            <span class="font-titre text-corps font-semibold text-ink-2">{{ $t('passage.pieceApresLaCle') }}</span>
+            <span class="text-mini text-ink-3">{{ $t('passage.pieceApresLaCleAide') }}</span>
+          </span>
+          <!-- ⚠️ **LES GESTES PASSENT À DROITE SEULEMENT EN `xl`.** *Constaté
+               sur une capture* : dès `sm`, ils écrasaient la phrase à cinq
+               lignes sur un poste de 1 280 px — et cette phrase est celle qui
+               fait tenir les 30 secondes. Le texte prime ; les gestes attendent
+               d'avoir la place. -->
+          <span class="flex shrink-0 items-center gap-2 xl:ml-auto">
+            <button
+              type="button"
+              class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-line-2 px-4 font-titre text-corps font-semibold text-ink transition-[transform,border-color] duration-90 hover:border-prim active:translate-y-0.5"
+              data-action="scanner-piece"
+            >
+              <i
+                class="ph ph-camera text-titre-s"
+                aria-hidden="true"
+              />
+              {{ $t('passage.scannerLaPiece') }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-10 cursor-pointer items-center rounded-md border border-line px-4 font-titre text-corps font-medium text-ink-2 transition-colors duration-90 hover:border-line-2 hover:text-ink"
+              data-action="saisir-telephone"
+            >
+              {{ $t('passage.saisirTelephone') }}
+            </button>
           </span>
         </div>
       </section>
@@ -451,47 +497,64 @@ watch(
            c'est un élément qui n'est pas un bouton. -->
       <section
         v-if="passage.chambres.length > 0"
-        class="flex w-full shrink-0 flex-col gap-2.5 lg:w-96"
+        class="flex w-full shrink-0 flex-col gap-2.5 lg:w-80 xl:w-96"
         data-rubrique="chambres"
       >
         <div class="flex flex-col gap-1">
           <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.chambresTitre') }}</span>
           <span class="text-mini text-ink-3">{{ $t('passage.chambresAide') }}</span>
         </div>
-        <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-          <button
-            v-for="chambre in passage.chambres"
-            :key="chambre.unite.id"
-            type="button"
-            class="flex min-h-16.5 flex-col items-start gap-1.5 rounded-xl border px-3 py-2.5 text-left transition-[transform,border-color] duration-110 ease-deplace"
-            :class="
-              chambre.unite.id === passage.uniteProposeeId
-                ? 'cursor-pointer border-2 border-prim bg-tile active:translate-y-0.5'
-                : chambre.disponible
-                  ? 'cursor-pointer border-line bg-tile active:translate-y-0.5'
-                  : 'cursor-default border-line bg-transparent'
-            "
-            :data-chambre="chambre.unite.code"
-            :data-disponible="chambre.disponible ? 'oui' : 'non'"
-            :data-donnee="chambre.unite.code === enregistre?.codeUnite ? 'oui' : undefined"
-            :data-retenue="chambre.unite.id === passage.uniteProposeeId ? 'oui' : undefined"
-            @click="changerDeChambre(chambre)"
-          >
-            <span class="flex items-center gap-2">
-              <span
-                class="size-2 shrink-0"
-                :class="chambre.disponible ? 'rounded-xs bg-succes' : 'rounded-pleine bg-alerte'"
-                aria-hidden="true"
-              />
-              <span class="font-mono text-lead font-semibold text-ink">{{ chambre.unite.code }}</span>
-            </span>
-            <!-- ⚠️ **LA CHAMBRE PASSE À « DONNÉE » SANS RECHARGEMENT**, et c'est
-                 ce qui permet de rester sur le même écran : la réceptionniste
-                 voit le résultat de son tap là où elle regardait déjà. -->
-            <span class="text-mini text-ink-3">{{
-              chambre.unite.code === enregistre?.codeUnite ? $t('passage.chambreDonneeCourt') : detailDe(chambre)
-            }}</span>
-          </button>
+        <!-- ⚠️ **UN BLOC PAR ÉTAGE, ET C'EST LE PLAN DE LA MAISON.** Une
+             réceptionniste cherche « la 12 du premier », pas « la douzième de
+             la liste » : à plat, il faut lire tous les numéros pour retrouver
+             un niveau, et c'est le geste qu'on refait vingt fois par jour. -->
+        <div
+          v-for="etage in passage.etages"
+          :key="etage.etage ?? 'sans-etage'"
+          class="flex flex-col gap-2"
+          :data-etage="etage.etage ?? 'sans-etage'"
+        >
+          <span class="text-etiquette uppercase text-ink-3">{{
+            etage.etage === null
+              ? $t('passage.etageInconnu')
+              : etage.etage === '0'
+                ? $t('passage.rezDeChaussee')
+                : $t('passage.etage', { n: etage.etage })
+          }}</span>
+          <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <button
+              v-for="chambre in etage.chambres"
+              :key="chambre.unite.id"
+              type="button"
+              class="flex min-h-16.5 flex-col items-start gap-1.5 rounded-xl border px-3 py-2.5 text-left transition-[transform,border-color] duration-110 ease-deplace"
+              :class="
+                chambre.unite.id === passage.uniteProposeeId
+                  ? 'cursor-pointer border-2 border-prim bg-tile active:translate-y-0.5'
+                  : chambre.disponible
+                    ? 'cursor-pointer border-line bg-tile active:translate-y-0.5'
+                    : 'cursor-default border-line bg-transparent opacity-55'
+              "
+              :data-chambre="chambre.unite.code"
+              :data-disponible="chambre.disponible ? 'oui' : 'non'"
+              :data-donnee="chambre.unite.code === enregistre?.codeUnite ? 'oui' : undefined"
+              :data-retenue="chambre.unite.id === passage.uniteProposeeId ? 'oui' : undefined"
+              @click="changerDeChambre(chambre)"
+            >
+              <span class="flex items-center gap-2">
+                <span
+                  class="size-2 shrink-0"
+                  :class="chambre.disponible ? 'rounded-xs bg-succes' : 'rounded-pleine bg-alerte'"
+                  aria-hidden="true"
+                />
+                <span class="font-mono text-lead font-semibold text-ink">{{ chambre.unite.code }}</span>
+              </span>
+              <!-- ⚠️ **LA CHAMBRE PASSE À « DONNÉE » SANS RECHARGEMENT**, et
+                   c'est ce qui permet de rester sur le même écran. -->
+              <span class="text-mini text-ink-3">{{
+                chambre.unite.code === enregistre?.codeUnite ? $t('passage.chambreDonneeCourt') : detailDe(chambre)
+              }}</span>
+            </button>
+          </div>
         </div>
       </section>
     </div>

@@ -15,14 +15,25 @@
  */
 withDefaults(
   defineProps<{
-    libelleCle: string
+    libelleCle?: string
+    /**
+     * UN LIBELLÉ **DÉJÀ RÉSOLU**, pour ce que le catalogue ne porte pas : une
+     * heure, un nom, un décompte. L'un ou l'autre, **jamais les deux**.
+     *
+     * ⚠️ **CE N'EST PAS UNE ENTORSE À « AUCUNE CHAÎNE EN DUR ».** La règle vise
+     * les chaînes ÉCRITES DANS LE CODE ; une donnée n'en est pas une, et la
+     * phrase qui l'entoure reste au catalogue. Les composants **05**, **07** et
+     * **08** portaient déjà cette paire depuis le cycle F1 ; le **02** la gagne
+     * au cycle F3, quand « Garder pour 18 h 48 » a dû nommer une heure.
+     */
+    libelle?: string
     /** Classe d'icône Phosphor, sans le préfixe de variante. */
     icone?: string
     /** Quand l'action n'est pas une action de produit — « Plus tard ». */
     neutre?: boolean
     desactive?: boolean
   }>(),
-  { icone: undefined, neutre: false, desactive: false },
+  { libelleCle: undefined, libelle: undefined, icone: undefined, neutre: false, desactive: false },
 )
 
 defineEmits<{ activer: [] }>()
@@ -42,6 +53,6 @@ defineEmits<{ activer: [] }>()
       :class="['ph', icone, 'text-titre-s']"
       aria-hidden="true"
     />
-    {{ $t(libelleCle) }}
+    {{ libelle ?? (libelleCle ? $t(libelleCle) : '') }}
   </button>
 </template>

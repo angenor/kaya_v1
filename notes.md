@@ -1,8 +1,5 @@
 # Notes — comptes de test
 
-*Phase 2 : tout est simulé. Le mot de passe est **reçu et ignoré** — n'importe quelle valeur non
-vide entre. Un champ vide, lui, rend « Indiquez un numéro de téléphone ou une adresse e-mail. »*
-
 | Identifiant à taper | Qui | Ce qu'on voit |
 |---|---|---|
 | `0700000001` | Adjoua, Deloria | l'accueil générique — départ chambre 204, cinq activités |
@@ -12,22 +9,13 @@ vide entre. Un champ vide, lui, rend « Indiquez un numéro de téléphone ou un
 | `admin@kaya.ci` | administrateur éditeur | l'accueil « aucun établissement ne vous est rattaché » |
 | `0700000005` | Mariam, compte **suspendu** | refusé — avec *exactement* la même phrase qu'un compte inconnu |
 
-Le numéro se tape **sans indicatif** : `+225` est ajouté par la normalisation
-(`app/core/identifiant/normaliser.ts`). Un `@` fait basculer en e-mail avant tout examen de numéro.
 
-## Lancer
+Mes observations sont les suivantes:
+- arrivé sur '/jour', la flating menu 'Vos activités' disparait. De plus je ne vois aucun moyen de retourner à la page d'accueil une foi dessus
+- Au niveau des chambres sur la page '/jour' et '/passage', les chambres occupées devrait etres bien grisé comme sur la maquette
+- La disposition des chambres pourrait etre plus intéressante pour les hotel avec plusieurs niveaux(séparation visuel des niveaux)
+- la parti 'Pièce d’identité : après la clé, pas avant' est bien plus belle sur la maquette que ce que tu as produit
+- Je ne comprend ceci: '''la maison pleine n'est pas une panne''' a quoi à avoir avec '''l'écran dit ce qui se libère et propose « Garder la chambre » (jamais « réserver »).''' qu'est-ce celà signifie concraitement, peux-tu expliquer avec exemple parce que dans mes test, je pouvais cliquer sur garder pour des chambre qui était occupé, est-ce que celà ne pretera pas confusion à des hotels pas très lettré ne technophile
+- En y repensant, que penses-tu d'ajouter une barre de navigation avec des option imbriqué à gauche pour defiler plus simplement entre des rubrique
 
-```sh
-pnpm dev
-```
-
-⚠️ Le port 3000 est souvent pris par un autre projet Nuxt sur ce poste — Nuxt bascule alors sur
-3001. Lire l'URL qu'il imprime.
-
-## Changer de contexte sans repasser par la connexion
-
-**`/_scenarios`** — le panneau pose le compte et l'établissement, et porte les quatre leviers :
-latence, échec réseau, hors connexion, jeu vide. C'est par là que les quatre accueils s'atteignent
-sans recompiler.
-
-Le parcours complet, pas à pas : [specs/004-entree-accueil/quickstart.md](specs/004-entree-accueil/quickstart.md) §2.
+- de plus je ne vois pas comment libérer une chambre occupé, est-ce que cette fonctionnalité est à venir dans un cycle ?

@@ -33,9 +33,21 @@ export interface ChambreDuJour {
   readonly libreA: string | null
 }
 
+/** Un étage, et ses chambres — **le plan de la maison, pas une liste**. */
+export interface EtageDuJour {
+  readonly etage: string | null
+  readonly chambres: readonly ChambreDuJour[]
+}
+
 export interface JourCompose {
   readonly etat: EtatRubrique
   readonly chambres: readonly ChambreDuJour[]
+  /**
+   * ⚠️ **UNE RÉCEPTIONNISTE CHERCHE « LA 12 DU PREMIER »**, pas « la douzième
+   * de la liste ». `unite.etage` existe au modèle depuis le cycle D2 ; il
+   * n'était employé nulle part.
+   */
+  readonly etages: readonly EtageDuJour[]
   readonly libres: number
   readonly occupees: number
   /** Les départs attendus d'ici la fin de la journée. */
@@ -45,6 +57,7 @@ export interface JourCompose {
 const JOUR_VIDE: JourCompose = {
   etat: 'chargement',
   chambres: [],
+  etages: [],
   libres: 0,
   occupees: 0,
   departsAttendus: 0,
@@ -126,6 +139,7 @@ export function useJour() {
     jour.value = {
       etat: chambres.length === 0 ? 'vide' : 'nominal',
       chambres,
+      etages: grouperParEtage(chambres),
       libres: chambres.filter((c) => c.libre).length,
       occupees: chambres.filter((c) => !c.libre).length,
       departsAttendus: chambres.filter((c) => c.libreA !== null && c.libreA <= finDuJour).length,
@@ -133,6 +147,28 @@ export function useJour() {
   }
 
   return { jour, composer }
+}
+
+/**
+ * Groupe les chambres par étage, **dans l'ordre du bâtiment**.
+ *
+ * ⚠️ **LES ÉTAGES SE TRIENT EN NOMBRE** : « 2 » vient après « 10 » en tri de
+ * chaînes, et personne ne cherche le dixième avant le deuxième.
+ */
+function grouperParEtage(chambres: readonly ChambreDuJour[]): readonly EtageDuJour[] {
+  const parEtage = new Map<string | null, ChambreDuJour[]>()
+  for (const chambre of chambres) {
+    const groupe = parEtage.get(chambre.unite.etage)
+    if (groupe === undefined) parEtage.set(chambre.unite.etage, [chambre])
+    else groupe.push(chambre)
+  }
+  return [...parEtage.entries()]
+    .map(([etage, liste]) => ({ etage, chambres: liste }))
+    .sort((a, b) => {
+      if (a.etage === null) return -1
+      if (b.etage === null) return 1
+      return Number(a.etage) - Number(b.etage)
+    })
 }
 
 /**

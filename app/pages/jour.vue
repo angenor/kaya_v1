@@ -167,28 +167,56 @@ watch(
                établissement sans chambre voit une phrase, jamais un cadre nu. -->
           <EtatVide message-cle="jour.aucuneChambre" />
         </div>
-        <div
-          v-else
-          class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-        >
+        <!-- ⚠️ **UN BLOC PAR ÉTAGE.** Dans un hôtel à niveaux, une grille à
+             plat oblige à lire tous les numéros pour retrouver un étage.
+
+             ⚠️ **ET LES OCCUPÉES SONT ATTÉNUÉES**, comme sur la maquette. Ce
+             n'est **pas** le grisé que la règle proscrit : celle-là porte sur
+             une ACTION interdite par permission ou par module inactif, qui doit
+             disparaître. Ici, l'atténuation dit un ÉTAT DE FAIT — la chambre
+             est prise — et l'information, elle, ne se cache jamais. *Les
+             confondre ferait disparaître de la vue du jour la moitié des
+             chambres de la maison.* -->
+        <!-- ⚠️ `v-else` SUR UN `<template>`, ET NON SUR LE `v-for` LUI-MÊME :
+             cumuler les deux directives sur un même nœud fait dépendre le rendu
+             de leur priorité relative, qui a déjà changé entre deux versions
+             majeures de Vue. -->
+        <template v-else>
           <div
-            v-for="chambre in jour.chambres"
-            :key="chambre.unite.id"
-            class="flex min-h-16.5 flex-col items-start gap-1.5 rounded-xl border border-line bg-tile px-3 py-2.5"
-            :data-chambre="chambre.unite.code"
-            :data-libre="chambre.libre ? 'oui' : 'non'"
+            v-for="etage in jour.etages"
+            :key="etage.etage ?? 'sans-etage'"
+            class="flex flex-col gap-2"
+            :data-etage="etage.etage ?? 'sans-etage'"
           >
-            <span class="flex items-center gap-2">
-              <PastilleEtat
-                :etat="chambre.etat"
-                :libelle-cle="chambre.libre ? 'jour.pastilleLibre' : 'jour.pastilleOccupee'"
-                contour
-              />
-              <span class="font-mono text-lead font-semibold text-ink">{{ chambre.unite.code }}</span>
-            </span>
-            <span class="text-mini text-ink-3">{{ detailDe(chambre) }}</span>
+            <span class="text-etiquette uppercase text-ink-3">{{
+              etage.etage === null
+                ? $t('jour.etageInconnu')
+                : etage.etage === '0'
+                  ? $t('jour.rezDeChaussee')
+                  : $t('jour.etage', { n: etage.etage })
+            }}</span>
+            <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div
+                v-for="chambre in etage.chambres"
+                :key="chambre.unite.id"
+                class="flex min-h-16.5 flex-col items-start gap-1.5 rounded-xl border border-line px-3 py-2.5"
+                :class="chambre.libre ? 'bg-tile' : 'bg-transparent opacity-55'"
+                :data-chambre="chambre.unite.code"
+                :data-libre="chambre.libre ? 'oui' : 'non'"
+              >
+                <span class="flex items-center gap-2">
+                  <PastilleEtat
+                    :etat="chambre.etat"
+                    :libelle-cle="chambre.libre ? 'jour.pastilleLibre' : 'jour.pastilleOccupee'"
+                    contour
+                  />
+                  <span class="font-mono text-lead font-semibold text-ink">{{ chambre.unite.code }}</span>
+                </span>
+                <span class="text-mini text-ink-3">{{ detailDe(chambre) }}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        </template>
       </section>
     </div>
 

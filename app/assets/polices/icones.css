@@ -35,6 +35,8 @@
 .ph.ph-beer-bottle::before { content: "\e7b0"; }
 .ph.ph-beer-stein::before { content: "\eb62"; }
 .ph.ph-broom::before { content: "\ec54"; }
+.ph.ph-calendar-blank::before { content: "\e10a"; }
+.ph.ph-camera::before { content: "\e10e"; }
 .ph.ph-caret-down::before { content: "\e136"; }
 .ph.ph-caret-up::before { content: "\e13c"; }
 .ph.ph-cash-register::before { content: "\ed80"; }
@@ -46,6 +48,7 @@
 .ph.ph-fork-knife::before { content: "\e262"; }
 .ph.ph-funnel::before { content: "\e266"; }
 .ph.ph-gear::before { content: "\e270"; }
+.ph.ph-house::before { content: "\e2c2"; }
 .ph.ph-info::before { content: "\e2ce"; }
 .ph.ph-key::before { content: "\e2d6"; }
 .ph.ph-lock-simple::before { content: "\e308"; }

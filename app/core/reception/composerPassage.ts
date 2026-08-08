@@ -58,8 +58,24 @@ export interface LiberationAffichee {
   readonly codeUnite: string
   readonly uniteId: string
   readonly libreA: string
-  /** ⚠️ La garde déjà posée sur cette chambre, s'il y en a une. */
+  /**
+   * LA GARDE POSÉE SUR CETTE CHAMBRE — **ses deux bornes**, ou `null`.
+   *
+   * ⚠️ **DEUX BORNES, ET LA PREMIÈRE EST LA PLUS IMPORTANTE.** *Constaté à
+   * l'usage* : « Tenue jusqu'à 19 h 03 » posé à côté d'une chambre marquée
+   * « Occupée » se lisait « je garde une chambre occupée », ce qui n'a pas de
+   * sens. Ce qu'on tient, c'est **la chambre qui va se libérer**, et la tenue
+   * court **de sa libération** à quinze minutes plus tard.
+   */
+  readonly tenueDe: string | null
   readonly tenueJusqua: string | null
+}
+
+/** Un étage, et ses chambres — **la maquette d'un hôtel à niveaux**. */
+export interface EtageChambres {
+  /** `null` quand l'unité ne déclare pas d'étage : la colonne est nullable. */
+  readonly etage: string | null
+  readonly chambres: readonly CaseChambre[]
 }
 
 export interface PassageCompose {
@@ -73,6 +89,16 @@ export interface PassageCompose {
   readonly liberations: readonly LiberationAffichee[]
   readonly durees: readonly DureeProposee[]
   readonly chambres: readonly CaseChambre[]
+  /**
+   * LES CHAMBRES GROUPÉES PAR ÉTAGE — **le plan de la maison, pas une liste**.
+   *
+   * ⚠️ **UNE RÉCEPTIONNISTE CHERCHE « LA 12 DU PREMIER », PAS « LA DOUZIÈME DE
+   * LA LISTE ».** Dans un hôtel à plusieurs niveaux, une grille à plat oblige à
+   * lire tous les numéros pour retrouver un étage — et c'est le geste qu'on
+   * refait vingt fois par jour. `unite.etage` existe au modèle depuis le cycle
+   * D2 ; il n'était employé nulle part.
+   */
+  readonly etages: readonly EtageChambres[]
   /**
    * LA CHAMBRE PROPOSÉE — **choisie par le domaine, pas par la réceptionniste**.
    *
@@ -94,6 +120,7 @@ const PASSAGE_VIDE: PassageCompose = {
   liberations: [],
   durees: [],
   chambres: [],
+  etages: [],
   uniteProposeeId: null,
   motifPropositionCle: null,
   formule: null,
@@ -132,9 +159,39 @@ function proposerDurees(
   })
 }
 
+/**
+ * Groupe les chambres par étage, **dans l'ordre des étages**.
+ *
+ * ⚠️ **L'ORDRE EST CELUI DU BÂTIMENT, PAS CELUI DE LA BASE.** Les étages se
+ * trient en nombre — « 2 » vient après « 10 » en tri de chaînes, et personne ne
+ * cherche le dixième avant le deuxième. Un étage `null` — la colonne l'admet —
+ * passe en tête sous son propre intitulé plutôt que de se fondre au rez.
+ */
+function grouperParEtage(chambres: readonly CaseChambre[]): readonly EtageChambres[] {
+  const parEtage = new Map<string | null, CaseChambre[]>()
+  for (const chambre of chambres) {
+    const etage = chambre.unite.etage
+    const groupe = parEtage.get(etage)
+    if (groupe === undefined) parEtage.set(etage, [chambre])
+    else groupe.push(chambre)
+  }
+  return [...parEtage.entries()]
+    .map(([etage, liste]) => ({ etage, chambres: liste }))
+    .sort((a, b) => {
+      if (a.etage === null) return -1
+      if (b.etage === null) return 1
+      return Number(a.etage) - Number(b.etage)
+    })
+}
+
 /** La garde déjà posée sur une chambre, telle que l'écran la retient. */
-function gardeEnCours(compose: PassageCompose, uniteId: string): string | null {
-  return compose.liberations.find((l) => l.uniteId === uniteId)?.tenueJusqua ?? null
+function gardeEnCours(
+  compose: PassageCompose,
+  uniteId: string,
+): { de: string; jusqua: string } | null {
+  const connue = compose.liberations.find((l) => l.uniteId === uniteId)
+  if (connue?.tenueDe == null || connue.tenueJusqua === null) return null
+  return { de: connue.tenueDe, jusqua: connue.tenueJusqua }
 }
 
 export function usePassage() {
@@ -241,7 +298,8 @@ export function usePassage() {
             codeUnite: liberation.codeUnite,
             uniteId: liberation.uniteId,
             libreA: liberation.libreA,
-            tenueJusqua: gardeEnCours(compose.value, liberation.uniteId),
+            tenueDe: gardeEnCours(compose.value, liberation.uniteId)?.de ?? null,
+            tenueJusqua: gardeEnCours(compose.value, liberation.uniteId)?.jusqua ?? null,
           })
         }
       }
@@ -268,6 +326,7 @@ export function usePassage() {
       liberations,
       durees,
       chambres,
+      etages: grouperParEtage(chambres),
       uniteProposeeId: proposee?.unite.id ?? null,
       // ⚠️ **UN MOTIF QUAND IL Y EN A UN, `null` SINON.** Inventer « la
       // première libre » comme motif serait décrire l'algorithme au lieu
@@ -368,15 +427,17 @@ export function usePassage() {
       poserRefus(resultat.echec)
       return null
     }
-    const tenueJusqua = resultat.valeur.periode.fin
+    const { debut, fin } = resultat.valeur.periode
     passage.value = {
       ...passage.value,
       refus: null,
       liberations: passage.value.liberations.map((liberation) =>
-        liberation.uniteId === uniteId ? { ...liberation, tenueJusqua } : liberation,
+        liberation.uniteId === uniteId
+          ? { ...liberation, tenueDe: debut, tenueJusqua: fin }
+          : liberation,
       ),
     }
-    return tenueJusqua
+    return fin
   }
 
   return { passage, composer, poserRefus, donnerLaChambre, annuler, garderLaChambre }
