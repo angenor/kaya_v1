@@ -21,6 +21,13 @@
  * garde lit `useFile().enAttente`, qui est en mémoire : aucune attente, aucune
  * course.
  *
+ * ⚠️ **LE BLOC N'EST JAMAIS MASQUÉ EN ENTIER, ET C'EST UNE CORRECTION.** Il
+ * portait `hidden md:flex` : sous 768 px, « Passer la main » DISPARAISSAIT — sur
+ * un terminal partagé, personne ne pouvait plus rendre le poste au suivant, et
+ * le registre des actions devenait faux dès que Yao travaillait sous le nom
+ * d'Aminata. Ce qui se range sur un téléphone, c'est le TEXTE et l'initiale ; le
+ * geste, lui, reste.
+ *
  * ⚠️ **AUCUN PLAFOND DE LARGEUR, ET C'EST UN CONSTAT DE MESURE.** Le bloc portait
  * `max-w-64` puis `max-w-80` : il était donc coupé **à 320 px pendant qu'il
  * restait 124 px libres dans la barre** — « Gérant · Caissier · Réceptionniste »
@@ -112,11 +119,11 @@ async function passerLaMain(): Promise<void> {
 <template>
   <div
     v-if="session.compteId"
-    class="hidden min-w-0 items-center gap-2.5 border-l border-line pl-3.5 md:flex"
+    class="flex min-w-0 items-center gap-2.5 lg:border-l lg:border-line lg:pl-3.5"
     data-emplacement="identite"
   >
     <span
-      class="inline-flex size-7 shrink-0 items-center justify-center rounded-pleine bg-prim-soft font-titre text-mini font-bold text-prim"
+      class="hidden size-7 shrink-0 items-center justify-center rounded-pleine bg-prim-soft font-titre text-mini font-bold text-prim md:inline-flex"
       aria-hidden="true"
     >{{ initiales }}</span>
     <!-- ⚠️ **SOUS 1024 px, LE TEXTE SE RANGE — IL NE SE COUPE PAS.** Tronqué, il
@@ -148,10 +155,30 @@ async function passerLaMain(): Promise<void> {
          le dit ainsi — « l'infobulle dit l'effet » —, et la maquette réserve
          cette ligne à ce que la personne fait. Une phrase de dix mots y serait
          tronquée à chaque rendu, donc illisible, donc inutile. -->
-    <span :title="$t('contexte.passerLaMainEffet')">
+    <!-- ⚠️ **LE MOT CÈDE, JAMAIS LE GESTE.** Sur un téléphone, « Passer la
+         main » se réduit à son icône — le libellé reste en infobulle et en nom
+         accessible. Sur un terminal partagé, rendre le poste au suivant doit
+         être atteignable partout : c'est ce qui garde le registre des actions
+         juste. -->
+    <span
+      :title="$t('contexte.passerLaMainEffet')"
+      class="hidden lg:inline-flex"
+    >
       <BoutonDiscret
         libelle-cle="contexte.passerLaMain"
         icone="ph-sign-out"
+        data-action="passer-la-main"
+        @activer="passerLaMain()"
+      />
+    </span>
+    <span
+      :title="$t('contexte.passerLaMain')"
+      class="inline-flex lg:hidden"
+    >
+      <BoutonDiscret
+        icone="ph-sign-out"
+        :libelle-cle="undefined"
+        :aria-label="$t('contexte.passerLaMain')"
         data-action="passer-la-main"
         @activer="passerLaMain()"
       />

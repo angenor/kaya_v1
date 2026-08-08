@@ -157,7 +157,7 @@ watch(
 
 <template>
   <div
-    class="flex h-full w-full items-stretch overflow-hidden"
+    class="flex min-h-full w-full flex-col overflow-y-auto lg:h-full lg:flex-row lg:items-stretch lg:overflow-hidden"
     data-ecran="R1"
     :data-zone="zone"
     :data-repli="accueil.repli ?? undefined"
@@ -190,9 +190,9 @@ watch(
          « Vos activités » se pose PAR-DESSUS, en position absolue. -->
     <div
       v-else
-      class="relative flex min-h-0 min-w-0 flex-1 flex-col"
+      class="relative flex min-w-0 flex-col lg:min-h-0 lg:flex-1"
     >
-      <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5.5">
+      <div class="flex flex-col gap-4 px-5 py-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:px-6 lg:py-5.5">
         <!-- ⚠️ LA MENTION D'UN ÉCRAN À VENIR EST UNE ANNONCE TRANSVERSE, pas une
            marque sur la surface. Elle dit ce qui manque — de NOTRE côté — et
            quand cela viendra. -->
@@ -312,7 +312,7 @@ watch(
              animée : ce qui bouge ici est de la mise en page. -->
         <span
           v-if="seRend(accueil.activites.etat)"
-          class="shrink-0"
+          class="hidden shrink-0 lg:block"
           :class="activitesOuvertes ? 'h-44' : 'h-16'"
           aria-hidden="true"
         />
@@ -333,7 +333,7 @@ watch(
            les appuis rend inatteignable ce qu'on voit à travers elle. -->
       <section
         v-if="seRend(accueil.activites.etat)"
-        class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col"
+        class="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex flex-col lg:absolute lg:z-auto"
         data-rubrique="activite"
         :data-etat="accueil.activites.etat"
         :data-ouvert="activitesOuvertes ? 'oui' : 'non'"
@@ -423,7 +423,7 @@ watch(
          inatteignable pour autant. -->
     <div
       v-if="accueil.repli === null"
-      class="flex min-h-0 w-84 shrink-0 flex-col gap-5.5 overflow-y-auto border-l border-line bg-surf px-5 py-5.5"
+      class="flex w-full shrink-0 flex-col gap-5.5 border-t border-line bg-surf px-5 py-5 lg:min-h-0 lg:w-84 lg:overflow-y-auto lg:border-t-0 lg:border-l lg:py-5.5"
       data-colonne="laterale"
     >
       <!-- ── À régler ──────────────────────────────────────────────────── -->
@@ -515,7 +515,7 @@ watch(
         />
       </section>
 
-      <span class="flex-1" />
+      <span class="hidden flex-1 lg:block" />
 
       <!-- ⚠️ LA NOTE DE PIED DIT LA PORTÉE DE CE QU'ON VIENT DE LIRE, et elle
            n'est pas décorative : « vous ne voyez que vos tables » explique une
@@ -529,5 +529,17 @@ watch(
         <span class="text-mini text-ink-3">{{ $t(accueil.noteCle) }}</span>
       </div>
     </div>
+
+    <!-- ⚠️ **LA RÉSERVE DE BAS DE PAGE — SOUS `lg` SEULEMENT.** Là, la barre des
+         activités est fixée à l'écran et non posée dans une colonne : sans cet
+         espace, la dernière carte des chiffres finirait derrière elle, vue et
+         inatteignable. En deux colonnes, c'est la colonne principale qui porte
+         sa propre réserve. -->
+    <span
+      v-if="accueil.repli === null && seRend(accueil.activites.etat)"
+      class="shrink-0 lg:hidden"
+      :class="activitesOuvertes ? 'h-44' : 'h-16'"
+      aria-hidden="true"
+    />
   </div>
 </template>

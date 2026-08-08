@@ -16,6 +16,13 @@
  * ⚠️ AVEC UN SEUL ÉTABLISSEMENT, IL PERD SON CHEVRON ET CESSE D'ÊTRE UN BOUTON.
  * Un bouton qui n'ouvre rien apprend à ne plus cliquer.
  *
+ * ⚠️ **IL NE DÉPASSE JAMAIS DE SON EMPLACEMENT** — `max-w-full`, et c'est un
+ * constat de mesure : le bouton portait `max-w-64` seul, soit 256 px, et sur une
+ * barre de 390 px il rendait **210 px dans un emplacement de 147** — il passait
+ * par-dessus le témoin d'envoi, qui se lisait « …registré ». Le repère
+ * d'orientation recouvrait le composant le plus important du produit. Sa borne
+ * de 256 px reste, mais à partir de `lg`, là où elle a un sens.
+ *
  * ⚠️ IL REMONTE LES ALERTES DES AUTRES ÉTABLISSEMENTS MAIS NE CHANGE JAMAIS DE
  * CONTEXTE TOUT SEUL. Un changement de contexte non demandé fait saisir une
  * consommation sur le mauvais site.
@@ -70,7 +77,7 @@ const initiale = computed(() => (actif.value?.nom ?? 'K').trim().charAt(0).toUpp
     <component
       :is="plusieurs ? 'button' : 'div'"
       :type="plusieurs ? 'button' : undefined"
-      class="inline-flex h-11 min-w-0 max-w-64 items-center gap-2.5 rounded-lg border border-line bg-surf px-3 shadow-basse"
+      class="inline-flex h-11 min-w-0 max-w-full items-center gap-2.5 rounded-lg border border-line bg-surf px-3 shadow-basse lg:max-w-64"
       :class="plusieurs && 'cursor-pointer hover:border-prim'"
       data-composant-09
       :aria-expanded="plusieurs ? ouvert : undefined"

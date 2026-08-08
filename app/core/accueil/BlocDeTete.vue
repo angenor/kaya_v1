@@ -45,7 +45,7 @@ const montantEcrit = computed(() =>
 
 <template>
   <div
-    class="flex items-center gap-6 rounded-l-xs rounded-r-2xl border border-line border-l-4 border-l-prim bg-surf px-6 py-5.5 shadow-basse"
+    class="flex flex-col gap-4 rounded-l-xs rounded-r-2xl border border-line border-l-4 border-l-prim bg-surf px-5 py-5 shadow-basse md:flex-row md:items-center md:gap-6 md:px-6 md:py-5.5"
     data-surface="tete"
   >
     <div class="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -69,7 +69,12 @@ const montantEcrit = computed(() =>
 
     <!-- ⚠️ COLONNE DE LARGEUR FIXE : les deux actions s'alignent d'un bloc de
          tête à l'autre, quelle que soit la longueur du fait à leur gauche. -->
-    <div class="flex w-67 shrink-0 flex-col gap-2.5">
+    <!-- ⚠️ **SUR UN TÉLÉPHONE, LES ACTIONS PASSENT SOUS LE FAIT.** À 390 px, la
+         colonne de 268 px ne laissait que 60 px au libellé : « Chambre 204 —
+         M. Traoré » se cassait mot par mot et le bouton chevauchait le texte.
+         **Constaté sur une capture.** Ce qui compte reste l'ordre — le fait,
+         puis le geste —, et il tient dans les deux dispositions. -->
+    <div class="flex w-full shrink-0 flex-col gap-2.5 md:w-67">
       <BoutonPrincipal
         :libelle-cle="tete.actionCle"
         accueil

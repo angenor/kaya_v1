@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BoutonDiscret from '~/core/design-system/BoutonDiscret.vue'
 import SelecteurSegmente, {
   type OptionSegment,
 } from '~/core/design-system/SelecteurSegmente.vue'
@@ -66,6 +67,9 @@ const themeChoisi = computed({
   set: (valeur: string) => choisir(valeur as (typeof CHOIX_THEME)[number]),
 })
 
+/** Le repli des réglages sur petite fenêtre — un geste du moment, non persisté. */
+const deplies = ref(false)
+
 const langueChoisie = computed({
   get: () => locale.value,
   set: (valeur: string) => {
@@ -76,18 +80,56 @@ const langueChoisie = computed({
 </script>
 
 <template>
-  <div class="flex items-center gap-2.5">
-    <SelecteurSegmente
-      v-model="themeChoisi"
-      :options="OPTIONS_THEME"
-      compact
-      data-reglage="theme"
+  <!-- ⚠️ **SUR UN TÉLÉPHONE, LES DEUX RÉGLAGES SE DÉPLIENT À LA DEMANDE.** Ils
+       occupent 160 px : dans une barre de 390 px, ils prendraient la place du
+       sélecteur d'établissement et du témoin — c'est-à-dire de « où je suis » et
+       de « mon travail est-il en sécurité ». Un réglage qu'on touche une fois par
+       mois ne chasse pas deux repères qu'on lit vingt fois par jour.
+       ⚠️ ET ILS RESTENT ATTEIGNABLES, jamais retirés : les cacher pour de bon
+       obligerait à sortir un ordinateur pour passer en sombre. -->
+  <div class="relative flex items-center gap-2.5">
+    <BoutonDiscret
+      icone="ph-gear"
+      :libelle-cle="undefined"
+      :aria-expanded="deplies"
+      data-action="reglages-coquille"
+      class="lg:hidden"
+      @activer="deplies = !deplies"
     />
-    <SelecteurSegmente
-      v-model="langueChoisie"
-      :options="OPTIONS_LANGUE"
-      compact
-      data-reglage="langue"
-    />
+    <div
+      v-if="deplies"
+      class="absolute top-full right-0 z-30 mt-1.5 flex items-center gap-2.5 rounded-2xl border border-line bg-surf p-2 shadow-panneau lg:hidden"
+      data-bloc="reglages-deplies"
+    >
+      <SelecteurSegmente
+        v-model="themeChoisi"
+        :options="OPTIONS_THEME"
+        compact
+        data-reglage="theme"
+      />
+      <SelecteurSegmente
+        v-model="langueChoisie"
+        :options="OPTIONS_LANGUE"
+        compact
+        data-reglage="langue"
+      />
+    </div>
+
+    <!-- À partir de `lg`, la place existe : les deux réglages sont dans la barre,
+         sans geste préalable. -->
+    <div class="hidden items-center gap-2.5 lg:flex">
+      <SelecteurSegmente
+        v-model="themeChoisi"
+        :options="OPTIONS_THEME"
+        compact
+        data-reglage="theme"
+      />
+      <SelecteurSegmente
+        v-model="langueChoisie"
+        :options="OPTIONS_LANGUE"
+        compact
+        data-reglage="langue"
+      />
+    </div>
   </div>
 </template>

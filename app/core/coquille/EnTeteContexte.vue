@@ -19,6 +19,12 @@
  * jamais un poste par défaut, jamais une liste : le segment **affirme un fait**,
  * et l'affirmer sans le savoir est un mensonge que six cycles hériteraient.
  *
+ * ⚠️ **SUR UN TÉLÉPHONE, LE NOM DU SITE CÈDE EN DERNIER RECOURS.** À 390 px, il
+ * ne reste plus rien d'autre à comprimer : la marque, l'heure, le texte de
+ * l'identité et l'accroche des instruments se sont déjà rangés. Le sélecteur
+ * garde alors son initiale et tronque le nom — on sait toujours qu'on EST
+ * quelque part, et un appui le dit en entier.
+ *
  * ⚠️ **L'ORDRE DE DÉGRADATION EST DÉCIDÉ, PAS SUBI.** Quand la barre se
  * resserre, ce qui cède le fait dans cet ordre : d'abord **l'heure et la date**
  * (masquées sous `lg`), puis **ce que la personne fait** (tronqué), et **jamais
@@ -175,7 +181,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
 
 <template>
   <header
-    class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3.5 border-b border-line bg-surf px-5"
+    class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2.5 border-b border-line bg-surf px-3 lg:gap-3.5 lg:px-5"
   >
     <!-- ⚠️ **LA MARQUE, PREMIER ÉLÉMENT DE L'EN-TÊTE** (contrat de grammaire §1).
          Elle est OCRE, jamais indigo : « l'indigo est un signal — ce qui est
@@ -184,7 +190,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
          sa place, ce qui faisait changer le premier repère de l'écran à chaque
          bascule de site. Un repère qui change n'en est plus un. -->
     <span
-      class="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-soft"
+      class="hidden size-8 shrink-0 items-center justify-center rounded-md bg-ocre font-titre text-lead font-bold text-ocre-soft md:inline-flex"
       data-marque
       aria-hidden="true"
     >K</span>
@@ -203,7 +209,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
     <div
       v-if="!sansEtablissement"
       data-emplacement="etablissement"
-      class="flex min-w-0 shrink-0 items-center gap-3.5"
+      class="flex min-w-0 max-w-48 items-center gap-3.5 lg:max-w-none lg:shrink-0"
     >
       <SelecteurEtablissement
         :etablissements="affichables"
@@ -251,7 +257,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
          c'est pourquoi ils sont ici et pas dans G1. -->
     <div
       data-emplacement="reglages"
-      class="flex shrink-0 items-center gap-1.5 border-l border-line pl-3.5"
+      class="flex shrink-0 items-center gap-1.5 lg:border-l lg:border-line lg:pl-3.5"
     >
       <ReglagesCoquille />
       <!-- ⚠️ L'ACCROCHE DU PANNEAU SCÉNARIOS EST PERMANENTE, ET SANS ELLE ON
@@ -261,6 +267,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
            quitte le parcours pour le régler et on perd ce qu'on testait. -->
       <NuxtLink
         to="/_scenarios"
+        class="hidden lg:block"
         data-accroche="scenarios"
       >
         <BoutonDiscret

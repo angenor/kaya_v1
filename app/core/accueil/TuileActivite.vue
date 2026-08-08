@@ -30,14 +30,19 @@ defineEmits<{ activer: [activite: ActiviteComposee] }>()
 </script>
 
 <template>
+  <!-- ⚠️ **SUR UN TÉLÉPHONE, LES SERVICES DÉFILENT DU DOIGT** — un flux qui ne
+       s'enroule pas, et qui tient donc sur UNE rangée. Enroulées, cinq tuiles
+       occupaient trois rangées, soit près du tiers de l'écran pour une barre
+       censée s'effacer. Ce qu'on perd — voir les cinq d'un coup — se retrouve
+       d'un geste ; ce qu'on gagne, c'est l'écran de travail. -->
   <div
-    class="flex flex-wrap gap-2.5"
+    class="flex snap-x snap-mandatory gap-2.5 overflow-x-auto lg:flex-wrap lg:overflow-visible"
     data-surface="activite"
   >
     <TuileAction
       v-for="activite in activites"
       :key="activite.surfaceCle"
-      class="min-w-38 flex-1"
+      class="min-w-38 flex-1 snap-start"
       :libelle="activite.libelle"
       :detail="activite.detail"
       :icone="activite.icone"

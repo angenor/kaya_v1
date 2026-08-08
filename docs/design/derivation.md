@@ -137,6 +137,26 @@ identifiants refusés, serveur injoignable. Deux contraintes propres, qui vienne
 du motif : **les deux échecs d'authentification rendent la même phrase** (FR-012), et le refus
 hors ligne est annoncé **avant** toute tentative.
 
+**Note du cycle F2 — `R1` est RESPONSIVE, et c'est une décision de produit.** Les quatre maquettes
+de `R1` sont dessinées pour un poste : deux colonnes, une latérale de `w-84`. Sur un téléphone de
+390 px, cette latérale prenait **336 px et laissait 54 px au contenu** — l'écran était inutilisable,
+et l'en-tête débordait de 313 px. *Mesuré, pas supposé.*
+
+**Le motif de la décision est produit, pas technique** : *« on ne veut pas les obliger à avoir un
+ordinateur, cela ne doit pas être un handicap »*. `R1` bascule donc en **une seule colonne sous
+`lg`** — ce qu'on fait, puis ce qu'on surveille —, l'en-tête a son **ordre de dégradation** écrit,
+et la barre « Vos activités » se **fixe au bas de l'écran** avec ses services en flux horizontal.
+
+⚠️ **Cela ne supprime pas `M1` « Accueil mobile », et la question reste ouverte.** `M1` était prévu
+comme un écran dérivé de `R1` + `M4` au cycle F7. Un `R1` utilisable sur téléphone en réduit
+l'urgence, il ne le remplace pas d'office : `M1` pourrait porter une disposition **pensée pour une
+main** — actions au pouce, moins de lecture — que l'adaptation d'un écran de poste n'atteint pas.
+**Le trancher demande l'atelier terrain**, pas une décision d'implémentation.
+
+⚠️ **Et rien de tout cela n'est maquetté.** Les dispositions mobiles décrites ici sont **composées à
+partir des seize composants**, sans référence dessinée : elles portent donc la mention **« à valider
+avant le pilote »**, comme tout écran composé en zone de vitesse.
+
 **Note du cycle F2 — aucun écran découvert à l'implémentation, et c'est vérifié plutôt que
 supposé.** Le cycle a construit **deux** écrans, `R0` et `R1`, tous deux inscrits ci-dessus avec
 leur route au moment de leur construction. Le quatrième cas de la règle — *« découvert à
