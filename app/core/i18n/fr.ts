@@ -406,6 +406,48 @@ export default {
       "Ouvrez le menu de partage, puis « Sur l’écran d’accueil ». Sans installation, cet appareil ne recevra pas les alertes.",
     compris: "J’ai compris",
   },
+  // ── R2 · la vue du jour ────────────────────────────────────────────────────
+  // ⚠️ LE TITRE VIENT DE `docs/design/derivation.md` ET DE L'INDEX DES ÉCRANS,
+  // qui font foi. « Le jour » avait été proposé puis écarté : renommer aurait
+  // touché deux documents opposables pour gagner deux mots, et laissé trois
+  // documents à deux noms le temps de l'oubli.
+  //
+  // ⚠️ ET « TABLEAU DE BORD » EST PROSCRIT : il promet des chiffres de
+  // direction, quand cet écran dit où en est la maison maintenant.
+  jour: {
+    titre: 'Vue du jour',
+    actionsTitre: 'Ce que vous pouvez faire',
+    donnerUneChambre: 'Donner une chambre',
+    donnerUneChambreDetail: 'Passage à l’heure — trois taps',
+    enregistrerUneArrivee: 'Enregistrer une arrivée',
+    enregistrerUneArriveeDetail: 'Nuitée — le parcours complet',
+    chambresTitre: 'Les chambres',
+    chambresLibres: 'Chambres libres',
+    chambresOccupees: 'Chambres occupées',
+    departsAttendus: 'Départs attendus',
+    chiffresTitre: 'Où en est la maison',
+    liberationsTitre: 'Ce qui se libère',
+    libereA: 'Libre à',
+    aucuneLiberation: 'Aucune chambre ne se libère avant demain.',
+    aucuneChambre: 'Aucune chambre n’est enregistrée ici.',
+    occupee: 'Occupée',
+    occupeeJusqua: 'Occupée · jusqu’à {heure}',
+    pastilleLibre: 'Libre',
+    pastilleOccupee: 'Occupée',
+    menage: {
+      PROPRE: 'Libre',
+      A_NETTOYER: 'À nettoyer',
+      MAINTENANCE: 'En maintenance',
+    },
+    note: 'Vous voyez les chambres de cet établissement.',
+    horsLigne: 'Vous êtes hors connexion.',
+    horsLigneAlternative:
+      'Ce qui est affiché date de la dernière lecture. Vous pourrez continuer dès que le réseau revient.',
+    erreur: 'Les chambres n’ont pas pu être lues.',
+    erreurAlternative: 'Réessayez : rien de ce qui est enregistré n’est perdu.',
+    reessayer: 'Réessayer',
+  },
+
   essai: {
     noteInterne: "Note interne",
     encaissement: "Encaissement",

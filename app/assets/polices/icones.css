@@ -47,6 +47,7 @@
 .ph.ph-funnel::before { content: "\e266"; }
 .ph.ph-gear::before { content: "\e270"; }
 .ph.ph-info::before { content: "\e2ce"; }
+.ph.ph-key::before { content: "\e2d6"; }
 .ph.ph-lock-simple::before { content: "\e308"; }
 .ph.ph-magnifying-glass::before { content: "\e30c"; }
 .ph.ph-money::before { content: "\e588"; }

@@ -3,6 +3,17 @@
 *Source de vérité du vocabulaire visible par l'utilisateur. Extrait de `docs/Kaya_Design.md` §6
 le 2026-07-30 — ce fichier fait foi, `Kaya_Design.md` y renvoie.*
 
+**Version 1.8.0** — le vocabulaire du **cycle F3, le cœur métier de la réception**. Ajoutée au
+fil des écrans qu'elle sert, **dans le changement qui livre chacun** — jamais d'avance : une entrée
+écrite pour un écran qui n'existe pas est une entrée que personne ne relit.
+
+- **« Vue du jour »** et sa route `/jour` — le titre vient des documents opposables, qui font foi.
+- **« Garder la chambre »** et « Tenue jusqu'à {heure} », avec l'interdiction de « réserver » : le
+  mot promettrait un engagement que **quinze minutes** ne portent pas, et il collerait à `RSV`, qui
+  est un autre produit.
+- **« Le planning »** et sa route `/planning` — ⛔ « Calendrier », qui suggère des journées, alors
+  que c'est justement ce que cet écran n'est pas.
+
 **Version 1.7.0** — le vocabulaire du cycle PDV : la **commande**, la **ligne**, l'**addition**,
 l'**article**, la **destination**, l'**envoi en préparation**, la **remise**, la **part**, le **bon
 de dépôt**, la **pièce**, le **numéro de retrait**, et les **onze refus** que le cycle produit.
@@ -119,6 +130,7 @@ Le produit manipule des concepts fiscaux et techniques réels. L'utilisateur ne 
 | Écriture **définitivement refusée** par le serveur | « **Cette saisie a été refusée** » / *This entry was refused* **suivi du motif en clair et de ce qui reste possible.** Même patron que l'échec de certification : on dit qui refuse et pourquoi, jamais « erreur » seul. Ne jamais employer « rejet », « échec de synchronisation » ni un code |
 | **Dérive d'horloge** au-delà du seuil | **Deux formes, une par sens** — « **L'heure de cet appareil retarde de {n} minutes.** » / *This device's clock is {n} minutes behind.* ou « **L'heure de cet appareil avance de {n} minutes.** » / *This device's clock is {n} minutes ahead.*, suivies **dans les deux cas** de « **Les durées et les montants restent calculés sur l'heure du serveur.** » / *Durations and amounts are still calculated from the server's time.* — **la seconde phrase est obligatoire** : sans elle, l'exploitant croira ses passages mal facturés, alors que l'horodatage d'autorité les protège (principe IV). **Les deux sens sont dus** : la détection porte sur la **valeur absolue** de l'écart (SYN-04), et une horloge en avance est aussi fausse qu'une horloge en retard — une seule forme laisserait la moitié des cas sans phrase |
 | Titre de l'écran `S1` — panneau de synchronisation | « **Mes envois** » / *My uploads* — jamais « Synchronisation », le mot est proscrit par la ligne ci-dessus. Court, possessif : c'est son travail qui est en jeu, pas un mécanisme. **La route de la page suit le titre** (`/mes-envois`) : une URL est visible dans la barre d'adresse, et le mot proscrit ne s'y invite pas par la porte du nom de fichier |
+| Titre et route de l'écran `R2` | « **Vue du jour** » / *Day view* — route **`/jour`**. ⚠️ **Le titre ne change pas** : `docs/design/derivation.md` et `app/core/ecrans/index.ts` le portent déjà, et l'index précise que son titre est « en clair pour le produit » — ce n'est donc pas un nom interne. « Le jour » a été proposé puis **écarté à l'analyse de cohérence du 2026-08-08** : renommer aurait touché deux documents opposables pour gagner deux mots, et laissé trois documents à deux noms le temps de l'oubli. ⛔ **« Tableau de bord »**, qui promet des chiffres de direction quand cet écran dit où en est la maison maintenant |
 | Attestation d'intégrité, enrôlement | « Téléphones autorisés » |
 | `note_etablissement` | « **Note interne** » / *Internal note* — jamais « note d'établissement » : le §6 pose déjà que l'utilisateur est toujours dans le sien, le mot serait superflu sur un bouton |
 | `capacite` | **N'apparaît jamais.** Le mot est un terme d'architecture — il nomme le transverse (stock, livraison, fidélité) par opposition au module d'activité. L'utilisateur ne voit que la **capacité concrète**, sous le service qui la consomme |

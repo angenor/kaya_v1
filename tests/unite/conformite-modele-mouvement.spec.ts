@@ -4,6 +4,7 @@ import {
   ETATS_NOTE,
   ETATS_SEJOUR,
   MOTIFS_OCCUPATION,
+  STATUTS_MENAGE,
   STATUTS_OCCUPATION,
   TYPES_LIGNE_SEJOUR,
   type Accompagnant,
@@ -239,6 +240,17 @@ describe('les énumérations portent les valeurs EXACTES du SQL', () => {
   it('note_sejour : deux états, et ARRETEE est irréversible', () => {
     expect([...ETATS_NOTE].sort()).toEqual(
       valeursDuCheck(HEBERGEMENT, 'ck_note_sejour_etat').sort(),
+    )
+  })
+
+  it('unite : TROIS statuts de ménage, et le cycle F1 en déclarait quatre', () => {
+    // ⚠️ L'ÉCART ÉTAIT RÉEL, ET IL A DURÉ DEUX CYCLES : `EN_NETTOYAGE` et
+    // `HORS_SERVICE` n'existent pas en base — l'`INSERT` aurait échoué sur
+    // `ck_unite_statut_menage`. Il est passé parce que le test de conformité
+    // comparait les NOMS DE COLONNES sans jamais lire les CONTRAINTES. Cette
+    // assertion est ce qui manquait.
+    expect([...STATUTS_MENAGE].sort()).toEqual(
+      valeursDuCheck(HEBERGEMENT, 'ck_unite_statut_menage').sort(),
     )
   })
 

@@ -32,7 +32,20 @@ export interface Categorie {
   readonly actif: boolean
 }
 
-export const STATUTS_MENAGE = ['PROPRE', 'A_NETTOYER', 'EN_NETTOYAGE', 'HORS_SERVICE'] as const
+/**
+ * ⚠️ **TROIS VALEURS, ET PAS UNE DE PLUS** — celles de
+ * `ck_unite_statut_menage`. Le cycle F1 en déclarait **quatre**, dont
+ * `EN_NETTOYAGE` et `HORS_SERVICE` que la base **refuse** : l'écart est passé
+ * parce que le test de conformité comparait les noms de colonnes sans lire les
+ * contraintes. *Corrigé au cycle F3, dès que le premier écran a eu à rendre un
+ * statut — et un test lit désormais le `CHECK`.*
+ *
+ * ⚠️ **`MAINTENANCE` EST UN ÉTAT DE MÉNAGE — « la chambre attend un
+ * plombier » —, JAMAIS UNE INDISPONIBILITÉ.** Celle-là est une occupation, de
+ * motif `MAINTENANCE` ou `BLOCAGE`. Les confondre produirait deux mécanismes de
+ * disponibilité concurrents, donc des doubles attributions.
+ */
+export const STATUTS_MENAGE = ['PROPRE', 'A_NETTOYER', 'MAINTENANCE'] as const
 export type StatutMenage = (typeof STATUTS_MENAGE)[number]
 
 /** ← `hebergement.unite` — « chambre », « logement » ou « salle » à l'écran. */
