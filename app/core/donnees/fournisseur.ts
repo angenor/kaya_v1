@@ -4,8 +4,8 @@ import { simulationComptes } from '~/core/donnees/comptes/simulation'
 import type { DonneesComptes } from '~/core/donnees/comptes/interface'
 import { simulationEtablissements } from '~/core/donnees/etablissements/simulation'
 import type { DonneesEtablissements } from '~/core/donnees/etablissements/interface'
-import { simulationHebergement } from '~/core/donnees/hebergement/simulation'
-import type { DonneesHebergement } from '~/core/donnees/hebergement/interface'
+import { simulationHebergement, simulationReception } from '~/core/donnees/hebergement/simulation'
+import type { DonneesHebergement, DonneesReception } from '~/core/donnees/hebergement/interface'
 import { simulationVentes } from '~/core/donnees/ventes/simulation'
 import type { DonneesVentes } from '~/core/donnees/ventes/interface'
 
@@ -25,6 +25,16 @@ export interface Fournisseur {
   readonly etablissements: DonneesEtablissements
   readonly comptes: DonneesComptes
   readonly hebergement: DonneesHebergement
+  /**
+   * ★ Ajouté au cycle F3 — **le mouvement**, distinct du référentiel.
+   *
+   * ⚠️ **DEUX ENTRÉES POUR UN MÊME SCHÉMA, ET C'EST VOULU.** `hebergement` dit
+   * ce qui EXISTE — chambres, formules, barèmes ; `reception` dit ce qui se
+   * PASSE. En phase 3, ce sont deux familles d'endpoints qui basculeront à des
+   * dates différentes : le référentiel est en lecture seule et se cache, le
+   * mouvement s'écrit et ne se cache jamais.
+   */
+  readonly reception: DonneesReception
   readonly ventes: DonneesVentes
   /** ★ Ajouté au cycle F2 — les cinq rubriques de `R1`, une source chacune. */
   readonly accueil: DonneesAccueil
@@ -34,6 +44,7 @@ const FOURNISSEUR_SIMULE: Fournisseur = {
   etablissements: simulationEtablissements,
   comptes: simulationComptes,
   hebergement: simulationHebergement,
+  reception: simulationReception,
   ventes: simulationVentes,
   accueil: simulationAccueil,
 }
