@@ -24,6 +24,13 @@
  * écrasait la tuile unique sur un quart de la largeur, ce qui la rendait
  * illisible pour la seule variante qui n'a pas de tables au jeu.
  *
+ * ⚠️ ET LA TUILE EST **BORNÉE DES DEUX CÔTÉS**, ce qu'un flux enroulé ne fait
+ * pas tout seul — constaté en déroulant `quickstart.md` §2.2. Sans plancher,
+ * « Table 6 » se coupait en deux dès que sa pastille portait « À régler » ;
+ * sans plafond, la neuvième table, seule sur sa rangée, s'étirait sur toute la
+ * largeur de l'écran et ne ressemblait plus aux huit autres. Une salle se lit
+ * parce que ses tables se ressemblent.
+ *
  * ⚠️ ET UNE TABLE LIBRE PASSE SUR `bg-tile`, SANS OMBRE. La maquette la pose en
  * retrait : ce qui est libre n'appelle pas le regard, ce qui est occupé si.
  * C'est le fond qui le dit, en plus de la pastille — jamais la couleur seule.
@@ -68,13 +75,20 @@ function montantEcrit(ligne: LigneSuiteAccueil): string | null {
       :key="ligne.id"
       type="button"
       data-mouvement="tactile"
-      class="flex min-h-20 min-w-38 flex-1 cursor-pointer flex-col items-start justify-between gap-2.5 rounded-xl border border-line px-4 py-3.5 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
+      class="flex min-h-20 min-w-52 max-w-80 flex-1 cursor-pointer flex-col items-start justify-between gap-2.5 rounded-xl border border-line px-4 py-3.5 text-left transition-[transform,border-color] duration-90 ease-entree hover:border-prim active:scale-98"
       :class="ligne.montant === null ? 'bg-tile' : 'bg-surf'"
       :data-table="ligne.id"
       @click="$emit('activer', ligne)"
     >
       <span class="flex w-full items-start justify-between gap-3">
-        <span class="font-titre text-titre-s font-semibold text-ink">{{ ligne.libelle }}</span>
+        <!-- ⚠️ **LE NOM DE LA TABLE NE SE COUPE PAS**, et c'est un constat de
+             capture : à `min-w-38`, « Table 6 » passait sur deux lignes dès que
+             sa pastille portait « À régler ». Un repère qui se casse en deux
+             cesse d'être lu d'un coup d'œil — or c'est tout ce qu'on demande à
+             une grille de salle : reconnaître la table sans lire. -->
+        <span class="font-titre text-titre-s font-semibold whitespace-nowrap text-ink">{{
+          ligne.libelle
+        }}</span>
         <!-- ⚠️ LA PASTILLE REMPLACE L'ICÔNE, et elle porte une FORME autant
              qu'une couleur : en niveaux de gris comme en plein soleil, les six
              états restent distincts. -->

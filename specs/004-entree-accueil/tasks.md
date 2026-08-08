@@ -239,9 +239,9 @@ d'établissement · **10** témoin d'envoi · **03** bouton discret.
 - [X] T070 Inscrire à `docs/design/derivation.md` **tout écran découvert à l'implémentation**, avec la mention « découvert à l'implémentation, à valider », les composants employés, et — s'il tombe en **zone de vitesse** — la mention **« à maquetter avant le pilote »**. *Le risque n'est pas d'inventer un écran, c'est de l'inventer en silence*
 - [X] T071 Vérifier que `app/core/ecrans/index.ts` reflète l'avancement réel — c'est la **source unique** : la page la rend, la porte P-04 la lit, et la mention de `R1` s'y adosse
 - [X] T072 Lancer **`scripts/verifier.sh`** — les préalables et les six portes. Vert exigé (SC-012). Le script est **inchangé** : aucune porte nouvelle, donc aucun test négatif à ajouter, et c'est la meilleure preuve que le cycle n'a rien contourné
-- [ ] T073 Dérouler `quickstart.md` §2 **à la main**, dont §2.2 — *l'accueil de Yao a-t-il l'air conçu pour un maquis, ou d'un hôtel amputé ?* Le contrôle mécanique prouve l'absence des mots, **jamais le jugement d'usage**
-- [ ] T074 Écrire `specs/004-entree-accueil/rapport-de-cycle.md` — **ce que les portes ne couvrent pas** : le jugement d'usage sur le maquis, d'où viendra le poste (F4), l'alignement de `R4` et `R7` (F3), le régime mobile (F4), et l'absence d'essai sur appareil réel
-- [ ] T075 **Revue de la Definition of Done** (`docs/user-stories-v1.md` §0.4), point par point. Les points **2, 3, 4, 5, 6, 10, 13** se déclarent **« sans objet »** — phases 1 et 3 —, **jamais cochés en silence**. Les points **1, 7, 8, 9, 11, 12, 14** sont dus et vérifiés
+- [X] T073 Dérouler `quickstart.md` §2 **à la main**, dont §2.2 — *l'accueil de Yao a-t-il l'air conçu pour un maquis, ou d'un hôtel amputé ?* Le contrôle mécanique prouve l'absence des mots, **jamais le jugement d'usage**
+- [X] T074 Écrire `specs/004-entree-accueil/rapport-de-cycle.md` — **ce que les portes ne couvrent pas** : le jugement d'usage sur le maquis, d'où viendra le poste (F4), l'alignement de `R4` et `R7` (F3), le régime mobile (F4), et l'absence d'essai sur appareil réel
+- [X] T075 **Revue de la Definition of Done** (`docs/user-stories-v1.md` §0.4), point par point. Les points **2, 3, 4, 5, 6, 10, 13** se déclarent **« sans objet »** — phases 1 et 3 —, **jamais cochés en silence**. Les points **1, 7, 8, 9, 11, 12, 14** sont dus et vérifiés
 
 ---
 
