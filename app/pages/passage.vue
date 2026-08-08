@@ -501,7 +501,7 @@ watch(
         data-rubrique="chambres"
       >
         <div class="flex flex-col gap-1">
-          <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.chambresTitre') }}</span>
+          <span class="text-etiquette uppercase text-ink-3 font-bold">{{ $t('passage.chambresTitre') }}</span>
           <span class="text-mini text-ink-3">{{ $t('passage.chambresAide') }}</span>
         </div>
         <!-- ⚠️ **UN BLOC PAR ÉTAGE, ET C'EST LE PLAN DE LA MAISON.** Une

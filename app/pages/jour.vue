@@ -138,7 +138,7 @@ watch(
         data-rubrique="chambres"
         :data-etat="jour.etat"
       >
-        <span class="text-etiquette uppercase text-ink-3">{{ $t('jour.chambresTitre') }}</span>
+        <span class="text-etiquette uppercase text-ink-3 font-bold">{{ $t('jour.chambresTitre') }}</span>
         <Squelette
           v-if="jour.etat === 'chargement'"
           variante="carte"
