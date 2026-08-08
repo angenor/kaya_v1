@@ -1,5 +1,7 @@
 import { echec, reussite, type PorteeLecture, type ResultatDomaine } from '~/core/donnees/contrat'
+import { CLE_SEUIL_RECHERCHE_NOM, CLE_SEUIL_RECHERCHE_NUMERO, lireParametreEntier } from '~/core/configuration/configuration'
 import type {
+  ClientTrouve,
   DemandeGarde,
   DemandePassage,
   DonneesHebergement,
@@ -168,6 +170,84 @@ export const simulationReception: DonneesReception = {
       }))
     }, [])
   },
+
+  rechercherClients(
+    portee: PorteeLecture,
+    critere: string,
+  ): Promise<ResultatDomaine<readonly ClientTrouve[]>> {
+    void portee
+    return lireSimule(() => {
+      const cherche = critere.trim()
+      if (cherche.length === 0) return []
+
+      // ⚠️ **DEUX SEUILS, PARCE QU'UN NOM ET UN NUMÉRO NE SE CHERCHENT PAS
+      // PAREIL.** Trois lettres distinguent un nom ; trois chiffres ne
+      // distinguent rien dans un fichier de numéros, et rendraient une liste
+      // que personne ne lit. Les deux viennent du catalogue.
+      const chiffresSeuls = /^[+\d\s.-]+$/.test(cherche)
+      const seuil = chiffresSeuls
+        ? lireParametreEntier(CLE_SEUIL_RECHERCHE_NUMERO, 4)
+        : lireParametreEntier(CLE_SEUIL_RECHERCHE_NOM, 3)
+      const normalise = normaliserPourRecherche(cherche)
+      if (normalise.length < seuil) return []
+
+      // ⚠️ **LA JOINTURE FILTRE, ET C'EST ELLE QUI PROTÈGE LE PERSONNEL.** On
+      // part des CLIENTS, pas des personnes : chercher « Kouamé » à la
+      // réception ne doit pas montrer la femme de ménage.
+      const parPersonne = new Map(deloria.personnesClientes.map((p) => [p.id, p]))
+      return deloria.clients.flatMap((client) => {
+        const personne = parPersonne.get(client.personneId)
+        if (personne === undefined) return []
+        const telephone = deloria.telephonesClients[client.id] ?? null
+        const champs = [
+          normaliserPourRecherche(personne.nomNormalise),
+          normaliserPourRecherche(personne.numeroPiece ?? ''),
+          (telephone ?? '').replace(/\D/g, ''),
+        ]
+        if (!champs.some((champ) => champ.length > 0 && champ.includes(normalise))) return []
+        return [{ client, personne, telephone, ...historiqueDe(client.id) }]
+      })
+    }, [])
+  },
+}
+
+/**
+ * NORMALISER POUR CHERCHER — accents ôtés, casse ôtée, espaces ôtés.
+ *
+ * ⚠️ **« Kouamé » ET « kouame » SONT LE MÊME NOM**, et une réceptionniste qui
+ * tape vite ne pose pas d'accent. Sans cette normalisation, la recherche
+ * échouerait précisément sur les noms ivoiriens qu'elle sert.
+ */
+function normaliserPourRecherche(valeur: string): string {
+  return valeur
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s.+-]/g, '')
+}
+
+/**
+ * L'HISTORIQUE D'UN CLIENT — **le compte des séjours et la chambre habituelle**.
+ *
+ * ⚠️ **L'HABITUDE SE CALCULE, ELLE NE S'AFFIRME PAS.** Une chambre revenue une
+ * seule fois n'est pas une habitude ; deux séjours au même endroit sur trois en
+ * sont une. Le seuil est écrit ici parce qu'il décrit **ce qu'on appelle une
+ * habitude**, pas un paramètre d'exploitation.
+ */
+function historiqueDe(clientId: string): {
+  readonly sejoursPasses: number
+  readonly uniteHabituelleId: string | null
+} {
+  const siens = mouvement().sejours.filter((sejour) => sejour.clientId === clientId)
+  const parUnite = new Map<string, number>()
+  for (const sejour of siens) {
+    parUnite.set(sejour.uniteId, (parUnite.get(sejour.uniteId) ?? 0) + 1)
+  }
+  const meilleure = [...parUnite.entries()].sort((a, b) => b[1] - a[1])[0]
+  return {
+    sejoursPasses: siens.length,
+    uniteHabituelleId: meilleure !== undefined && meilleure[1] >= 2 ? meilleure[0] : null,
+  }
 }
 
 /**

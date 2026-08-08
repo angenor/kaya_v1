@@ -42,6 +42,22 @@ export const CLE_INDICATIF_TELEPHONIQUE_DEFAUT = 'identite.indicatif_telephoniqu
 export const CLE_DUREE_GARDE_COMPTOIR = 'heb.duree_garde_comptoir_minutes'
 
 /**
+ * LES DEUX SEUILS DE DÉCLENCHEMENT DE LA RECHERCHE CLIENT — cycle F3.
+ *
+ * ⚠️ **DEUX SEUILS, PARCE QU'UN NOM ET UN NUMÉRO NE SE CHERCHENT PAS PAREIL.**
+ * Trois lettres suffisent à distinguer un nom ; trois chiffres ne distinguent
+ * rien dans un fichier de numéros de téléphone, et rendraient une liste que
+ * personne ne lit. **Décidés au cycle F3** — le Récapitulatif ne les portait
+ * pas —, et **inscrits au Récapitulatif dans le même changement**.
+ *
+ * ⚠️ **ET CE SONT DES PARAMÈTRES, PAS DES CONSTANTES** : le fichier client d'un
+ * hôtel de douze chambres et celui d'une résidence de deux cents n'appellent
+ * pas le même seuil.
+ */
+export const CLE_SEUIL_RECHERCHE_NOM = 'heb.seuil_recherche_nom_caracteres'
+export const CLE_SEUIL_RECHERCHE_NUMERO = 'heb.seuil_recherche_numero_chiffres'
+
+/**
  * Les valeurs initiales, par clé.
  *
  * ⚠️ « VALEUR INITIALE » ET NON « CONSTANTE ». La nuance décide de tout : une
@@ -59,6 +75,8 @@ const VALEURS_INITIALES: Readonly<Record<string, string>> = {
   // 15 min — valeur initiale du Récapitulatif, celle qu'un établissement voit
   // avant d'avoir réglé quoi que ce soit.
   [CLE_DUREE_GARDE_COMPTOIR]: '15',
+  [CLE_SEUIL_RECHERCHE_NOM]: '3',
+  [CLE_SEUIL_RECHERCHE_NUMERO]: '4',
 }
 
 /** Les surcharges posées en session — le panneau Scénarios les emploie. */

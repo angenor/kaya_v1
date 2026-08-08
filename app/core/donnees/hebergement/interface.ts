@@ -1,7 +1,9 @@
+import type { Personne } from '~/core/donnees/comptes/types'
 import type { PorteeLecture, ResultatDomaine } from '~/core/donnees/contrat'
 import type {
   BaremePalier,
   Categorie,
+  Client,
   Formule,
   Intervalle,
   Occupation,
@@ -93,6 +95,47 @@ export interface DonneesReception {
     depuis: string,
     limite: number,
   ): Promise<ResultatDomaine<readonly Liberation[]>>
+
+  /**
+   * Par **nom, téléphone ou numéro de pièce**.
+   *
+   * ⚠️ **ELLE LIT DEUX DOMAINES**, et c'est voulu : `hebergement.client` porte
+   * la qualité de client, `comptes.personne` porte le nom, les prénoms et la
+   * pièce. **Aucune donnée d'identité n'est dupliquée** — la purge de rétention
+   * (TRX-06) n'a ainsi qu'une cible.
+   *
+   * ⚠️ **ET UNE PERSONNE NON QUALIFIÉE CLIENTE NE REMONTE JAMAIS.** Chercher
+   * « Kouamé » à la réception ne doit pas montrer la femme de ménage : c'est la
+   * table `client` qui qualifie, et la jointure qui filtre.
+   */
+  rechercherClients(
+    portee: PorteeLecture,
+    critere: string,
+  ): Promise<ResultatDomaine<readonly ClientTrouve[]>>
+}
+
+/**
+ * UN CLIENT TROUVÉ — **une composition du modèle, pas une vue d'écran**.
+ *
+ * ⚠️ En phase 3, l'endpoint rendra la même composition ; c'est ce qui rend le
+ * branchement mécanique. Un type taillé pour `R4` aurait obligé `R5` à en
+ * demander un second.
+ */
+export interface ClientTrouve {
+  readonly client: Client
+  readonly personne: Personne
+  /** Le téléphone, quand il est connu. */
+  readonly telephone: string | null
+  /** Le nombre de séjours passés — **le 7ᵉ passage se compte, il ne s'affirme pas**. */
+  readonly sejoursPasses: number
+  /**
+   * SA CHAMBRE HABITUELLE — **calculée**, `null` quand il n'y a pas d'habitude.
+   *
+   * ⚠️ Une chambre proposée **avec son motif** se vérifie d'un coup d'œil ; la
+   * même sans motif se subit. Et une « habitude » inventée à partir d'un seul
+   * séjour n'en est pas une.
+   */
+  readonly uniteHabituelleId: string | null
 }
 
 /**
