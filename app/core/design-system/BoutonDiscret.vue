@@ -28,6 +28,12 @@
  *
  * ⚠️ L'ÉTAT ACTIF D'UN FILTRE EST `bg-prim-soft text-prim` — PAS un fond plein,
  * qui en ferait un bouton principal.
+ *
+ * ⚠️ **UN LIBELLÉ D'ACTION NE SE COUPE JAMAIS EN DEUX LIGNES.** « Passer la
+ * main » se rendait sur deux lignes dans la barre d'en-tête dès que les réglages
+ * prenaient de la place — constaté sur une capture. Une action qu'on lit en deux
+ * temps se rate : le geste est court, son nom doit l'être aussi, et si la place
+ * manque c'est la mise en page qui cède, jamais le mot.
  */
 withDefaults(
   defineProps<{
@@ -79,7 +85,7 @@ defineEmits<{ activer: [] }>()
     :aria-label="!libelleCle && icone ? icone : undefined"
     data-composant-03
     data-mouvement="tactile"
-    class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-titre text-mini font-semibold transition-colors duration-90 active:scale-97"
+    class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md font-titre text-mini font-semibold whitespace-nowrap transition-colors duration-90 active:scale-97"
     :class="[
       libelleCle ? 'h-9 px-3.5' : 'size-11',
       contour

@@ -21,6 +21,15 @@
  * garde lit `useFile().enAttente`, qui est en mémoire : aucune attente, aucune
  * course.
  *
+ * ⚠️ **AUCUN PLAFOND DE LARGEUR, ET C'EST UN CONSTAT DE MESURE.** Le bloc portait
+ * `max-w-64` puis `max-w-80` : il était donc coupé **à 320 px pendant qu'il
+ * restait 124 px libres dans la barre** — « Gérant · Caissier · Réceptionniste »
+ * se lisait « Gérant · Caissier · … » sur un écran de 1440 px. Ce que la
+ * personne FAIT est la seconde ligne de la maquette ; l'amputer par précaution
+ * revient à ne jamais l'afficher. La troncature reste — `min-w-0` et `truncate`
+ * la gardent — mais elle survient quand **la place manque vraiment**, jamais
+ * avant.
+ *
  * ⚠️ CE QUE CE COMPOSANT NE FAIT PAS : nommer un rôle. « Gérante · Caisse » de
  * la maquette est **ce que la personne fait**, pas le nom de ses habilitations —
  * et les mots « rôle » et « permission » n'atteignent jamais l'écran.
@@ -103,14 +112,19 @@ async function passerLaMain(): Promise<void> {
 <template>
   <div
     v-if="session.compteId"
-    class="hidden min-w-0 max-w-64 items-center gap-2.5 border-l border-line pl-3.5 md:flex"
+    class="hidden min-w-0 items-center gap-2.5 border-l border-line pl-3.5 md:flex"
     data-emplacement="identite"
   >
     <span
       class="inline-flex size-7 shrink-0 items-center justify-center rounded-pleine bg-prim-soft font-titre text-mini font-bold text-prim"
       aria-hidden="true"
     >{{ initiales }}</span>
-    <span class="flex min-w-0 flex-col">
+    <!-- ⚠️ **SOUS 1024 px, LE TEXTE SE RANGE — IL NE SE COUPE PAS.** Tronqué, il
+         rendait « A » et « G » : deux lettres qui n'apprennent rien et qui font
+         croire à un défaut. L'initiale de l'avatar dit déjà qui travaille, et
+         « Passer la main » reste atteignable. Ce qui disparaît est ce qui se
+         relit ailleurs, jamais ce qui se touche. -->
+    <span class="hidden min-w-0 flex-col lg:flex">
       <span
         class="truncate font-titre text-corps font-semibold text-ink"
         data-nom

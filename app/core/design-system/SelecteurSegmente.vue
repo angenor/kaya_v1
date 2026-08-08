@@ -29,6 +29,16 @@ export interface OptionSegment {
   readonly libelleCle: string
   /** Compteur facultatif, affiché à droite du libellé. Jamais à zéro. */
   readonly compteur?: number
+  /**
+   * Classe d'icône Phosphor, pour la variante `iconeSeule`.
+   *
+   * ⚠️ ELLE NE REMPLACE PAS LE LIBELLÉ, ELLE LE MET DE CÔTÉ : le mot reste dans
+   * le document — lisible par un lecteur d'écran, rendu en infobulle. Une icône
+   * dont le sens ne se lit nulle part est une devinette.
+   */
+  readonly icone?: string
+  /** Deux ou trois lettres, quand le mot entier ne tient pas — « FR », « EN ». */
+  readonly abrege?: string
 }
 
 const props = withDefaults(
@@ -36,8 +46,21 @@ const props = withDefaults(
     options: readonly OptionSegment[]
     etiquetteCle?: string
     taille?: 'normal' | 'comptoir'
+    /**
+     * ⚠️ **LA VARIANTE COMPACTE DE LA BARRE D'EN-TÊTE** — ajoutée au cycle F2 sur
+     * constat de capture. Trois libellés de thème et deux de langue occupaient à
+     * eux seuls le tiers de la barre : « Passer la main » passait sur deux
+     * lignes et les fonctions de la personne étaient tronquées à trois mots. Un
+     * réglage d'appareil ne doit pas écraser le repère d'orientation ni
+     * l'identité de qui travaille.
+     *
+     * ⚠️ ET LES OPTIONS RESTENT **TOUTES VISIBLES** — c'est la règle du §12, et
+     * elle tient : ce qui change est leur forme, pas leur nombre. Le mot demeure
+     * dans le document, en libellé accessible et en infobulle.
+     */
+    compact?: boolean
   }>(),
-  { etiquetteCle: undefined, taille: 'normal' },
+  { etiquetteCle: undefined, taille: 'normal', compact: false },
 )
 
 const valeur = defineModel<string>({ required: true })
@@ -68,16 +91,32 @@ if (import.meta.dev && props.options.length > 4) {
         type="button"
         role="radio"
         :aria-checked="valeur === option.valeur"
-        class="inline-flex cursor-pointer items-center gap-1.5 rounded-md font-titre font-semibold transition-colors duration-160 ease-deplace"
+        class="inline-flex cursor-pointer items-center gap-1.5 rounded-md font-titre font-semibold whitespace-nowrap transition-colors duration-160 ease-deplace"
         :class="[
-          taille === 'comptoir' ? 'h-12 px-5 text-lead' : 'h-8 px-4.5 text-mini',
+          taille === 'comptoir' ? 'h-12 px-5 text-lead' : 'h-8 text-mini',
+          taille === 'comptoir' ? '' : compact ? 'px-2.5' : 'px-4.5',
           valeur === option.valeur
             ? 'bg-prim text-prim-ink'
             : 'text-ink-2 hover:text-ink',
         ]"
+        :title="compact ? $t(option.libelleCle) : undefined"
         @click="valeur = option.valeur"
       >
-        {{ $t(option.libelleCle) }}
+        <!-- ⚠️ EN COMPACT, LE MOT NE DISPARAÎT PAS : il passe en libellé
+             accessible et en infobulle. Une icône seule dans le document serait
+             muette pour un lecteur d'écran, et devinée par tout le monde. -->
+        <i
+          v-if="compact && option.icone"
+          :class="['ph', option.icone, 'text-corps']"
+          aria-hidden="true"
+        />
+        <span
+          v-if="compact && option.abrege"
+          aria-hidden="true"
+        >{{ option.abrege }}</span>
+        <span :class="compact && (option.icone || option.abrege) ? 'sr-only' : undefined">{{
+          $t(option.libelleCle)
+        }}</span>
         <span
           v-if="option.compteur"
           class="font-mono text-mini"

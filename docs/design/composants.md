@@ -289,6 +289,20 @@ durée du passage sont la variante tactile du même composant : `h-12`, `text-le
 marque de sélection (rond plein cerclé du fond). La bascule se fait en courbe
 **déplacement**, jamais en élastique.
 
+> **Variante compacte — ajoutée au cycle F2, sur constat de capture.** Dans la barre d'en-tête,
+> « Clair · Sombre · Comme l'appareil » et « Français · English » occupaient à eux deux **le tiers
+> de la largeur** : « Passer la main » passait sur deux lignes et ce que la personne fait était
+> tronqué à trois mots. En compact, chaque option rend une **icône** — soleil, lune, appareil — ou
+> un **code de deux lettres** — `FR`, `EN`.
+>
+> ⚠️ **Les options restent TOUTES VISIBLES** : c'est la règle du §12, et ce qui change est leur
+> forme, pas leur nombre. ⚠️ **Et le mot ne disparaît pas du document** — il passe en libellé
+> accessible et en infobulle. Une icône dont le sens ne se lit nulle part est une devinette ;
+> muette pour un lecteur d'écran, elle l'est pour tout le monde.
+>
+> ⛔ **Pas d'icône pour une langue.** Un drapeau désigne un pays, jamais une langue : le français
+> d'Abidjan n'est pas celui de Paris. Le code à deux lettres est ce que tout le monde lit.
+
 ## 13 · Squelette de chargement
 
 **Rôle.** Occuper la forme exacte de ce qui arrive, pour que rien ne saute.

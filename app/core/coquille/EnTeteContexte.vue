@@ -19,6 +19,14 @@
  * jamais un poste par défaut, jamais une liste : le segment **affirme un fait**,
  * et l'affirmer sans le savoir est un mensonge que six cycles hériteraient.
  *
+ * ⚠️ **L'ORDRE DE DÉGRADATION EST DÉCIDÉ, PAS SUBI.** Quand la barre se
+ * resserre, ce qui cède le fait dans cet ordre : d'abord **l'heure et la date**
+ * (masquées sous `lg`), puis **ce que la personne fait** (tronqué), et **jamais
+ * le sélecteur d'établissement ni le témoin d'envoi** — l'un est le repère
+ * d'orientation, l'autre dit si le travail est en sécurité. Sans cet ordre, une
+ * fenêtre de 940 px écrasait le sélecteur à zéro : on ne savait plus **où l'on
+ * était**, ce qui est exactement ce que la barre existe pour empêcher.
+ *
  * ⚠️ ET IL NE CHANGE **JAMAIS** DE CONTEXTE TOUT SEUL. Une alerte venue d'un
  * autre établissement remonte en pastille sur le sélecteur fermé ; elle ne
  * bascule rien. *Un changement de contexte non demandé fait saisir une
@@ -195,7 +203,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
     <div
       v-if="!sansEtablissement"
       data-emplacement="etablissement"
-      class="flex min-w-0 items-center gap-3.5"
+      class="flex min-w-0 shrink-0 items-center gap-3.5"
     >
       <SelecteurEtablissement
         :etablissements="affichables"
@@ -211,7 +219,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
          Le composant le plus important du produit. -->
     <div
       data-emplacement="temoin"
-      class="flex items-center"
+      class="flex shrink-0 items-center"
     >
       <TemoinSynchronisation
         :etat="etatReseau"
@@ -223,7 +231,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
     <!-- L'heure et la date, au fuseau de l'établissement. -->
     <div
       data-emplacement="instant"
-      class="hidden flex-col items-end sm:flex"
+      class="hidden shrink-0 flex-col items-end lg:flex"
     >
       <span
         class="font-mono text-corps whitespace-nowrap text-ink"
@@ -243,7 +251,7 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
          c'est pourquoi ils sont ici et pas dans G1. -->
     <div
       data-emplacement="reglages"
-      class="flex items-center gap-1.5 border-l border-line pl-3.5"
+      class="flex shrink-0 items-center gap-1.5 border-l border-line pl-3.5"
     >
       <ReglagesCoquille />
       <!-- ⚠️ L'ACCROCHE DU PANNEAU SCÉNARIOS EST PERMANENTE, ET SANS ELLE ON
