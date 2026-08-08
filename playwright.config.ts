@@ -22,6 +22,21 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   retries: 0,
+
+  /**
+   * ⚠️ SOIXANTE SECONDES, ET LE MOTIF EST MESURÉ. Les deux parcours de bout en
+   * bout durent **24 secondes chacun** lancés seuls : treize pas, deux moteurs,
+   * des leviers qui se posent et se reprennent. Sous la matrice complète, où
+   * cinq passages se disputent la même machine, la marge de 30 secondes tombait
+   * — et le test rougissait sur la **charge du poste**, jamais sur un défaut du
+   * produit. Un délai qu'on frôle est un délai qui ment un jour sur deux.
+   *
+   * ⚠️ CE N'EST PAS UNE INDULGENCE SUR LA LENTEUR DU PRODUIT : aucune attente de
+   * cette suite n'est un `waitForTimeout`. Ce qui prend du temps, ce sont les
+   * navigations réelles et les latences que le panneau Scénarios impose
+   * volontairement.
+   */
+  timeout: 60_000,
   reporter: process.env.KAYA_RAPPORT_PLAYWRIGHT === 'liste' ? 'list' : [['line']],
   outputDir: '.rapports/navigateur',
 

@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { nomDuTheme } from './outils/mesures'
+import {
+  DELORIA,
+  MAQUIS,
+  ouvrirLAccueil,
+  poserLeContexte as poserLeContexteAuPanneau,
+} from './outils/panneau'
 
 /**
  * **LES QUATRE ACCUEILS MAQUETTÉS**, obtenus par le contexte et **jamais par une
@@ -19,9 +25,6 @@ import { nomDuTheme } from './outils/mesures'
  *
  * Quatre passages : Chromium × WebKit, clair × sombre.
  */
-
-const DELORIA = 'deloria-etablissement'
-const MAQUIS = 'tantie-adjo-etablissement'
 
 /** Les quatre variantes, telles que `quickstart.md` §2.2 les nomme. */
 const VARIANTES = [
@@ -72,30 +75,21 @@ const VARIANTES = [
   },
 ] as const
 
-/** Choisit compte et établissement au panneau Scénarios — comme un relecteur. */
+/**
+ * Pose le contexte au panneau, puis ouvre l'accueil.
+ *
+ * ⚠️ LES DEUX GESTES VIENNENT DE `outils/panneau.ts`, PARTAGÉ AVEC LA SUITE DES
+ * ÉTATS DÉGRADÉS. Ils étaient écrits ici en toutes lettres ; la seconde suite
+ * en aurait fait une copie, et deux copies d'une même manœuvre divergent — c'est
+ * toujours la plus faible qu'on croit.
+ */
 async function poserLeContexte(
   page: Page,
   compteId: string,
   etablissementId: string,
 ): Promise<void> {
-  await page.goto('/_scenarios', { waitUntil: 'networkidle' })
-  await page.locator('[data-levier="compte"] select').selectOption(compteId)
-  await page.locator('[data-levier="etablissement"] select').selectOption(etablissementId)
-
-  // ⚠️ ON ATTEND QUE LE CONTEXTE SOIT RÉSOLU AVANT DE NAVIGUER, ET CE N'EST PAS
-  // UNE PRÉCAUTION D'ÉCRITURE. `appliquerContexte` résout les permissions et
-  // persiste en IndexedDB — deux opérations asynchrones. Naviguer pendant qu'un
-  // module se charge fait échouer l'import sur **WebKit** (« Importing a module
-  // script failed »), et le test rougissait alors sur un artefact de course,
-  // jamais sur un défaut du produit. Le panneau affiche le compte résolu : on
-  // attend qu'il le dise.
-  await expect(page.locator('[data-ecran="scenarios"]')).toContainText(compteId)
-
-  await page.goto('/', { waitUntil: 'networkidle' })
-  await expect(page.locator('[data-ecran="R1"]')).toBeVisible()
-  // La composition est asynchrone : on attend qu'aucune rubrique ne soit plus
-  // en chargement, plutôt qu'un délai fixe qui rougirait selon la machine.
-  await expect(page.locator('[data-rubrique][data-etat="chargement"]')).toHaveCount(0)
+  await poserLeContexteAuPanneau(page, compteId, etablissementId)
+  await ouvrirLAccueil(page)
 }
 
 for (const schema of ['light', 'dark'] as const) {

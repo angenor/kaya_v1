@@ -84,6 +84,16 @@ const affichables = computed<readonly EtablissementAffichable[]>(() => {
   ]
 })
 
+/**
+ * ⚠️ UN COMPTE SANS AUCUN ÉTABLISSEMENT, LU SUR LA **PORTÉE** ET NON SUR LA
+ * LISTE. La liste arrive après une lecture ; la portée est connue dès la
+ * reprise. Attendre la liste ferait apparaître le sélecteur une fraction de
+ * seconde après le reste de la barre, à chaque navigation.
+ */
+const sansEtablissement = computed(
+  () => session.value.compteId !== null && session.value.portee === null,
+)
+
 /** Ce que le sélecteur montre comme actif — la vue d'ensemble a son entrée. */
 const actifId = computed(() =>
   session.value.portee?.type === 'tous' ? PORTEE_TOUS : (etablissementActif.value?.id ?? null),
@@ -176,7 +186,14 @@ const dateLongue = computed(() => formaterDateLongue(maintenant.value, contexteI
          Sa liste vient des ÉTABLISSEMENTS OÙ CE COMPTE A DES DROITS : avec un
          seul, il perd son chevron et cesse d'être un bouton — un bouton qui
          n'ouvre rien apprend à ne plus cliquer. -->
+    <!-- ⚠️ **SANS RATTACHEMENT, PAS DE SÉLECTEUR** (FR-024). Un compte sans
+         aucun établissement — l'administrateur éditeur — n'a pas de site à
+         afficher : le composant 09 rendrait alors une initiale sans nom, c'est-
+         à-dire un repère qui ne repère rien. La portée le dit **sans attendre
+         aucune lecture** : `null` avec un compte présent, c'est l'absence de
+         rattachement ; le sélecteur ne clignote donc pas au chargement. -->
     <div
+      v-if="!sansEtablissement"
       data-emplacement="etablissement"
       class="flex min-w-0 items-center gap-3.5"
     >

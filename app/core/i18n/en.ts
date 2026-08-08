@@ -131,6 +131,8 @@ export default {
     erreur: 'This part of the screen could not be loaded.',
     erreurAlternative: 'The rest of the screen is up to date. Nothing is lost.',
     reessayer: 'Try again',
+    sansEtablissement:
+      'No establishment is linked to you yet. Ask your manager to add you to one: you will then see here what is waiting for you.',
     teteVide: 'Nothing waiting for you right now. What comes up will appear here.',
     suiteVide: 'Nothing planned next. Arrivals and open tables will appear here.',
     aReglerVide: 'Nothing to sort out. Everything is sent and the till adds up.',
@@ -253,6 +255,7 @@ export default {
     jeuVide: "Empty dataset",
     compteActif: "Active account",
     etablissementActif: "Active establishment",
+    aucunEtablissement: "This account is not linked to any establishment.",
     actif: "On",
     inactif: "Off",
     essaiEcriture: "Write attempt",

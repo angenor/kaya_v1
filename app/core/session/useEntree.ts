@@ -1,7 +1,8 @@
 import { fournisseur } from '~/core/donnees/fournisseur'
 import { accepteHorsLigne, classeOuDefautStrict } from '~/core/file/classes'
 import { reglagesCourants } from '~/core/scenarios/reglages'
-import { useSession, type Session } from '~/core/session/useSession'
+import { contexteSansEtablissement, resoudreContexte } from '~/core/session/resoudreContexte'
+import { useSession } from '~/core/session/useSession'
 
 /**
  * ENTRER DANS L'APPLICATION — **la fonction d'appel**, et c'est elle qui porte
@@ -78,25 +79,20 @@ export function useEntree() {
      * choisi, elle, appartient au sélecteur (FR-032).
      */
     const premier = resultat.valeur.etablissements[0]
-    const portee: Session['portee'] =
-      premier === undefined ? null : { type: 'etablissement', id: premier.id }
 
-    // ⚠️ LES PERMISSIONS SONT RÉSOLUES POUR **CE SITE**, jamais héritées d'un
-    // autre : `resoudrePermissions` est la méthode de F1, inchangée — un droit
-    // détenu ailleurs ne suit pas la personne (FR-027). Le poste, lui, est
-    // DÉRIVÉ, et il vaut `null` dès qu'il y en a plus d'un.
-    let permissions: readonly string[] = []
-    let posteUnique: string | null = null
-    if (premier !== undefined) {
-      const [resolues, poste] = await Promise.all([
-        fournisseur().comptes.resoudrePermissions(resultat.valeur.compteId, premier.id),
-        fournisseur().comptes.posteUniqueSur(resultat.valeur.compteId, premier.id),
-      ])
-      if (resolues.ok) permissions = resolues.valeur
-      if (poste.ok) posteUnique = poste.valeur
-    }
+    // ⚠️ LES PERMISSIONS, LES MODULES ET LE POSTE SONT RÉSOLUS POUR **CE SITE**,
+    // jamais hérités d'un autre (FR-027) — et par la fonction que les trois
+    // chemins de contexte partagent, jamais par une copie propre à cet écran.
+    //
+    // ⚠️ ET UN COMPTE SANS AUCUN ÉTABLISSEMENT ENTRE QUAND MÊME (FR-024).
+    // L'administrateur éditeur a un rattachement `null` : lui refuser l'entrée
+    // ferait d'un cas prévu du modèle une panne, et `R1` dit ce qui manque.
+    const contexte =
+      premier === undefined
+        ? contexteSansEtablissement(resultat.valeur.compteId)
+        : await resoudreContexte(resultat.valeur.compteId, premier.id)
 
-    await definir({ compteId: resultat.valeur.compteId, portee, permissions, posteUnique })
+    await definir(contexte)
     return { entre: true }
   }
 

@@ -1,4 +1,3 @@
-import type { ModuleActivite } from '~/core/donnees/etablissements/types'
 import { useSession } from '~/core/session/useSession'
 
 /**
@@ -34,15 +33,9 @@ export interface ActionAutorisable {
 
 export function useAutorisation() {
   const { session } = useSession()
-  const modulesActifs = useState<readonly ModuleActivite[]>(
-    'kaya.autorisation.modulesActifs',
-    () => [],
-  )
 
-  /** Les modules actifs de l'établissement courant, tels qu'un écran les a lus. */
-  function definirModulesActifs(modules: readonly ModuleActivite[]): void {
-    modulesActifs.value = modules
-  }
+  /** Les modules actifs de la portée courante — **résolus avec le contexte**. */
+  const modulesActifs = computed<readonly string[]>(() => session.value.modulesActifs)
 
   function aLaPermission(code: string): boolean {
     return session.value.permissions.includes(code)
@@ -53,10 +46,17 @@ export function useAutorisation() {
    * `listerModulesActifs` ne rend QUE les actifs — l'interface de domaine ne
    * rend jamais un module inactif avec un drapeau, précisément pour qu'aucun
    * écran n'ait à décider lui-même, et n'en grise un.
+   *
+   * ⚠️ ET LA LISTE VIENT DE LA **SESSION**, PLUS D'UNE LECTURE D'ÉCRAN. Elle y
+   * est entrée au cycle F2, sur constat : quand la lecture échouait — réseau
+   * coupé —, cette fonction répondait « non » à tout, et les rubriques d'un
+   * service disparaissaient **sans un mot**, exactement comme si
+   * l'établissement ne l'offrait pas. Une panne ne doit pas ressembler à une
+   * configuration.
    */
   function serviceEstActif(moduleCode: string | null): boolean {
     if (moduleCode === null) return true
-    return modulesActifs.value.some((module) => module.code === moduleCode)
+    return session.value.modulesActifs.includes(moduleCode)
   }
 
   /** Les deux conditions, cumulées. C'est la seule question qu'un écran pose. */
@@ -69,5 +69,28 @@ export function useAutorisation() {
     return actions.filter((action) => autorise(action))
   }
 
-  return { modulesActifs, definirModulesActifs, aLaPermission, serviceEstActif, autorise, retenir }
+  /**
+   * LA MÊME RÈGLE, SUR UNE LISTE DE MODULES **DONNÉE**.
+   *
+   * ⚠️ ELLE EXISTE POUR UN SEUL APPELANT — l'inventaire `/_ecrans`, qui LIT les
+   * modules pour exercer les quatre états d'une surface qui lit. Sans elle, cet
+   * écran filtrerait sur la session pendant qu'il affiche l'état d'une autre
+   * lecture : il montrerait des actions sous un jeu vide qui n'en rend aucune.
+   *
+   * ⚠️ ET C'EST BIEN **UNE SEULE RÈGLE**, écrite une fois : `autorise` reste
+   * l'unique endroit où les deux conditions se cumulent. Une seconde
+   * implémentation « juste pour cet écran » aurait divergé au premier ajout.
+   */
+  function retenirAvec<T extends ActionAutorisable>(
+    actions: readonly T[],
+    modulesCodes: readonly string[],
+  ): T[] {
+    return actions.filter(
+      (action) =>
+        aLaPermission(action.permission) &&
+        (action.moduleCode === null || modulesCodes.includes(action.moduleCode)),
+    )
+  }
+
+  return { modulesActifs, aLaPermission, serviceEstActif, autorise, retenir, retenirAvec }
 }

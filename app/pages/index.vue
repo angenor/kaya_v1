@@ -115,9 +115,35 @@ watch(
     class="flex min-h-full w-full items-stretch"
     data-ecran="R1"
     :data-zone="zone"
+    :data-repli="accueil.repli ?? undefined"
   >
+    <!-- ⚠️ **UN COMPTE SANS AUCUN ÉTABLISSEMENT VOIT UN ACCUEIL QUI LE DIT**
+         (FR-024) — jamais un écran vide, jamais une erreur. Il n'y a rien à
+         composer : aucun site sur lequel lire. Cinq cadres vides se liraient
+         comme une panne de chargement, et un bandeau rouge comme un défaut ;
+         ce qui manque est un RATTACHEMENT, et la phrase le dit.
+         ⚠️ ET L'ÉCRAN N'A PAS DEUX COLONNES ICI : une colonne latérale sans
+         rien à surveiller est un reste de mise en page. Ce qui a un sens sans
+         site reste atteignable — l'en-tête porte l'identité, « Passer la
+         main », le thème et la langue. -->
+    <div
+      v-if="accueil.repli === 'sansEtablissement'"
+      class="flex min-w-0 flex-1 flex-col justify-center px-6 py-5.5"
+      data-bloc="sansEtablissement"
+    >
+      <h1 class="sr-only">
+        {{ $t('accueil.titre') }}
+      </h1>
+      <div class="mx-auto w-full max-w-140 overflow-hidden rounded-xl border border-line bg-surf">
+        <EtatVide message-cle="accueil.sansEtablissement" />
+      </div>
+    </div>
+
     <!-- ── LA COLONNE PRINCIPALE · ce qu'on FAIT ─────────────────────────── -->
-    <div class="flex min-w-0 flex-1 flex-col gap-4 px-6 py-5.5">
+    <div
+      v-else
+      class="flex min-w-0 flex-1 flex-col gap-4 px-6 py-5.5"
+    >
       <!-- ⚠️ LA MENTION D'UN ÉCRAN À VENIR EST UNE ANNONCE TRANSVERSE, pas une
            marque sur la surface. Elle dit ce qui manque — de NOTRE côté — et
            quand cela viendra. -->
@@ -274,6 +300,7 @@ watch(
 
     <!-- ── LA COLONNE LATÉRALE · ce qu'on SURVEILLE ──────────────────────── -->
     <div
+      v-if="accueil.repli === null"
       class="flex w-84 shrink-0 flex-col gap-5.5 border-l border-line bg-surf px-5 py-5.5"
       data-colonne="laterale"
     >

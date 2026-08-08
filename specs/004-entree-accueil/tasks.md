@@ -223,11 +223,11 @@ d'établissement · **10** témoin d'envoi · **03** bouton discret.
 > ne remplace (DoD §0.4 point 8), et livre **un** cas neuf — le compte sans établissement. Ce n'est
 > donc pas un incrément fonctionnel, et l'appeler ainsi tromperait sur ce qui reste à faire.
 
-- [ ] T062 [P] [US6] Écrire `tests/navigateur/etats-degrades.spec.ts` — sous le levier **jeu vide**, vérifier que chaque rubrique porte son **état vide illustré**, disant ce qui viendra s'y loger — et non un cadre nu
-- [ ] T063 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **échec réseau**, vérifier que les autres rubriques **restent affichées** — c'est le point dur : si tout l'accueil tombe, l'indépendance des sources n'est pas tenue
-- [ ] T064 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **hors ligne**, vérifier que la connexion le dit **avant** la saisie, et que les surfaces de classe B/C/D **disparaissent** avec un bandeau qui dit pourquoi
-- [ ] T065 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **latence**, vérifier que chaque rubrique porte son squelette **à la place et à la taille** de ce qui viendra — jamais un vide qui fait sauter la mise en page
-- [ ] T066 [US6] Traiter le cas d'un compte **sans aucun établissement** (l'administrateur éditeur, rattachement `null`) : un accueil qui **le dit** et ne propose que ce qui a un sens sans site — jamais un accueil vide, jamais une erreur (FR-024)
+- [X] T062 [P] [US6] Écrire `tests/navigateur/etats-degrades.spec.ts` — sous le levier **jeu vide**, vérifier que chaque rubrique porte son **état vide illustré**, disant ce qui viendra s'y loger — et non un cadre nu
+- [X] T063 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **échec réseau**, vérifier que les autres rubriques **restent affichées** — c'est le point dur : si tout l'accueil tombe, l'indépendance des sources n'est pas tenue
+- [X] T064 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **hors ligne**, vérifier que la connexion le dit **avant** la saisie, et que les surfaces de classe B/C/D **disparaissent** avec un bandeau qui dit pourquoi
+- [X] T065 [US6] Étendre `tests/navigateur/etats-degrades.spec.ts` — sous **latence**, vérifier que chaque rubrique porte son squelette **à la place et à la taille** de ce qui viendra — jamais un vide qui fait sauter la mise en page
+- [X] T066 [US6] Traiter le cas d'un compte **sans aucun établissement** (l'administrateur éditeur, rattachement `null`) : un accueil qui **le dit** et ne propose que ce qui a un sens sans site — jamais un accueil vide, jamais une erreur (FR-024)
 
 ---
 

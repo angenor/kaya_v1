@@ -54,6 +54,16 @@ export interface Rubrique<T> {
 
 export interface AccueilCompose {
   /**
+   * LE REPLI DE L'ÉCRAN ENTIER — `null` dans le cas ordinaire.
+   *
+   * ⚠️ `sansEtablissement` N'EST PAS UN ÉTAT VIDE DE PLUS (FR-024). Un compte
+   * dont le rattachement est `null` — l'administrateur éditeur — ne peut composer
+   * **aucune** rubrique : il n'y a pas d'établissement sur lequel lire. Lui
+   * rendre cinq cadres vides ferait croire à une panne de chargement, et lui
+   * rendre une erreur ferait croire à un défaut. L'écran DIT ce qui manque.
+   */
+  readonly repli: 'sansEtablissement' | null
+  /**
    * LA NOTE DE PIED DE LA COLONNE LATÉRALE — `null` quand aucune surface de
    * tête n'est retenue. Elle vient de la SURFACE, jamais d'une branche.
    */
@@ -134,6 +144,7 @@ function rubriqueInitiale<T>(contenu: T): Rubrique<T> {
 
 function accueilInitial(): AccueilCompose {
   return {
+    repli: null,
     noteCle: null,
     tete: rubriqueInitiale<TeteAccueil | null>(null),
     suite: rubriqueInitiale<readonly LigneSuiteAccueil[]>([]),
@@ -145,7 +156,7 @@ function accueilInitial(): AccueilCompose {
 
 export function useAccueil() {
   const { session } = useSession()
-  const { definirModulesActifs, retenir } = useAutorisation()
+  const { retenir } = useAutorisation()
 
   const accueil = useState<AccueilCompose>('kaya.accueil', accueilInitial)
 
@@ -264,8 +275,30 @@ export function useAccueil() {
     const monJeton = jeton.value + 1
     jeton.value = monJeton
 
+    /**
+     * ⚠️ **DEUX ABSENCES D'ÉTABLISSEMENT, ET ELLES NE SE DISENT PAS PAREIL.**
+     * `etablissementDe` rend `null` sous la vue d'ensemble **comme** pour un
+     * compte sans aucun site : les confondre ferait rendre à l'administrateur
+     * éditeur l'écran d'un propriétaire qui a choisi « Mes 3 établissements ».
+     * La portée les distingue — `{ type: 'tous' }` est un choix, `null` est une
+     * absence de rattachement (FR-024).
+     */
+    if (session.value.portee === null) {
+      accueil.value = {
+        repli: 'sansEtablissement',
+        noteCle: null,
+        tete: { etat: 'absente', contenu: null, titreCle: null },
+        suite: { etat: 'absente', contenu: [], titreCle: null },
+        aRegler: { etat: 'absente', contenu: [], titreCle: null },
+        activites: { etat: 'absente', contenu: [], titreCle: null },
+        chiffres: { etat: 'absente', contenu: [], titreCle: null },
+      }
+      return
+    }
+
     if (etablissementId === null) {
       accueil.value = {
+        repli: null,
         noteCle: null,
         tete: { etat: 'vide', contenu: null, titreCle: titreDe('tete') },
         suite: { etat: 'vide', contenu: [], titreCle: titreDe('suite') },
@@ -280,15 +313,17 @@ export function useAccueil() {
     const portee = { etablissementId }
     const source = fournisseur().accueil
 
-    // ⚠️ LES MODULES ACTIFS SONT LUS **AVANT** LE FILTRAGE, ET L'ORDRE DÉCIDE DE
-    // TOUT. `serviceEstActif` répond « non » sur une liste vide : filtrer avant
-    // de les avoir lus retirerait TOUTE surface portant un module, et l'accueil
-    // d'une gérante serait celui d'un compte sans droits — un écran vide, sans
-    // erreur, sans rien à comprendre.
-    const modules = await fournisseur().etablissements.listerModulesActifs(portee)
-    if (jeton.value !== monJeton) return
-    if (modules.ok) definirModulesActifs(modules.valeur)
-    const nbModulesActifs = modules.ok ? modules.valeur.length : 0
+    // ⚠️ LES MODULES ACTIFS NE SONT **PLUS LUS ICI**, ET C'EST LE CORRECTIF LE
+    // PLUS IMPORTANT DE LA PHASE 8. Ils l'étaient, **avant** le filtrage, parce
+    // que `serviceEstActif` répond « non » sur une liste vide. Mais cette
+    // lecture-là mettait une panne réseau sur le chemin de **toute** la
+    // composition : quand elle échouait, toute surface portant un module tombait
+    // — donc « Ensuite » et « Vos activités » disparaissaient **avec leurs
+    // titres**, sans erreur, sans un mot. Un accueil de serveuse devenait une
+    // page blanche. Les modules sont désormais résolus **avec le contexte** et
+    // portés par la session : l'échec d'une source ne peut plus faire croire
+    // qu'un service n'existe pas.
+    const nbModulesActifs = session.value.modulesActifs.length
 
     const [tetes, suite, aRegler, activites, chiffres] = await Promise.all([
       source.listerTetes(portee),
@@ -302,6 +337,7 @@ export function useAccueil() {
     if (jeton.value !== monJeton) return
 
     accueil.value = {
+      repli: null,
       noteCle: noteDerivee(nbModulesActifs, surfacesRendues.value),
       tete: composerTete(tetes),
       suite,

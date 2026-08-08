@@ -14,6 +14,11 @@ import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vu
 import { useFile } from '~/core/file/useFile'
 import { CLASSES_ESSAI } from '~/core/scenarios/reglages'
 import { useScenarios } from '~/core/scenarios/useScenarios'
+import {
+  contexteSansEtablissement,
+  contexteVueDEnsemble,
+  resoudreContexte,
+} from '~/core/session/resoudreContexte'
 import { etablissementDe, useSession } from '~/core/session/useSession'
 import { useCoquille } from '~/core/coquille/useCoquille'
 import { useInstallation } from '~/core/coquille/useInstallation'
@@ -132,7 +137,18 @@ const porteesDisponibles = computed(() =>
  * partout ailleurs.
  */
 async function appliquerPorteeTous(compteId: string): Promise<void> {
-  await definir({ compteId, portee: { type: 'tous' }, permissions: [], posteUnique: null })
+  await definir(contexteVueDEnsemble(compteId))
+}
+
+/**
+ * ⚠️ **UN COMPTE SANS AUCUN SITE SE CHOISIT AUSSI** (FR-024). Le panneau
+ * laissait AUPARAVANT la session sur le compte précédent : `etablissementsDe`
+ * rendant une liste vide, il n'y avait aucune cible, et la fonction rendait la
+ * main sans rien poser. On choisissait l'administrateur éditeur, et l'en-tête
+ * continuait d'afficher Adjoua — l'instrument mentait sur ce qu'il avait fait.
+ */
+async function appliquerSansEtablissement(compteId: string): Promise<void> {
+  await definir(contexteSansEtablissement(compteId))
 }
 
 /**
@@ -141,20 +157,12 @@ async function appliquerPorteeTous(compteId: string): Promise<void> {
  * liste figée.
  */
 async function appliquerContexte(compteId: string, etablissementId: string): Promise<void> {
-  // ⚠️ LE POSTE EST DÉRIVÉ ICI AUSSI, ET PAS SEULEMENT À L'ENTRÉE. Le panneau
-  // est ce par quoi on choisit un contexte en phase 2 : s'il posait un poste
-  // nul, l'en-tête n'afficherait jamais sa forme longue depuis l'instrument —
+  // ⚠️ LE POSTE ET LES MODULES SONT DÉRIVÉS ICI AUSSI, ET PAS SEULEMENT À
+  // L'ENTRÉE — par la fonction que les trois chemins partagent. Le panneau est ce
+  // par quoi on choisit un contexte en phase 2 : s'il posait un poste nul,
+  // l'en-tête n'afficherait jamais sa forme longue depuis l'instrument —
   // c'est-à-dire jamais pendant une démonstration.
-  const [resolues, poste] = await Promise.all([
-    fournisseur().comptes.resoudrePermissions(compteId, etablissementId),
-    fournisseur().comptes.posteUniqueSur(compteId, etablissementId),
-  ])
-  await definir({
-    compteId,
-    portee: { type: 'etablissement', id: etablissementId },
-    permissions: resolues.ok ? resolues.valeur : [],
-    posteUnique: poste.ok ? poste.valeur : null,
-  })
+  await definir(await resoudreContexte(compteId, etablissementId))
 }
 
 /**
@@ -170,7 +178,9 @@ if (
   session.value.compteId !== reglages.value.compteActif ||
   etablissementDe(session.value) !== reglages.value.etablissementActif
 ) {
-  if (reglages.value.etablissementActif === PORTEE_TOUS) {
+  if (etablissementsDisponibles.value.length === 0) {
+    await appliquerSansEtablissement(reglages.value.compteActif)
+  } else if (reglages.value.etablissementActif === PORTEE_TOUS) {
     await appliquerPorteeTous(reglages.value.compteActif)
   } else {
     await appliquerContexte(reglages.value.compteActif, reglages.value.etablissementActif)
@@ -189,7 +199,13 @@ const compteActif = computed({
         (e) => e.valeur === reglages.value.etablissementActif,
       )
       const cible = courant?.valeur ?? etablissementsDisponibles.value[0]?.valeur
-      if (cible === undefined) return
+      // ⚠️ AUCUN SITE N'EST UN CAS DU MODÈLE, PAS UNE IMPASSE (FR-024) : le
+      // contexte se pose quand même, sans établissement, et `R1` dit ce qui
+      // manque. Rendre la main ici laissait la session sur le compte précédent.
+      if (cible === undefined) {
+        await appliquerSansEtablissement(valeur)
+        return
+      }
       if (cible !== reglages.value.etablissementActif) await regler('etablissementActif', cible)
       await appliquerContexte(valeur, cible)
     })()
@@ -327,12 +343,29 @@ const etatTemoin = computed(() => {
         :options="comptesDisponibles"
         data-levier="compte"
       />
+      <!-- ⚠️ **ABSENT, JAMAIS UNE LISTE VIDE.** Un compte sans aucun site —
+           l'administrateur éditeur — n'a rien à choisir : un sélecteur vide
+           serait une porte fermée, et le principe 8 les interdit partout
+           ailleurs. À sa place, la phrase qui dit ce qu'il en est. -->
       <ChampSaisie
+        v-if="porteesDisponibles.length > 0"
         v-model="etablissementActif"
         etiquette-cle="scenarios.etablissementActif"
         :options="porteesDisponibles"
         data-levier="etablissement"
       />
+      <div
+        v-else
+        class="flex flex-col gap-1.5"
+        data-sans-etablissement
+      >
+        <span class="text-etiquette uppercase text-ink-3">
+          {{ $t('scenarios.etablissementActif') }}
+        </span>
+        <p class="text-corps text-ink-2">
+          {{ $t('scenarios.aucunEtablissement') }}
+        </p>
+      </div>
       <div class="flex items-end gap-3.5 md:col-span-2">
         <TemoinSynchronisation
           :etat="etatTemoin"

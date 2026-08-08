@@ -67,7 +67,7 @@ const entrees = computed<readonly EntreeEcran[]>(() =>
 type EtatSurface = 'chargement' | 'pret' | 'vide' | 'horsLigne' | 'erreur'
 
 const { session } = useSession()
-const { definirModulesActifs, retenir } = useAutorisation()
+const { retenirAvec } = useAutorisation()
 
 const etat = ref<EtatSurface>('chargement')
 const actionsAutorisees = ref<readonly ActionDeLaCoquille[]>([])
@@ -98,8 +98,16 @@ async function chargerLesActions(): Promise<void> {
     return
   }
 
-  definirModulesActifs(resultat.valeur)
-  actionsAutorisees.value = retenir(ACTIONS_DE_LA_COQUILLE)
+  // ⚠️ ON FILTRE AVEC **CE QU'ON VIENT DE LIRE**, pas avec ce que la session
+  // porte, et la nuance a été constatée : depuis que les modules actifs sont
+  // résolus avec le contexte (cycle F2), cet écran affichait ses actions sous un
+  // jeu vide qui n'en rendait aucune — il montrait l'état d'une lecture et le
+  // contenu d'une autre. La règle, elle, reste écrite **une seule fois** dans
+  // `useAutorisation`.
+  actionsAutorisees.value = retenirAvec(
+    ACTIONS_DE_LA_COQUILLE,
+    resultat.valeur.map((module) => module.code),
+  )
   etat.value = actionsAutorisees.value.length === 0 ? 'vide' : 'pret'
 }
 

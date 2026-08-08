@@ -166,6 +166,12 @@ export default {
     erreur: "Cette partie de l'écran n'a pas pu être chargée.",
     erreurAlternative: "Le reste de l'écran est à jour. Rien n'est perdu.",
     reessayer: 'Réessayer',
+    // ⚠️ CE QUI MANQUE EST UN **RATTACHEMENT**, ET LA PHRASE LE DIT (FR-024).
+    // « Aucune donnée » ferait croire à une panne ; « Erreur » à un défaut. Le
+    // compte de l'administrateur éditeur n'est rattaché à aucun établissement,
+    // et c'est un cas prévu du modèle, pas un accident.
+    sansEtablissement:
+      'Aucun établissement ne vous est rattaché. Demandez à votre gérant de vous en donner un : vous verrez alors ici ce qui vous attend.',
     teteVide: 'Rien ne vous attend pour le moment. Ce qui arrive s’affichera ici.',
     suiteVide: 'Rien de prévu pour la suite. Les arrivées et les tables ouvertes apparaîtront ici.',
     aReglerVide: 'Rien à régler. Tout est transmis et la caisse est juste.',
@@ -298,6 +304,9 @@ export default {
     jeuVide: "Jeu vide",
     compteActif: "Compte actif",
     etablissementActif: "Établissement actif",
+    // ⚠️ ABSENT, JAMAIS UNE LISTE VIDE : ce compte n'a aucun site à proposer, et
+    // le panneau le dit plutôt que d'ouvrir un choix sur rien.
+    aucunEtablissement: "Ce compte n'est rattaché à aucun établissement.",
     actif: "Actif",
     inactif: "Inactif",
     essaiEcriture: "Essai d'écriture",

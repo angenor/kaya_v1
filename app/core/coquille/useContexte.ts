@@ -1,5 +1,6 @@
 import { fournisseur } from '~/core/donnees/fournisseur'
 import type { Etablissement } from '~/core/donnees/etablissements/types'
+import { contexteVueDEnsemble, resoudreContexte } from '~/core/session/resoudreContexte'
 import { etablissementDe, useSession, type PorteeSession } from '~/core/session/useSession'
 
 /**
@@ -68,26 +69,14 @@ export function useContexte() {
     const compteId = session.value.compteId
     if (compteId === null) return
 
-    if (portee.type === 'tous') {
-      // ⚠️ SOUS LA PORTÉE « TOUS », AUCUNE PERMISSION N'EST PORTÉE — donc
-      // **aucune surface qui modifie une caisse n'existe** (FR-019). Ce n'est
-      // pas une restriction ajoutée à l'écran : c'est l'absence de droits qui la
-      // produit, par le même filtrage que partout ailleurs.
-      await definir({ ...session.value, portee, permissions: [], posteUnique: null })
-      return
-    }
-
-    const [resolues, posteUnique] = await Promise.all([
-      fournisseur().comptes.resoudrePermissions(compteId, portee.id),
-      fournisseur().comptes.posteUniqueSur(compteId, portee.id),
-    ])
-
-    await definir({
-      compteId,
-      portee,
-      permissions: resolues.ok ? resolues.valeur : [],
-      posteUnique: posteUnique.ok ? posteUnique.valeur : null,
-    })
+    // ⚠️ LA RÉSOLUTION EST **PARTAGÉE** AVEC L'ENTRÉE ET LE PANNEAU. Trois
+    // copies de la même séquence divergeraient — et c'est la plus faible qu'on
+    // croirait, celle qui aurait oublié une lecture.
+    await definir(
+      portee.type === 'tous'
+        ? contexteVueDEnsemble(compteId)
+        : await resoudreContexte(compteId, portee.id),
+    )
   }
 
   return {

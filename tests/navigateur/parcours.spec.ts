@@ -4,6 +4,7 @@ import { ECRANS_PRODUIT, INSTRUMENTS } from '../../app/core/ecrans/index'
 
 import { entrer } from './outils/entrer'
 import { exigerAucunNomDetatInterne } from './outils/mesures'
+import { poserLevier as basculer } from './outils/panneau'
 
 /**
  * **LES DEUX PARCOURS COMPLETS DE LA PORTE P-04** — `quickstart.md`, rejoué sur
@@ -80,13 +81,6 @@ const SEUIL_DEGRADE_MS = 3000
 
 function temoin(page: Page) {
   return page.locator('header [data-emplacement="temoin"] [role="status"]')
-}
-
-/** Actionne un levier à deux options du panneau Scénarios. */
-async function basculer(page: Page, levier: string, actif: boolean): Promise<void> {
-  const bouton = page.locator(`[data-levier="${levier}"] [role="radio"]`).nth(actif ? 1 : 0)
-  await bouton.click()
-  await expect(bouton).toHaveAttribute('aria-checked', 'true')
 }
 
 for (const etablissement of ETABLISSEMENTS) {

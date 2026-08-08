@@ -40,6 +40,25 @@ export interface Session {
   /** L'UNION des permissions des rôles du compte SUR CETTE PORTÉE. */
   readonly permissions: readonly string[]
   /**
+   * LES CODES DES MODULES D'ACTIVITÉ ACTIFS SUR CETTE PORTÉE.
+   *
+   * ⚠️ ILS SONT UNE PROPRIÉTÉ DU **CONTEXTE**, PAS UNE LECTURE D'ÉCRAN, et le
+   * cycle F2 les a déplacés ici sur constat. `composerAccueil` les relisait à
+   * chaque composition, **avant** de filtrer : quand cette lecture échouait —
+   * réseau coupé, panne —, `serviceEstActif` répondait « non » à tout, et les
+   * rubriques d'un service disparaissaient **silencieusement**, comme si
+   * l'établissement ne l'offrait pas. Un accueil de serveuse devenait une page
+   * blanche hors ligne, sans une phrase pour le dire.
+   *
+   * ⚠️ ET C'EST LA MÊME NATURE QUE `permissions` : ce que l'établissement offre
+   * et ce que la personne a le droit d'y faire se résolvent **au moment où le
+   * contexte est posé** — à l'entrée, à la bascule de site, au panneau —, se
+   * persistent avec lui, et ne dépendent plus du réseau ensuite. Une
+   * configuration d'établissement change une fois l'an ; la relire à chaque
+   * écran mettait une panne réseau sur le chemin de toute composition.
+   */
+  readonly modulesActifs: readonly string[]
+  /**
    * Le nom du poste, **ou `null`**.
    *
    * ⚠️ JAMAIS « PLUSIEURS ». Le modèle ne porte aucun lien
@@ -55,6 +74,7 @@ export const SESSION_VIDE: Session = {
   compteId: null,
   portee: null,
   permissions: [],
+  modulesActifs: [],
   posteUnique: null,
 }
 

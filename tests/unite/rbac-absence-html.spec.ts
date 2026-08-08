@@ -151,7 +151,13 @@ describe("une action non permise est ABSENTE du HTML rendu", () => {
     )
     expect(source).toContain('aLaPermission(action.permission) && serviceEstActif(action.moduleCode)')
     expect(source).toContain('session.value.permissions.includes(code)')
-    expect(source).toContain('modulesActifs.value.some((module) => module.code === moduleCode)')
+    // ⚠️ LES MODULES ACTIFS SONT LUS **SUR LA SESSION** DEPUIS LE CYCLE F2, et
+    // la règle n'a pas changé d'un mot : c'est sa SOURCE qui a bougé. Ils
+    // vivaient dans un état d'écran que chaque page devait remplir ; quand la
+    // lecture échouait, `serviceEstActif` répondait « non » à tout et les
+    // surfaces d'un service disparaissaient comme si l'établissement ne
+    // l'offrait pas. Une panne ne doit pas ressembler à une configuration.
+    expect(source).toContain('session.value.modulesActifs.includes(moduleCode)')
   })
 
   it("les mots « rôle » et « permission » n'atteignent aucun libellé", () => {
