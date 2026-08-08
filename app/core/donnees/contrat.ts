@@ -35,8 +35,17 @@ export interface EchecDomaine {
    * demain rendent donc le même code, et l'écran ne change pas au branchement.
    */
   readonly code: CodeEchec
-  /** Les paramètres de la phrase — nombres, heures, noms. JAMAIS une phrase. */
-  readonly parametres: Readonly<Record<string, string | number>>
+  /**
+   * Les paramètres de la phrase — nombres, heures, noms. JAMAIS une phrase.
+   *
+   * ⚠️ **UNE LISTE Y EST ADMISE, ET UN SEUL CODE EN A BESOIN.**
+   * `CONFLIT_OCCUPATION_SUIVANTE` porte les chambres libres de la même
+   * catégorie, parce que le lexique exige que le refus soit **suivi de son
+   * alternative**. Sans cet élargissement, l'alternative devrait être
+   * recomposée par l'écran — donc réécrite six fois, et la sixième serait
+   * fausse. *L'élargissement est du contrat, pas de l'écran.*
+   */
+  readonly parametres: Readonly<Record<string, string | number | readonly string[]>>
 }
 
 export type CodeEchec =
@@ -60,6 +69,53 @@ export type CodeEchec =
    * renverrait vérifier un mot de passe qu'elle n'a pas encore tapé.
    */
   | 'IDENTIFIANT_ABSENT'
+  // ── Les onze refus de la réception · cycle F3 ────────────────────────────
+  //
+  // ⚠️ AUCUN NE PORTE DE MESSAGE, ET C'EST TOUT LEUR INTÉRÊT. L'écran branche
+  // sa clé i18n sur le CODE ; la simulation d'aujourd'hui et l'endpoint de
+  // demain rendent le même, et l'écran ne change pas au branchement.
+  //
+  // ⚠️ ET AUCUN N'EST GÉNÉRIQUE. « Cette chambre n'est pas disponible » serait
+  // vrai six fois et utile zéro : c'est la différence entre un refus qu'une
+  // réceptionniste peut EXPLIQUER au client et un refus qu'elle contournera.
+  /** `unite`, `debut`, `fin` — « Cette chambre est déjà prise sur cette période. » */
+  | 'UNITE_DEJA_OCCUPEE'
+  /**
+   * `heure` + **la liste des chambres libres de la même catégorie**.
+   * ⚠️ LE SEUL CODE QUI PORTE UNE LISTE, et c'est pourquoi `parametres`
+   * l'admet. Le lexique exige que ce refus soit suivi de son alternative.
+   */
+  | 'CONFLIT_OCCUPATION_SUIVANTE'
+  /**
+   * `unite` — « Cette chambre n'est pas libre sur la période restante. »
+   * ⚠️ DISTINCT DE `UNITE_DEJA_OCCUPEE` : celui-ci porte sur **ce qui reste du
+   * séjour** lors d'un changement de chambre, celui-là sur une période demandée.
+   */
+  | 'UNITE_CIBLE_OCCUPEE'
+  /** `plage1`, `plage2` **de l'établissement** — jamais des heures écrites ici. */
+  | 'PLAGE_NON_FRACTIONNABLE'
+  /** — « La fin doit être après le début. » */
+  | 'INTERVALLE_INVALIDE'
+  /** `min`, `max` **de la formule** — « Cette formule se loue de 1 h à 8 h. » */
+  | 'DUREE_HORS_CONTRAINTE'
+  /** — « Cette formule ne s'applique pas à cette chambre. » */
+  | 'FORMULE_HORS_CATEGORIE'
+  /** — « Ce séjour est déjà terminé. » */
+  | 'SEJOUR_DEJA_CLOS'
+  /**
+   * — « On ne prolonge pas un séjour terminé. »
+   * ⚠️ LA PHRASE DIT LA RÈGLE, PAS L'ÉTAT, et les deux codes coexistent pour
+   * cela : dire « ce séjour est terminé » ferait chercher comment le rouvrir.
+   */
+  | 'SEJOUR_CLOS'
+  /** — « La note est arrêtée : plus rien ne peut s'y ajouter. » */
+  | 'NOTE_ARRETEE'
+  /**
+   * `seuilHeures`, `montant` — « Au-delà de {n} h, le tarif passe à la nuitée. »
+   * ⚠️ CE N'EST PAS UN REFUS DÉFINITIF : c'est une ANNONCE qui attend une
+   * confirmation. Rien n'est appliqué avant elle.
+   */
+  | 'BASCULE_FORMULE_NON_CONFIRMEE'
 
 export function reussite<T>(valeur: T): ResultatDomaine<T> {
   return { ok: true, valeur }
@@ -67,7 +123,7 @@ export function reussite<T>(valeur: T): ResultatDomaine<T> {
 
 export function echec<T>(
   code: CodeEchec,
-  parametres: Readonly<Record<string, string | number>> = {},
+  parametres: Readonly<Record<string, string | number | readonly string[]>> = {},
 ): ResultatDomaine<T> {
   return { ok: false, echec: { code, parametres } }
 }
