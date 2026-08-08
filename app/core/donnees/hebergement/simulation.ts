@@ -1,5 +1,6 @@
 import { echec, reussite, type PorteeLecture, type ResultatDomaine } from '~/core/donnees/contrat'
 import type {
+  DemandeGarde,
   DemandePassage,
   DonneesHebergement,
   DonneesReception,
@@ -391,6 +392,55 @@ export const simulationEcrituresReception: EcrituresReception = {
     })
   },
 
+  garderChambre(demande: DemandeGarde): Promise<ResultatDomaine<Occupation>> {
+    // ⚠️ MÊME CLASSE, MÊME GARDE, MÊME REFUS que le passage : c'est une
+    // occupation, et le fait qu'elle soit courte n'y change rien.
+    return ecrireSimule('occupation', () => {
+      const etat = mouvement()
+      const deja = etat.demandesTraitees.get(demande.id)
+      if (deja !== undefined) return reussite(deja as Occupation)
+
+      const unite = TOUTES_UNITES.find((u) => u.id === demande.uniteId)
+      if (unite === undefined) return echec('INTROUVABLE')
+
+      // ⚠️ **LA GARDE COMMENCE QUAND LA CHAMBRE SE LIBÈRE**, jamais maintenant :
+      // sinon elle se heurterait à l'occupation en cours, c'est-à-dire à celle
+      // qui rend la garde nécessaire.
+      const debut = demande.aPartirDe
+      const periode = { debut, fin: decale(debut, demande.dureeMinutes) }
+      // ⚠️ **AUCUNE REMISE EN ÉTAT SUR UNE GARDE** : personne n'occupe la
+      // chambre, il n'y a rien à nettoyer. L'indisponibilité vaut donc la
+      // période — l'égalité est licite, et le modèle la prévoit.
+      const conflit = occupationEnConflit(etat.occupations, unite.id, periode)
+      if (conflit !== null) {
+        return echec('UNITE_DEJA_OCCUPEE', {
+          unite: unite.code,
+          debut: formaterHeure(new Date(conflit.periodeIndisponibilite.debut), CONTEXTE_HEURE),
+          fin: formaterHeure(new Date(conflit.periodeIndisponibilite.fin), CONTEXTE_HEURE),
+        })
+      }
+
+      const garde: Occupation = {
+        id: `occupation-garde-${demande.id}`,
+        tenantId: unite.tenantId,
+        uniteId: unite.id,
+        // ⚠️ `RESERVATION` EST LE MOTIF DU MODÈLE, jamais un mot de l'écran.
+        motif: 'RESERVATION',
+        periode,
+        periodeIndisponibilite: periode,
+        statut: 'ACTIVE',
+        // Aucune origine : rien ne l'a créée qu'un geste de comptoir.
+        origineType: null,
+        origineId: null,
+        horodatageClient: demande.horodatageClient,
+        creeLe: instantAutorite(),
+      }
+      etat.occupations.push(garde)
+      etat.demandesTraitees.set(demande.id, garde)
+      return reussite(garde)
+    })
+  },
+
   annulerPassage(occupationId: string): Promise<ResultatDomaine<void>> {
     return ecrireSimule('occupation', () => {
       const etat = mouvement()
@@ -488,8 +538,7 @@ function refuserSurConflit(
   conflit: Occupation,
   demande: Intervalle,
 ): ResultatDomaine<never> {
-  const contexte = { fuseauHoraire: 'Africa/Abidjan', langue: 'fr' } as const
-  const commenceApres = conflit.periodeIndisponibilite.debut > demande.debut
+    const commenceApres = conflit.periodeIndisponibilite.debut > demande.debut
   if (commenceApres) {
     const libres = unitesDisponibles(
       TOUTES_UNITES.filter((u) => u.categorieId === formule.categorieId && u.id !== unite.id),
@@ -498,7 +547,7 @@ function refuserSurConflit(
     ).map((disponible) => disponible.unite.code)
     return echec('CONFLIT_OCCUPATION_SUIVANTE', {
       unite: unite.code,
-      heure: formaterHeure(new Date(conflit.periodeIndisponibilite.debut), contexte),
+      heure: formaterHeure(new Date(conflit.periodeIndisponibilite.debut), CONTEXTE_HEURE),
       // ⚠️ LA LISTE — le seul code du contrat qui en porte une, et c'est
       // l'alternative que le lexique exige.
       chambresLibres: libres,
@@ -506,7 +555,16 @@ function refuserSurConflit(
   }
   return echec('UNITE_DEJA_OCCUPEE', {
     unite: unite.code,
-    debut: formaterHeure(new Date(conflit.periodeIndisponibilite.debut), contexte),
-    fin: formaterHeure(new Date(conflit.periodeIndisponibilite.fin), contexte),
+    debut: formaterHeure(new Date(conflit.periodeIndisponibilite.debut), CONTEXTE_HEURE),
+    fin: formaterHeure(new Date(conflit.periodeIndisponibilite.fin), CONTEXTE_HEURE),
   })
 }
+
+/**
+ * ⚠️ **LES PARAMÈTRES D'UN REFUS SONT DES VALEURS, PAS DES PHRASES** — mais une
+ * heure doit être écrite quelque part, et c'est `instant.ts` qui l'écrit. Le
+ * fuseau est celui de l'établissement ; la langue de mise en forme d'une **heure
+ * seule** est indifférente en français comme en anglais — c'est l'écran qui
+ * traduit la phrase autour.
+ */
+const CONTEXTE_HEURE = { fuseauHoraire: 'Africa/Abidjan', langue: 'fr' } as const

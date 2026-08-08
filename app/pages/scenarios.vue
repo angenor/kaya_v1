@@ -12,7 +12,13 @@ import SelecteurSegmente, {
 } from '~/core/design-system/SelecteurSegmente.vue'
 import TemoinSynchronisation from '~/core/design-system/TemoinSynchronisation.vue'
 import { useFile } from '~/core/file/useFile'
-import { CLASSES_ESSAI } from '~/core/scenarios/reglages'
+import {
+  CAS_DU_JEU,
+  CLASSES_ESSAI,
+  ISSUES_ENVOI,
+  type CasDuJeu,
+  type IssueEnvoiSimulee,
+} from '~/core/scenarios/reglages'
 import { useScenarios } from '~/core/scenarios/useScenarios'
 import {
   contexteSansEtablissement,
@@ -58,7 +64,7 @@ const OPTIONS_BOOLEEN: readonly OptionSegment[] = [
   { valeur: 'oui', libelleCle: 'scenarios.actif' },
 ]
 
-function levier(cle: 'echecReseau' | 'horsLigne' | 'jeuVide') {
+function levier(cle: 'echecReseau' | 'horsLigne' | 'jeuVide' | 'conflitAuTap') {
   return computed({
     get: () => (reglages.value[cle] ? 'oui' : 'non'),
     set: (valeur: string) => void regler(cle, valeur === 'oui'),
@@ -68,6 +74,47 @@ function levier(cle: 'echecReseau' | 'horsLigne' | 'jeuVide') {
 const echecReseau = levier('echecReseau')
 const horsLigne = levier('horsLigne')
 const jeuVide = levier('jeuVide')
+
+/**
+ * LES QUATRE LEVIERS DU CYCLE F3.
+ *
+ * ⚠️ **CE NE SONT PAS DES INTERRUPTEURS D'ÉCRAN.** Ils vivent dans la couche de
+ * simulation, qui disparaît au branchement de la phase 3 — et les leviers avec
+ * elle. Aucun composant du produit ne les lit ; c'est le panneau qui les écrit,
+ * et la simulation seule qui les applique.
+ *
+ * ⚠️ **`conflitAuTap` EXERCE LE CAS DES DEUX RÉCEPTIONNISTES À LA MÊME
+ * SECONDE** : une occupation concurrente apparaît **entre le rendu et le tap**.
+ * Sans lui, ce cas limite ne serait exercé par rien — et c'est celui qui décide
+ * si le refus arrive avant ou après la clé.
+ */
+const conflitAuTap = levier('conflitAuTap')
+
+const casDuJeu = computed({
+  get: () => reglages.value.casDuJeu,
+  set: (valeur: string) => void regler('casDuJeu', valeur as CasDuJeu),
+})
+
+const issueEnvoiFiscal = computed({
+  get: () => reglages.value.issueEnvoiFiscal,
+  set: (valeur: string) => void regler('issueEnvoiFiscal', valeur as IssueEnvoiSimulee),
+})
+
+const deriveHorloge = computed({
+  get: () => String(reglages.value.deriveHorlogeSecondes),
+  set: (valeur: string) =>
+    void regler('deriveHorlogeSecondes', Number.parseInt(valeur, 10) || 0),
+})
+
+const OPTIONS_CAS: readonly OptionSegment[] = CAS_DU_JEU.map((cas) => ({
+  valeur: cas,
+  libelleCle: `scenarios.cas${cas.charAt(0).toUpperCase()}${cas.slice(1)}`,
+}))
+
+const OPTIONS_ISSUE: readonly OptionSegment[] = ISSUES_ENVOI.map((issue) => ({
+  valeur: issue,
+  libelleCle: `scenarios.issue${issue.charAt(0)}${issue.slice(1).toLowerCase()}`,
+}))
 
 const latence = computed({
   get: () => String(reglages.value.latenceMs),
@@ -337,6 +384,37 @@ const etatTemoin = computed(() => {
           data-levier="jeu-vide"
         />
       </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-etiquette uppercase text-ink-3">{{ $t('scenarios.casDuJeu') }}</span>
+        <SelecteurSegmente
+          v-model="casDuJeu"
+          :options="OPTIONS_CAS"
+          data-levier="cas-du-jeu"
+        />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-etiquette uppercase text-ink-3">{{ $t('scenarios.conflitAuTap') }}</span>
+        <SelecteurSegmente
+          v-model="conflitAuTap"
+          :options="OPTIONS_BOOLEEN"
+          data-levier="conflit-au-tap"
+        />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-etiquette uppercase text-ink-3">{{ $t('scenarios.issueEnvoiFiscal') }}</span>
+        <SelecteurSegmente
+          v-model="issueEnvoiFiscal"
+          :options="OPTIONS_ISSUE"
+          data-levier="issue-envoi"
+        />
+      </div>
+      <ChampSaisie
+        v-model="deriveHorloge"
+        etiquette-cle="scenarios.deriveHorloge"
+        aide-cle="scenarios.deriveHorlogeAide"
+        type="number"
+        data-levier="derive-horloge"
+      />
       <ChampSaisie
         v-model="compteActif"
         etiquette-cle="scenarios.compteActif"

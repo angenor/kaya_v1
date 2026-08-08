@@ -163,6 +163,43 @@ export interface EcrituresReception {
    * exactement ce qu'un audit cherche.
    */
   annulerPassage(occupationId: string): Promise<ResultatDomaine<void>>
+
+  /**
+   * GARDER LA CHAMBRE — une occupation de motif `RESERVATION`, **bornée**, et
+   * **relâchée automatiquement**. **Classe B.**
+   *
+   * ⚠️ **CE N'EST PAS UNE RÉSERVATION, ET LE MOT EST INTERDIT À L'ÉCRAN.**
+   * « Réserver » promettrait un engagement que **quinze minutes** ne portent
+   * pas, et il collerait à `RSV` — un autre produit, avec ses arrhes, ses
+   * statuts et sa politique d'annulation. Ici : ni arrhes, ni statut, ni
+   * expiration paramétrable au-delà de la durée de tenue.
+   *
+   * ⚠️ **ET ELLE EST SOUMISE AU MÊME REFUS DE CHEVAUCHEMENT.** Une garde qui
+   * mordrait sur une occupation existante donnerait deux fois la même chambre —
+   * le fait qu'elle soit courte n'y change rien.
+   */
+  garderChambre(demande: DemandeGarde): Promise<ResultatDomaine<Occupation>>
+}
+
+/** Ce qu'il faut pour garder une chambre — **la durée vient du catalogue**. */
+export interface DemandeGarde {
+  readonly id: string
+  readonly etablissementId: string
+  readonly uniteId: string
+  /**
+   * L'INSTANT OÙ LA GARDE COMMENCE — **celui où la chambre se libère**.
+   *
+   * ⚠️ **ET NON « MAINTENANT ».** *Constaté à l'écran* : une garde posée à
+   * l'instant courant se heurtait à l'occupation en cours, et se refusait
+   * elle-même — sur l'écran « tout est pris », c'est-à-dire dans le seul cas où
+   * elle sert. Garder une chambre, c'est **tenir celle qui va se libérer** pour
+   * le client qui attend au comptoir ; la tenue court donc à partir de la fin
+   * de l'occupation, remise en état comprise.
+   */
+  readonly aPartirDe: string
+  /** ⚠️ Lue à `heb.duree_garde_comptoir_minutes`, jamais écrite ici. */
+  readonly dureeMinutes: number
+  readonly horodatageClient: string | null
 }
 
 /** L'état de ménage d'une unité, tel que la grille le rend. */

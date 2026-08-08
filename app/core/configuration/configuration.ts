@@ -27,6 +27,21 @@ export const CLE_SEUIL_LATENCE_DEGRADEE = 'sync.latence_degradee_seuil_ms'
 export const CLE_INDICATIF_TELEPHONIQUE_DEFAUT = 'identite.indicatif_telephonique_defaut'
 
 /**
+ * LA DURÉE DE TENUE D'UNE CHAMBRE GARDÉE AU COMPTOIR — cycle F3.
+ *
+ * ⚠️ **QUINZE MINUTES, ET C'EST UN PARAMÈTRE.** *Un délai décidé dans un
+ * composant serait devenu une constante que personne ne rouvre.* La clé vient
+ * du Récapitulatif des paramètres d'établissement, où le cycle F3 l'a inscrite
+ * le 2026-08-08, à la portée **ÉTABLISSEMENT**.
+ *
+ * ⚠️ **À NE PAS CONFONDRE AVEC L'EXPIRATION D'UNE RÉSERVATION** : celle-ci se
+ * compte en **minutes**, au comptoir, **sans engagement du client** ; l'autre en
+ * heures, à distance, avec un engagement — et elle appartient à `RSV`, qui est
+ * un autre produit.
+ */
+export const CLE_DUREE_GARDE_COMPTOIR = 'heb.duree_garde_comptoir_minutes'
+
+/**
  * Les valeurs initiales, par clé.
  *
  * ⚠️ « VALEUR INITIALE » ET NON « CONSTANTE ». La nuance décide de tout : une
@@ -41,6 +56,9 @@ const VALEURS_INITIALES: Readonly<Record<string, string>> = {
   // « +225 (Côte d'Ivoire) », valeur initiale du Récapitulatif — celle que voit
   // un établissement avant d'avoir réglé quoi que ce soit, pas une vérité.
   [CLE_INDICATIF_TELEPHONIQUE_DEFAUT]: '+225',
+  // 15 min — valeur initiale du Récapitulatif, celle qu'un établissement voit
+  // avant d'avoir réglé quoi que ce soit.
+  [CLE_DUREE_GARDE_COMPTOIR]: '15',
 }
 
 /** Les surcharges posées en session — le panneau Scénarios les emploie. */

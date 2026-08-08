@@ -1,6 +1,7 @@
 import { v7 as uuidV7 } from 'uuid'
 
 import type { EtatRubrique } from '~/core/accueil/composerAccueil'
+import { CLE_DUREE_GARDE_COMPTOIR, lireParametreEntier } from '~/core/configuration/configuration'
 import type { EtatPastille } from '~/core/design-system/etatsPastille'
 import type { EchecDomaine, ResultatDomaine } from '~/core/donnees/contrat'
 import { fournisseur } from '~/core/donnees/fournisseur'
@@ -52,8 +53,24 @@ export interface CaseChambre {
   readonly libreJusqua: string | null
 }
 
+/** Ce qui se libère, et quand — l'état « tout est pris » en dépend. */
+export interface LiberationAffichee {
+  readonly codeUnite: string
+  readonly uniteId: string
+  readonly libreA: string
+  /** ⚠️ La garde déjà posée sur cette chambre, s'il y en a une. */
+  readonly tenueJusqua: string | null
+}
+
 export interface PassageCompose {
   readonly etat: EtatRubrique
+  /**
+   * CE QUI SE LIBÈRE — **et c'est ce qui distingue « tout est pris » d'un état
+   * vide**. La maison est pleine ; ce n'est pas une panne, et l'écran doit dire
+   * quoi faire : attendre telle heure, ou garder la chambre pour le client qui
+   * est là.
+   */
+  readonly liberations: readonly LiberationAffichee[]
   readonly durees: readonly DureeProposee[]
   readonly chambres: readonly CaseChambre[]
   /**
@@ -74,6 +91,7 @@ export interface PassageCompose {
 
 const PASSAGE_VIDE: PassageCompose = {
   etat: 'chargement',
+  liberations: [],
   durees: [],
   chambres: [],
   uniteProposeeId: null,
@@ -114,9 +132,15 @@ function proposerDurees(
   })
 }
 
+/** La garde déjà posée sur une chambre, telle que l'écran la retient. */
+function gardeEnCours(compose: PassageCompose, uniteId: string): string | null {
+  return compose.liberations.find((l) => l.uniteId === uniteId)?.tenueJusqua ?? null
+}
+
 export function usePassage() {
   const { session } = useSession()
   const passage = useState<PassageCompose>('kaya.passage', () => PASSAGE_VIDE)
+  const compose = passage
 
   async function composer(uniteChoisieId: string | null = null): Promise<void> {
     const etablissementId = etablissementDe(session.value)
@@ -203,6 +227,26 @@ export function usePassage() {
       return
     }
 
+    // ⚠️ **ON NE LIT « CE QUI SE LIBÈRE » QUE QUAND TOUT EST PRIS.** Le lire
+    // toujours coûterait une lecture à chaque ouverture de l'écran le plus
+    // sensible du produit, pour une information que personne ne regarde tant
+    // qu'il reste une chambre.
+    const toutEstPris = chambres.every((c) => !c.disponible)
+    const liberations: LiberationAffichee[] = []
+    if (toutEstPris) {
+      const prochaines = await reception.listerProchainesLiberations(portee, depuis, 6)
+      if (prochaines.ok) {
+        for (const liberation of prochaines.valeur) {
+          liberations.push({
+            codeUnite: liberation.codeUnite,
+            uniteId: liberation.uniteId,
+            libreA: liberation.libreA,
+            tenueJusqua: gardeEnCours(compose.value, liberation.uniteId),
+          })
+        }
+      }
+    }
+
     // ⚠️ **LA CHAMBRE CHOISIE À LA MAIN PRIME SUR LA PROPOSITION**, et elle ne
     // se perd pas au rechargement : sans cela, changer de chambre puis toucher
     // une durée redonnerait la chambre proposée — c'est-à-dire ferait le
@@ -220,7 +264,8 @@ export function usePassage() {
     const durees = proposerDurees(bareme, formule, depuis)
 
     passage.value = {
-      etat: durees.length === 0 || chambres.every((c) => !c.disponible) ? 'vide' : 'nominal',
+      etat: durees.length === 0 || toutEstPris ? 'vide' : 'nominal',
+      liberations,
       durees,
       chambres,
       uniteProposeeId: proposee?.unite.id ?? null,
@@ -294,5 +339,45 @@ export function usePassage() {
     return true
   }
 
-  return { passage, composer, poserRefus, donnerLaChambre, annuler }
+  /**
+   * GARDER LA CHAMBRE — **quinze minutes, lues au catalogue**.
+   *
+   * ⚠️ **JAMAIS « RÉSERVER ».** Le mot promettrait un engagement que quinze
+   * minutes ne portent pas, et il collerait à `RSV`, qui est un autre produit.
+   *
+   * ⚠️ **ET LA DURÉE NE S'ÉCRIT PAS ICI** : elle vient de
+   * `heb.duree_garde_comptoir_minutes`. *Un délai décidé dans un composant
+   * serait devenu une constante que personne ne rouvre.*
+   */
+  async function garderLaChambre(uniteId: string): Promise<string | null> {
+    const etablissementId = etablissementDe(session.value)
+    const liberation = passage.value.liberations.find((l) => l.uniteId === uniteId)
+    if (etablissementId === null || liberation === undefined) return null
+
+    const resultat = await fournisseur().ecrituresReception.garderChambre({
+      id: uuidV7(),
+      etablissementId,
+      uniteId,
+      // ⚠️ **À PARTIR DE LA LIBÉRATION, jamais de maintenant** : c'est la
+      // chambre qui va se libérer qu'on tient pour le client qui attend.
+      aPartirDe: liberation.libreA,
+      dureeMinutes: lireParametreEntier(CLE_DUREE_GARDE_COMPTOIR, 15),
+      horodatageClient: maintenantAppareil().toISOString(),
+    })
+    if (!resultat.ok) {
+      poserRefus(resultat.echec)
+      return null
+    }
+    const tenueJusqua = resultat.valeur.periode.fin
+    passage.value = {
+      ...passage.value,
+      refus: null,
+      liberations: passage.value.liberations.map((liberation) =>
+        liberation.uniteId === uniteId ? { ...liberation, tenueJusqua } : liberation,
+      ),
+    }
+    return tenueJusqua
+  }
+
+  return { passage, composer, poserRefus, donnerLaChambre, annuler, garderLaChambre }
 }

@@ -55,7 +55,7 @@ const { t } = useI18n()
 useHead({ title: () => t('passage.titre') })
 
 const { session } = useSession()
-const { passage, composer, donnerLaChambre, annuler } = usePassage()
+const { passage, composer, donnerLaChambre, annuler, garderLaChambre } = usePassage()
 const { langue } = useLangue()
 
 /** La chambre retenue — proposée, ou changée d'un tap. */
@@ -351,11 +351,49 @@ watch(
           pleine-largeur
           @agir="composer(uniteRetenueId)"
         />
+        <!-- ── TOUT EST PRIS · composant 11 ──────────────────────────────
+             ⚠️ **CE N'EST PAS UN ÉTAT VIDE — LA MAISON EST PLEINE, CE N'EST PAS
+             UNE PANNE.** Le composant 11 porte le motif de contreforts ocre,
+             mais la phrase et l'action ne sont pas celles d'un démarrage :
+             l'écran dit **ce qui se libère et quand**, et propose de **garder
+             la chambre** pour le client qui est là, devant le comptoir.
+
+             ⚠️ **« GARDER », JAMAIS « RÉSERVER ».** Le mot promettrait un
+             engagement que quinze minutes ne portent pas, et il collerait à
+             `RSV`, qui est un autre produit. -->
         <div
           v-else-if="passage.etat === 'vide'"
-          class="overflow-hidden rounded-xl border border-line bg-tile"
+          class="flex flex-col gap-3 overflow-hidden rounded-xl border border-line bg-tile"
+          data-tout-est-pris
         >
-          <EtatVide message-cle="passage.aucuneChambre" />
+          <EtatVide message-cle="passage.toutEstPris" />
+          <div
+            v-if="passage.liberations.length > 0"
+            class="flex flex-col gap-2.5 px-5 pb-5"
+          >
+            <span class="text-etiquette uppercase text-ink-3">{{ $t('passage.ceQuiSeLibere') }}</span>
+            <div
+              v-for="liberation in passage.liberations"
+              :key="liberation.uniteId"
+              class="flex items-center justify-between gap-3 rounded-xl border border-line bg-surf px-4 py-3"
+              :data-liberation="liberation.codeUnite"
+            >
+              <span class="flex flex-col gap-0.5">
+                <span class="font-mono text-lead font-semibold text-ink">{{ liberation.codeUnite }}</span>
+                <span class="text-mini text-ink-3">{{
+                  liberation.tenueJusqua
+                    ? $t('passage.tenueJusqua', { heure: heure(liberation.tenueJusqua) })
+                    : $t('passage.libreA', { heure: heure(liberation.libreA) })
+                }}</span>
+              </span>
+              <BoutonSecondaire
+                v-if="!liberation.tenueJusqua"
+                libelle-cle="passage.garderLaChambre"
+                :data-action="`garder-${liberation.codeUnite}`"
+                @activer="garderLaChambre(liberation.uniteId)"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- ── LES QUATRE BOUTONS DE DURÉE · propres à l'écran ───────────
